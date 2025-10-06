@@ -69,9 +69,8 @@ export default function CustomerRewardsPage() {
         pointsMap[t.business_id] = (pointsMap[t.business_id] || 0) + t.points_earned
       })
 
-      // Subtract redeemed points
       const { data: redemptions, error: redemptionsError } = await supabase
-        .from("reward_redemptions")
+        .from("redemptions")
         .select("business_id, points_redeemed")
         .eq("customer_id", user.id)
 
@@ -134,7 +133,7 @@ export default function CustomerRewardsPage() {
       const redemptionCode = `GIYA-REDEEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       const { data: redemption, error: redemptionError } = await supabase
-        .from("reward_redemptions")
+        .from("redemptions")
         .insert({
           customer_id: user.id,
           reward_id: selectedReward.id,

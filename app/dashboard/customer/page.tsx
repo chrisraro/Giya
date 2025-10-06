@@ -113,7 +113,7 @@ export default function CustomerDashboard() {
             )
           `,
           )
-          .eq("user_id", user.id)
+          .eq("customer_id", user.id)
           .order("redeemed_at", { ascending: false })
           .limit(10)
 

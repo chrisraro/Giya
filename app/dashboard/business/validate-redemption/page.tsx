@@ -36,7 +36,7 @@ export default function ValidateRedemptionPage() {
 
       // Fetch redemption details
       const { data: redemption, error: redemptionError } = await supabase
-        .from("reward_redemptions")
+        .from("redemptions")
         .select(
           `
           *,
@@ -95,7 +95,7 @@ export default function ValidateRedemptionPage() {
 
       // Update redemption status
       const { error: updateError } = await supabase
-        .from("reward_redemptions")
+        .from("redemptions")
         .update({
           status: "validated",
           validated_at: new Date().toISOString(),
