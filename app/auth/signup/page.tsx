@@ -4,11 +4,15 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { Building2, Megaphone, User } from "lucide-react"
+import Image from "next/image"
 
 export default function SignupPage() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-4xl">
+        <div className="flex justify-center mb-6">
+          <Image src="/giya-logo.png" alt="Giya Logo" width={80} height={80} className="object-contain" />
+        </div>
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Join Giya</h1>
           <p className="text-muted-foreground">Choose your account type to get started</p>

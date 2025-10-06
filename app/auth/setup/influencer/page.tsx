@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
+import Image from "next/image"
 
 export default function InfluencerSetupPage() {
   const [profilePic, setProfilePic] = useState<File | null>(null)
@@ -110,6 +111,9 @@ export default function InfluencerSetupPage() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-md">
+        <div className="flex justify-center mb-8">
+          <Image src="/giya-logo.jpg" alt="Giya Logo" width={80} height={80} className="object-contain" />
+        </div>
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Complete Your Profile</CardTitle>

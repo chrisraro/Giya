@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import Image from "next/image"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -89,6 +90,9 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
+        <div className="flex justify-center mb-8">
+          <Image src="/giya-logo.png" alt="Giya Logo" width={80} height={80} className="object-contain" />
+        </div>
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Welcome back to Giya</CardTitle>
