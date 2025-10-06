@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MapPin, Clock, Gift, Star, ExternalLink } from "lucide-react"
+import { MapPin, Clock, Gift, Star, ExternalLink, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 interface PageProps {
   params: {
@@ -31,21 +32,27 @@ export default async function BusinessProfilePage({ params }: PageProps) {
     .eq("is_active", true)
     .order("points_required", { ascending: true })
 
-  // Parse business hours if it exists
-  const businessHours = business.business_hours ? JSON.parse(business.business_hours) : null
+  const businessHours = business.business_hours
+
+  // Check if user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   return (
     <div className="min-h-svh bg-secondary">
-      {/* Header with back button */}
-      <header className="border-b bg-background">
-        <div className="container-padding-x container mx-auto py-4">
+      {/* Header with back button and logo */}
+      <header className="border-b bg-background sticky top-0 z-50">
+        <div className="container-padding-x container mx-auto py-4 flex items-center justify-between">
           <Link href="/">
-            <Button variant="ghost" size="sm">
-              <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+            <Button variant="ghost" size="sm" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
               Back to Discovery
             </Button>
+          </Link>
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/giya-logo.jpg" alt="Giya" width={32} height={32} className="object-contain" />
+            <span className="font-semibold hidden sm:inline">Giya</span>
           </Link>
         </div>
       </header>
@@ -80,7 +87,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                         <Clock className="h-5 w-5 mt-0.5 flex-shrink-0" />
                         <div>
                           <p className="font-medium text-foreground">Business Hours</p>
-                          <p className="text-sm">{businessHours}</p>
+                          <p className="text-sm">{businessHours.hours || JSON.stringify(businessHours)}</p>
                         </div>
                       </div>
                     )}
@@ -128,14 +135,12 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                         referrerPolicy="no-referrer-when-downgrade"
                       />
                     </div>
-                    <a
-                      href={business.gmaps_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 inline-flex items-center text-sm text-primary hover:underline"
-                    >
-                      Open in Google Maps
-                      <ExternalLink className="ml-1 h-4 w-4" />
+                    <a href={business.gmaps_link} target="_blank" rel="noopener noreferrer">
+                      <Button className="mt-3 w-full sm:w-auto gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Visit Location
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
                     </a>
                   </CardContent>
                 </Card>
@@ -144,19 +149,35 @@ export default async function BusinessProfilePage({ params }: PageProps) {
 
             {/* Right: Quick Actions */}
             <div className="space-y-4">
-              <Card className="bg-primary text-primary-foreground">
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold text-lg mb-2">Visit & Earn Points</h3>
-                  <p className="text-sm opacity-90 mb-4">
-                    Show your QR code at checkout to earn points with every purchase
-                  </p>
-                  <Link href="/dashboard/customer">
-                    <Button variant="secondary" className="w-full">
-                      View My QR Code
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+              {user ? (
+                <Card className="bg-primary text-primary-foreground">
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold text-lg mb-2">Visit & Earn Points</h3>
+                    <p className="text-sm opacity-90 mb-4">
+                      Show your QR code at checkout to earn points with every purchase
+                    </p>
+                    <Link href="/dashboard/customer">
+                      <Button variant="secondary" className="w-full">
+                        View My QR Code
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="bg-primary text-primary-foreground">
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold text-lg mb-2">Start Earning Points</h3>
+                    <p className="text-sm opacity-90 mb-4">
+                      Create an account to earn points and redeem exclusive rewards
+                    </p>
+                    <Link href="/auth/signup">
+                      <Button variant="secondary" className="w-full">
+                        Sign Up Now
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card>
                 <CardContent className="pt-6">
@@ -203,12 +224,21 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                       <p className="text-3xl font-bold text-primary">{reward.points_required}</p>
                       <p className="text-sm text-muted-foreground">points required</p>
                     </div>
-                    <Link href="/dashboard/customer/rewards">
-                      <Button className="w-full">
-                        <Gift className="mr-2 h-4 w-4" />
-                        Claim Reward
-                      </Button>
-                    </Link>
+                    {user ? (
+                      <Link href="/dashboard/customer/rewards">
+                        <Button className="w-full">
+                          <Gift className="mr-2 h-4 w-4" />
+                          Claim Reward
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Link href="/auth/signup">
+                        <Button className="w-full">
+                          <Gift className="mr-2 h-4 w-4" />
+                          Sign Up to Claim
+                        </Button>
+                      </Link>
+                    )}
                   </CardContent>
                 </Card>
               ))}

@@ -57,15 +57,17 @@ export default function BusinessSetupPage() {
 
       let profilePicUrl = null
 
-      // Upload profile picture if provided
       if (profilePic) {
         const fileExt = profilePic.name.split(".").pop()
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("profile-pics")
           .upload(fileName, profilePic)
 
-        if (uploadError) throw uploadError
+        if (uploadError) {
+          console.error("[v0] Upload error:", uploadError)
+          throw new Error(`Failed to upload image: ${uploadError.message}`)
+        }
 
         const {
           data: { publicUrl },
@@ -76,11 +78,7 @@ export default function BusinessSetupPage() {
       // Parse business hours
       let businessHoursJson = null
       if (formData.businessHours) {
-        try {
-          businessHoursJson = { hours: formData.businessHours }
-        } catch {
-          businessHoursJson = { hours: formData.businessHours }
-        }
+        businessHoursJson = { hours: formData.businessHours }
       }
 
       // Create profile record
@@ -145,6 +143,7 @@ export default function BusinessSetupPage() {
                     accept="image/*"
                     onChange={(e) => setProfilePic(e.target.files?.[0] || null)}
                   />
+                  <p className="text-xs text-muted-foreground">Upload your business logo to personalize your profile</p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="businessHours">Business Hours</Label>
@@ -173,7 +172,7 @@ export default function BusinessSetupPage() {
                     Example: If set to 100, customers earn 1 point for every ₱100 spent
                   </p>
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>
