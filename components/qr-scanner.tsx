@@ -28,26 +28,50 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
 
   const startCamera = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-      })
+      // Try environment camera first (rear camera on mobile)
+      let mediaStream: MediaStream;
+      
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+      } catch (environmentError) {
+        // If environment camera fails, try user camera (front camera)
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "user",
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+        } catch (userError) {
+          // If both fail, try any available camera
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+        }
+      }
 
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream
-        setStream(mediaStream)
-        setIsScanning(true)
+        videoRef.current.srcObject = mediaStream;
+        setStream(mediaStream);
+        setIsScanning(true);
 
         scanIntervalRef.current = window.setInterval(() => {
-          scanQRCode()
-        }, 100) // Scan every 100ms for better responsiveness
+          scanQRCode();
+        }, 100); // Scan every 100ms for better responsiveness
       }
     } catch (error) {
-      console.error("[v0] Camera error:", error)
-      toast.error("Failed to access camera. Please check permissions.")
+      console.error("[v0] Camera error:", error);
+      toast.error("Failed to access camera. Please check permissions or try manual input.");
     }
   }
 
@@ -88,10 +112,12 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
   }
 
   const handleManualInput = () => {
-    const qrCode = prompt("Enter QR code manually:")
-    if (qrCode) {
-      stopCamera()
-      onScanSuccess(qrCode)
+    const qrCode = prompt("Enter QR code manually:");
+    if (qrCode && qrCode.trim() !== "") {
+      stopCamera();
+      onScanSuccess(qrCode.trim());
+    } else if (qrCode !== null) {
+      toast.error("Please enter a valid QR code");
     }
   }
 

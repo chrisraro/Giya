@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MapPin, Clock, Gift, Star, ExternalLink, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { convertGoogleMapsUrlToEmbed } from "@/lib/utils"
 
 interface PageProps {
   params: {
@@ -126,7 +127,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                   <CardContent>
                     <div className="aspect-video w-full overflow-hidden rounded-lg">
                       <iframe
-                        src={business.gmaps_link.replace("/maps/", "/maps/embed/")}
+                        src={convertGoogleMapsUrlToEmbed(business.gmaps_link)}
                         width="100%"
                         height="100%"
                         style={{ border: 0 }}
