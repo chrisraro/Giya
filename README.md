@@ -1,4 +1,4 @@
-# MindSpace - SaaS Landing Page T
+# GIYA APP by Online Creative Solutions
 
 *Automatically synced with your [v0.app](https://v0.app) deployments*
 
