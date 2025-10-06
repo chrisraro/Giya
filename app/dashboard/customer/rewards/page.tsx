@@ -27,11 +27,6 @@ interface Reward {
   businesses: Business
 }
 
-interface CustomerPoints {
-  business_id: string
-  total_points: number
-}
-
 export default function CustomerRewardsPage() {
   const [rewards, setRewards] = useState<Reward[]>([])
   const [customerPoints, setCustomerPoints] = useState<Record<string, number>>({})
@@ -57,27 +52,34 @@ export default function CustomerRewardsPage() {
         return
       }
 
-      // Fetch customer's points per business
-      const { data: pointsData, error: pointsError } = await supabase
-        .from("customers")
-        .select("business_id, total_points")
-        .eq("id", user.id)
+      const { data: transactions, error: transactionsError } = await supabase
+        .from("points_transactions")
+        .select("business_id, points_earned")
+        .eq("customer_id", user.id)
 
-      if (pointsError) throw pointsError
+      if (transactionsError) throw transactionsError
 
+      // Aggregate points by business
       const pointsMap: Record<string, number> = {}
-      pointsData?.forEach((p: CustomerPoints) => {
-        pointsMap[p.business_id] = p.total_points
+      transactions?.forEach((t) => {
+        pointsMap[t.business_id] = (pointsMap[t.business_id] || 0) + t.points_earned
       })
+
+      // Subtract redeemed points
+      const { data: redemptions, error: redemptionsError } = await supabase
+        .from("reward_redemptions")
+        .select("business_id, points_redeemed")
+        .eq("customer_id", user.id)
+
+      if (redemptionsError) throw redemptionsError
+
+      redemptions?.forEach((r) => {
+        pointsMap[r.business_id] = (pointsMap[r.business_id] || 0) - r.points_redeemed
+      })
+
       setCustomerPoints(pointsMap)
 
-      // Fetch all active rewards from businesses the customer has interacted with
-      const businessIds = Object.keys(pointsMap)
-      if (businessIds.length === 0) {
-        setRewards([])
-        return
-      }
-
+      // Fetch all active rewards from all businesses
       const { data: rewardsData, error: rewardsError } = await supabase
         .from("rewards")
         .select(
@@ -90,7 +92,6 @@ export default function CustomerRewardsPage() {
           )
         `,
         )
-        .in("business_id", businessIds)
         .eq("is_active", true)
         .order("points_required", { ascending: true })
 
@@ -194,20 +195,19 @@ export default function CustomerRewardsPage() {
               return (
                 <Card key={reward.id} className={!canRedeem ? "opacity-60" : ""}>
                   <CardHeader>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 mb-2">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={reward.businesses.profile_pic_url || undefined} />
                         <AvatarFallback>{reward.businesses.business_name.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <CardTitle className="text-base">{reward.reward_name}</CardTitle>
-                        <CardDescription className="text-xs">{reward.businesses.business_name}</CardDescription>
+                        <p className="text-xs text-muted-foreground">{reward.businesses.business_name}</p>
                       </div>
                     </div>
+                    <CardTitle className="text-lg">{reward.reward_name}</CardTitle>
+                    <CardDescription className="text-sm">{reward.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">{reward.description}</p>
-
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Your points:</span>
