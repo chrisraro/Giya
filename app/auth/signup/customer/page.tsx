@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { ArrowLeft } from "lucide-react"
 
-export default function CustomerSignupPage() {
+export default function CustomerSignupPage({ searchParams }: { searchParams: { ref?: string } }) {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -23,8 +23,7 @@ export default function CustomerSignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const referralCode = searchParams.get('ref')
+  const referralCode = searchParams?.ref
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

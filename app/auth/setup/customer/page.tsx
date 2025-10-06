@@ -7,19 +7,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import Image from "next/image"
 
-export default function CustomerSetupPage() {
+export default function CustomerSetupPage({ searchParams }: { searchParams: { ref?: string } }) {
   const [profilePic, setProfilePic] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userData, setUserData] = useState<any>(null)
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const referralCode = searchParams.get('ref')
+  const referralCode = searchParams?.ref
 
   useEffect(() => {
     const checkUser = async () => {
