@@ -16,9 +16,17 @@ export function GoogleMap({ url, address }: GoogleMapProps) {
   // Convert Google Maps URL to embed format
   const getEmbedUrl = () => {
     try {
+      // Get API key from environment variables
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+      
       // If it's already an embed URL, return as is
       if (url.includes('/maps/embed')) {
-        return url
+        // Add API key if missing
+        if (!url.includes('key=') && apiKey) {
+          const separator = url.includes('?') ? '&' : '?';
+          return `${url}${separator}key=${apiKey}`;
+        }
+        return url;
       }
       
       // Handle place URLs
@@ -31,10 +39,10 @@ export function GoogleMap({ url, address }: GoogleMapProps) {
           if (coordsMatch) {
             const lat = coordsMatch[1]
             const lng = coordsMatch[2]
-            return `https://www.google.com/maps/embed/v1/place?key=&q=${lat},${lng}&zoom=15`
+            return `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${lat},${lng}&zoom=15`
           }
           // Fallback to place name search
-          return `https://www.google.com/maps/embed/v1/place?key=&q=${encodeURIComponent(placeIdentifier)}`
+          return `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(placeIdentifier)}`
         }
       }
       
@@ -43,7 +51,7 @@ export function GoogleMap({ url, address }: GoogleMapProps) {
         const searchMatch = url.match(/\/search\/([^\/\?]+)/)
         if (searchMatch && searchMatch[1]) {
           const searchQuery = searchMatch[1]
-          return `https://www.google.com/maps/embed/v1/search?key=&q=${encodeURIComponent(searchQuery)}`
+          return `https://www.google.com/maps/embed/v1/search?key=${apiKey}&q=${encodeURIComponent(searchQuery)}`
         }
       }
       
@@ -53,7 +61,7 @@ export function GoogleMap({ url, address }: GoogleMapProps) {
         if (dirMatch && dirMatch[1] && dirMatch[2]) {
           const origin = dirMatch[1]
           const destination = dirMatch[2]
-          return `https://www.google.com/maps/embed/v1/directions?key=&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`
+          return `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`
         }
       }
       
@@ -63,7 +71,7 @@ export function GoogleMap({ url, address }: GoogleMapProps) {
         if (coordsMatch) {
           const lat = coordsMatch[1]
           const lng = coordsMatch[2]
-          return `https://www.google.com/maps/embed/v1/view?key=&center=${lat},${lng}&zoom=15`
+          return `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${lat},${lng}&zoom=15`
         }
       }
       
@@ -84,14 +92,12 @@ export function GoogleMap({ url, address }: GoogleMapProps) {
     setMapLoaded(true)
   }
 
-  // If we know it will fail due to X-Frame-Options, show fallback immediately
-  const isEmbeddable = () => {
-    // Most Google Maps URLs will have X-Frame-Options issues
-    // We'll show the fallback for all except known embed URLs
-    return url.includes('/maps/embed')
+  // If we have an API key, we should be able to embed (assuming proper restrictions)
+  const canEmbed = () => {
+    return !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   }
 
-  if (mapError || !isEmbeddable()) {
+  if (mapError || !canEmbed()) {
     return (
       <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
         <div className="text-center p-4">

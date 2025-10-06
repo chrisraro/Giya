@@ -11,8 +11,16 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function convertGoogleMapsUrlToEmbed(url: string): string {
   try {
+    // Get API key from environment variables
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+    
     // If it's already an embed URL, return as is
     if (url.includes('/maps/embed')) {
+      // Add API key if missing
+      if (!url.includes('key=') && apiKey) {
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}key=${apiKey}`;
+      }
       return url;
     }
     
@@ -26,10 +34,10 @@ export function convertGoogleMapsUrlToEmbed(url: string): string {
         if (coordsMatch) {
           const lat = coordsMatch[1];
           const lng = coordsMatch[2];
-          return `https://www.google.com/maps/embed/v1/place?key=&q=${lat},${lng}&zoom=15`;
+          return `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${lat},${lng}&zoom=15`;
         }
         // Fallback to place name search
-        return `https://www.google.com/maps/embed/v1/place?key=&q=${encodeURIComponent(placeIdentifier)}`;
+        return `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(placeIdentifier)}`;
       }
     }
     
@@ -38,7 +46,7 @@ export function convertGoogleMapsUrlToEmbed(url: string): string {
       const searchMatch = url.match(/\/search\/([^\/\?]+)/);
       if (searchMatch && searchMatch[1]) {
         const searchQuery = searchMatch[1];
-        return `https://www.google.com/maps/embed/v1/search?key=&q=${encodeURIComponent(searchQuery)}`;
+        return `https://www.google.com/maps/embed/v1/search?key=${apiKey}&q=${encodeURIComponent(searchQuery)}`;
       }
     }
     
@@ -48,7 +56,7 @@ export function convertGoogleMapsUrlToEmbed(url: string): string {
       if (dirMatch && dirMatch[1] && dirMatch[2]) {
         const origin = dirMatch[1];
         const destination = dirMatch[2];
-        return `https://www.google.com/maps/embed/v1/directions?key=&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+        return `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
       }
     }
     
@@ -58,7 +66,7 @@ export function convertGoogleMapsUrlToEmbed(url: string): string {
       if (coordsMatch) {
         const lat = coordsMatch[1];
         const lng = coordsMatch[2];
-        return `https://www.google.com/maps/embed/v1/view?key=&center=${lat},${lng}&zoom=15`;
+        return `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${lat},${lng}&zoom=15`;
       }
     }
     
@@ -90,27 +98,5 @@ export function isGoogleMapsEmbeddable(url: string): boolean {
   } catch (error) {
     console.error('Error checking Google Maps URL:', error);
     return false;
-  }
-}
-
-/**
- * Creates a static map URL as fallback
- */
-export function createStaticMapUrl(url: string, width: number = 600, height: number = 400): string {
-  try {
-    // Extract coordinates if available
-    const coordsMatch = url.match(/@([0-9.-]+),([0-9.-]+),([0-9]+z)/);
-    if (coordsMatch) {
-      const lat = coordsMatch[1];
-      const lng = coordsMatch[2];
-      // Return a simple static map representation (this is just a placeholder)
-      return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=${width}x${height}&key=`;
-    }
-    
-    // Fallback to placeholder
-    return '/placeholder-map.png';
-  } catch (error) {
-    console.error('Error creating static map URL:', error);
-    return '/placeholder-map.png';
   }
 }
