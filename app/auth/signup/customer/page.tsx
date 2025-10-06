@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
 import { ArrowLeft } from "lucide-react"
 
-export default function CustomerSignupPage({ searchParams }: { searchParams: { ref?: string } }) {
+export default function CustomerSignupPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -23,7 +23,15 @@ export default function CustomerSignupPage({ searchParams }: { searchParams: { r
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const referralCode = searchParams?.ref
+  const searchParams = useSearchParams()
+  const referralCode = searchParams.get('ref')
+
+  // Store referral code in localStorage so it persists through email verification
+  useEffect(() => {
+    if (referralCode) {
+      localStorage.setItem('affiliate_referral_code', referralCode)
+    }
+  }, [referralCode])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,16 +47,20 @@ export default function CustomerSignupPage({ searchParams }: { searchParams: { r
     const supabase = createClient()
 
     try {
+      // Get referral code from localStorage if not in URL (for email verification flow)
+      const storedReferralCode = referralCode || localStorage.getItem('affiliate_referral_code')
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/setup/customer${referralCode ? `?ref=${referralCode}` : ''}`,
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/setup/customer`,
           data: {
             role: "customer",
             full_name: formData.fullName,
             nickname: formData.nickname,
+            referral_code: storedReferralCode || null, // Store in user metadata
           },
         },
       })

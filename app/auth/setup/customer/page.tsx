@@ -12,13 +12,12 @@ import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import Image from "next/image"
 
-export default function CustomerSetupPage({ searchParams }: { searchParams: { ref?: string } }) {
+export default function CustomerSetupPage() {
   const [profilePic, setProfilePic] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userData, setUserData] = useState<any>(null)
   const router = useRouter()
-  const referralCode = searchParams?.ref
 
   useEffect(() => {
     const checkUser = async () => {
@@ -81,6 +80,9 @@ export default function CustomerSetupPage({ searchParams }: { searchParams: { re
       // Generate QR code data
       const qrCodeData = `GIYA-${user.id.substring(0, 12).toUpperCase()}`
 
+      // Get referral code from user metadata
+      const referralCode = user.user_metadata?.referral_code || localStorage.getItem('affiliate_referral_code') || null
+
       // Create customer record with referral code if present
       const { error: customerError } = await supabase.from("customers").insert({
         id: user.id,
@@ -88,10 +90,15 @@ export default function CustomerSetupPage({ searchParams }: { searchParams: { re
         nickname: user.user_metadata.nickname || null,
         profile_pic_url: profilePicUrl,
         qr_code_data: qrCodeData,
-        referral_code: referralCode || null // Store the referral code
+        referral_code: referralCode // Store the referral code
       })
 
       if (customerError) throw customerError
+
+      // Clean up localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('affiliate_referral_code')
+      }
 
       router.push("/dashboard/customer")
     } catch (error: unknown) {
