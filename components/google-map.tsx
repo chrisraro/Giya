@@ -14,16 +14,27 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapError, setMapError] = useState(false)
   const [processedUrl, setProcessedUrl] = useState<string | null>(null)
+  const [isShortUrl, setIsShortUrl] = useState(false)
 
   // Convert Google Maps URL to embed format
   const getEmbedUrl = () => {
     try {
       console.log("Processing Google Maps URL:", { url, apiKey })
       
+      // Check if it's a Google Maps short URL
+      const isShort = url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps');
+      setIsShortUrl(isShort);
+      
       // If we don't have an API key, return the original URL
       if (!apiKey || apiKey.length < 10) {
         console.log("No valid API key provided for Google Maps")
         return url
+      }
+      
+      // Handle Google Maps short URLs (goo.gl) - these can't be embedded directly
+      if (isShort) {
+        console.log("Google Maps short URL detected - cannot embed directly. Showing fallback.")
+        return null
       }
       
       // If it's already an embed URL, return as is
@@ -92,12 +103,12 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
         }
       }
       
-      // Return original URL if we can't convert it
-      console.log("Could not convert URL, returning original:", url)
-      return url
+      // Return null for URLs we can't convert, which will trigger fallback
+      console.log("Could not convert URL, triggering fallback:", url)
+      return null
     } catch (error) {
       console.error('Error converting Google Maps URL:', error)
-      return url
+      return null
     }
   }
 
@@ -120,9 +131,9 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
     setMapLoaded(true)
   }
 
-  // If we don't have an API key, show fallback
-  if (!apiKey || apiKey.length < 10) {
-    console.log("No valid API key, showing fallback UI")
+  // If we don't have an API key, can't process the URL, or it's a short URL, show fallback
+  if (!apiKey || apiKey.length < 10 || processedUrl === null || isShortUrl) {
+    console.log("Showing fallback UI", { hasApiKey: !!apiKey, apiKeyLength: apiKey?.length, processedUrl, isShortUrl })
     return (
       <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
         <div className="text-center p-4">
@@ -130,29 +141,10 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
           <p className="text-muted-foreground mb-4">
             {address ? `Location: ${address}` : "Interactive map not available"}
           </p>
-          {url && (
-            <a href={url} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" className="gap-2">
-                <MapPin className="h-4 w-4" />
-                Open in Google Maps
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            </a>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  // If we couldn't process the URL, show fallback
-  if (!processedUrl) {
-    console.log("No processed URL, showing fallback UI")
-    return (
-      <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
-        <div className="text-center p-4">
-          <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-          <p className="text-muted-foreground mb-4">
-            {address ? `Location: ${address}` : "Interactive map not available"}
+          <p className="text-sm text-muted-foreground mb-4">
+            {isShortUrl 
+              ? "Google Maps short links cannot be embedded directly." 
+              : "Map cannot be displayed in this context."}
           </p>
           {url && (
             <a href={url} target="_blank" rel="noopener noreferrer">

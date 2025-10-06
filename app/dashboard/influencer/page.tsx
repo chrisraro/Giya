@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Link2, TrendingUp, LogOut, Award, Copy, Check, Users } from "lucide-react"
+import { Loader2, Link2, TrendingUp, LogOut, Award, Copy, Check, Users, Settings } from "lucide-react"
 import { toast } from "sonner"
+import Link from "next/link"
 
 interface InfluencerData {
   id: string
@@ -39,10 +40,11 @@ interface AffiliateLink {
 
 interface Conversion {
   id: string
-  created_at: string
+  converted_at: string
   customers: {
     full_name: string
   }
+  points_earned: number
 }
 
 export default function InfluencerDashboard() {
@@ -74,7 +76,10 @@ export default function InfluencerDashboard() {
           .eq("id", user.id)
           .single()
 
-        if (influencerError) throw influencerError
+        if (influencerError) {
+          console.error("[v0] Error fetching influencer data:", influencerError)
+          throw new Error(influencerError.message || "Failed to fetch influencer data")
+        }
         setInfluencerData(influencer)
 
         // Fetch all businesses
@@ -83,7 +88,10 @@ export default function InfluencerDashboard() {
           .select("id, business_name, business_category, profile_pic_url")
           .order("business_name")
 
-        if (businessesError) throw businessesError
+        if (businessesError) {
+          console.error("[v0] Error fetching businesses:", businessesError)
+          throw new Error(businessesError.message || "Failed to fetch businesses")
+        }
         setBusinesses(businessesData || [])
 
         // Fetch affiliate links
@@ -104,32 +112,41 @@ export default function InfluencerDashboard() {
           .eq("influencer_id", user.id)
           .order("created_at", { ascending: false })
 
-        if (linksError) throw linksError
+        if (linksError) {
+          console.error("[v0] Error fetching affiliate links:", linksError)
+          throw new Error(linksError.message || "Failed to fetch affiliate links")
+        }
         setAffiliateLinks(linksData || [])
 
-        // Fetch conversions
+        // Fetch conversions with points earned
         const { data: conversionsData, error: conversionsError } = await supabase
           .from("affiliate_conversions")
           .select(
             `
             id,
-            created_at,
+            converted_at,
+            points_earned,
             customers (
               full_name
             )
           `,
           )
           .in(
-            "link_id",
-            (linksData || []).map((link) => link.id),
+            "affiliate_link_id",
+            (linksData || []).map((link: AffiliateLink) => link.id),
           )
-          .order("created_at", { ascending: false })
+          .order("converted_at", { ascending: false })
           .limit(10)
 
-        if (conversionsError) throw conversionsError
+        if (conversionsError) {
+          console.error("[v0] Error fetching conversions:", conversionsError)
+          throw new Error(conversionsError.message || "Failed to fetch conversions")
+        }
         setConversions(conversionsData || [])
-      } catch (error) {
+      } catch (error: any) {
         console.error("[v0] Error fetching data:", error)
+        const errorMessage = error.message || "Failed to load dashboard data. Please try again."
+        toast.error(errorMessage)
       } finally {
         setIsLoading(false)
       }
@@ -172,9 +189,10 @@ export default function InfluencerDashboard() {
 
       setAffiliateLinks([data, ...affiliateLinks])
       toast.success("Affiliate link generated successfully!")
-    } catch (error) {
+    } catch (error: any) {
       console.error("[v0] Error generating link:", error)
-      toast.error("Failed to generate affiliate link")
+      const errorMessage = error.message || "Failed to generate affiliate link"
+      toast.error(errorMessage)
     }
   }
 
@@ -212,6 +230,9 @@ export default function InfluencerDashboard() {
     )
   }
 
+  // Calculate total points earned from conversions
+  const totalPointsFromConversions = conversions.reduce((sum, conversion) => sum + conversion.points_earned, 0);
+
   return (
     <div className="min-h-svh bg-secondary">
       {/* Header */}
@@ -227,10 +248,18 @@ export default function InfluencerDashboard() {
               <p className="text-sm text-muted-foreground">Influencer</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/influencer/settings">
+              <Button variant="outline" size="sm">
+                <Settings className="h-4 w-4" />
+                <span className="sr-only">Settings</span>
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -269,6 +298,11 @@ export default function InfluencerDashboard() {
               <CardContent>
                 <div className="text-2xl font-bold">{conversions.length}</div>
                 <p className="text-xs text-muted-foreground">Total referrals</p>
+                {totalPointsFromConversions > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {totalPointsFromConversions} pts earned
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -415,7 +449,7 @@ export default function InfluencerDashboard() {
                             <div>
                               <p className="font-medium text-foreground">{conversion.customers.full_name}</p>
                               <p className="text-sm text-muted-foreground">
-                                {new Date(conversion.created_at).toLocaleDateString("en-US", {
+                                {new Date(conversion.converted_at).toLocaleDateString("en-US", {
                                   month: "short",
                                   day: "numeric",
                                   year: "numeric",
@@ -423,7 +457,7 @@ export default function InfluencerDashboard() {
                               </p>
                             </div>
                           </div>
-                          <Badge variant="default">Converted</Badge>
+                          <Badge variant="default">{conversion.points_earned} pts</Badge>
                         </div>
                       ))}
                     </div>

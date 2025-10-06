@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, QrCode, TrendingUp, Users, LogOut, DollarSign, Scan, Gift } from "lucide-react"
+import { Loader2, QrCode, TrendingUp, Users, LogOut, DollarSign, Scan, Gift, Settings } from "lucide-react"
 import { toast } from "sonner"
 import { QrScanner } from "@/components/qr-scanner"
 import Link from "next/link"
@@ -113,8 +113,8 @@ export default function BusinessDashboard() {
           .eq("business_id", user.id)
 
         if (allTransactions) {
-          const totalRevenue = allTransactions.reduce((sum, t) => sum + Number(t.amount_spent), 0)
-          const uniqueCustomers = new Set(allTransactions.map((t) => t.customer_id)).size
+          const totalRevenue = (allTransactions as { amount_spent: number }[]).reduce((sum: number, t: { amount_spent: number }) => sum + Number(t.amount_spent), 0)
+          const uniqueCustomers = new Set((allTransactions as { customer_id: string }[]).map((t: { customer_id: string }) => t.customer_id)).size
 
           setStats({
             totalTransactions: allTransactions.length,
@@ -271,10 +271,18 @@ export default function BusinessDashboard() {
               <p className="text-sm text-muted-foreground">{businessData.business_category}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/business/settings">
+              <Button variant="outline" size="sm">
+                <Settings className="h-4 w-4" />
+                <span className="sr-only">Settings</span>
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 

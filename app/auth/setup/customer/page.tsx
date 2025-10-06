@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import Image from "next/image"
@@ -18,6 +18,8 @@ export default function CustomerSetupPage() {
   const [error, setError] = useState<string | null>(null)
   const [userData, setUserData] = useState<any>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const referralCode = searchParams.get('ref')
 
   useEffect(() => {
     const checkUser = async () => {
@@ -80,13 +82,14 @@ export default function CustomerSetupPage() {
       // Generate QR code data
       const qrCodeData = `GIYA-${user.id.substring(0, 12).toUpperCase()}`
 
-      // Create customer record
+      // Create customer record with referral code if present
       const { error: customerError } = await supabase.from("customers").insert({
         id: user.id,
         full_name: user.user_metadata.full_name,
         nickname: user.user_metadata.nickname || null,
         profile_pic_url: profilePicUrl,
         qr_code_data: qrCodeData,
+        referral_code: referralCode || null // Store the referral code
       })
 
       if (customerError) throw customerError

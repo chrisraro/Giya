@@ -14,6 +14,11 @@ export function convertGoogleMapsUrlToEmbed(url: string): string {
     // Get API key from environment variables
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
     
+    // Handle Google Maps short URLs (goo.gl) - return original as we can't embed these directly
+    if (url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps')) {
+      return url;
+    }
+    
     // If it's already an embed URL, return as is
     if (url.includes('/maps/embed')) {
       // Add API key if missing
@@ -99,4 +104,41 @@ export function isGoogleMapsEmbeddable(url: string): boolean {
     console.error('Error checking Google Maps URL:', error);
     return false;
   }
+}
+
+/**
+ * Expands a shortened Google Maps URL to its full form
+ * This is a server-side function that should be called before trying to embed
+ */
+export async function expandGoogleMapsShortUrl(shortUrl: string): Promise<string> {
+  try {
+    // For Google Maps short URLs, we can't easily expand them without making HTTP requests
+    // which can be unreliable. Instead, we'll return the original URL and let the
+    // GoogleMap component handle the fallback
+    if (shortUrl.includes('maps.app.goo.gl') || shortUrl.includes('goo.gl/maps')) {
+      console.log('Google Maps short URL detected, cannot expand reliably');
+      return shortUrl;
+    }
+    
+    // If it's not a short URL, return as is
+    return shortUrl;
+  } catch (error) {
+    console.error('Error expanding Google Maps URL:', error);
+    // Return original URL if expansion fails
+    return shortUrl;
+  }
+}
+
+/**
+ * Server-side function to determine if a URL can be embedded
+ * This should be called from server components
+ */
+export function canEmbedGoogleMapsUrl(url: string): boolean {
+  // Google Maps short URLs cannot be embedded
+  if (url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps')) {
+    return false;
+  }
+  
+  // Other URLs might be embeddable
+  return true;
 }

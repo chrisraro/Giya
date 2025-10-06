@@ -10,16 +10,21 @@ import Image from "next/image"
 import { GoogleMap } from "@/components/google-map"
 
 interface PageProps {
-  params: {
+  params: Promise<{
+    id: string
+  }> | {
     id: string
   }
 }
 
 export default async function BusinessProfilePage({ params }: PageProps) {
+  // Handle both Promise and resolved params
+  const resolvedParams = params instanceof Promise ? await params : params;
+  
   const supabase = await createServerClient()
 
   // Fetch business details
-  const { data: business, error } = await supabase.from("businesses").select("*").eq("id", params.id).single()
+  const { data: business, error } = await supabase.from("businesses").select("*").eq("id", resolvedParams.id).single()
 
   if (error || !business) {
     notFound()
@@ -29,7 +34,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
   const { data: rewards } = await supabase
     .from("rewards")
     .select("*")
-    .eq("business_id", params.id)
+    .eq("business_id", resolvedParams.id)
     .eq("is_active", true)
     .order("points_required", { ascending: true })
 

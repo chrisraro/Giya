@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, QrCode, TrendingUp, Gift, LogOut, Award } from "lucide-react"
+import { Loader2, QrCode, TrendingUp, Gift, LogOut, Award, Settings } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import Link from "next/link"
 
@@ -170,10 +170,18 @@ export default function CustomerDashboard() {
               {customerData.nickname && <p className="text-sm text-muted-foreground">@{customerData.nickname}</p>}
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/customer/settings">
+              <Button variant="outline" size="sm">
+                <Settings className="h-4 w-4" />
+                <span className="sr-only">Settings</span>
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 

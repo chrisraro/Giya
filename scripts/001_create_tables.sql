@@ -10,15 +10,17 @@ create table if not exists public.profiles (
   updated_at timestamp with time zone default now()
 );
 
--- Customer profiles
+-- Customers
 create table if not exists public.customers (
   id uuid primary key references public.profiles(id) on delete cascade,
   full_name text not null,
   nickname text,
   profile_pic_url text,
-  qr_code_data text unique not null,
+  qr_code_data text unique,
   total_points integer default 0,
-  created_at timestamp with time zone default now()
+  referral_code text, -- Added for affiliate tracking
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
 );
 
 -- Business profiles
