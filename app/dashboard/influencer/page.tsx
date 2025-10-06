@@ -204,6 +204,14 @@ export default function InfluencerDashboard() {
     setTimeout(() => setCopiedCode(null), 2000)
   }
 
+  const copyFullLinkToClipboard = (code: string) => {
+    const fullUrl = `${window.location.origin}/signup?ref=${code}`
+    navigator.clipboard.writeText(fullUrl)
+    setCopiedCode(code)
+    toast.success("Full link copied to clipboard!")
+    setTimeout(() => setCopiedCode(null), 2000)
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push("/")
@@ -387,32 +395,68 @@ export default function InfluencerDashboard() {
                   ) : (
                     <div className="space-y-4">
                       {affiliateLinks.map((link) => (
-                        <div key={link.id} className="flex items-center justify-between border-b pb-4 last:border-0">
-                          <div className="flex items-center gap-3 flex-1">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={link.businesses.profile_pic_url || undefined} />
-                              <AvatarFallback>{link.businesses.business_name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground">{link.businesses.business_name}</p>
-                              <p className="text-sm text-muted-foreground font-mono truncate">
+                        <Card key={link.id} className="overflow-hidden">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-3 mb-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={link.businesses.profile_pic_url || undefined} />
+                                <AvatarFallback>{link.businesses.business_name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-foreground">{link.businesses.business_name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Created: {new Date(link.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-muted rounded-md p-3 mb-3">
+                              <p className="text-sm font-mono break-all">
                                 {window.location.origin}/signup?ref={link.unique_code}
                               </p>
                             </div>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyToClipboard(link.unique_code)}
-                            className="ml-2"
-                          >
-                            {copiedCode === link.unique_code ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
+                            
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyToClipboard(link.unique_code)}
+                                className="flex-1"
+                              >
+                                {copiedCode === link.unique_code ? (
+                                  <>
+                                    <Check className="h-4 w-4 mr-2" />
+                                    Copied Code
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Copy Code
+                                  </>
+                                )}
+                              </Button>
+                              
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => copyFullLinkToClipboard(link.unique_code)}
+                                className="flex-1"
+                              >
+                                {copiedCode === `full-${link.unique_code}` ? (
+                                  <>
+                                    <Check className="h-4 w-4 mr-2" />
+                                    Copied Link
+                                  </>
+                                ) : (
+                                  <>
+                                    <Link2 className="h-4 w-4 mr-2" />
+                                    Copy Link
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
                   )}
