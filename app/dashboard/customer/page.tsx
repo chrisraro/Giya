@@ -38,7 +38,7 @@ interface Redemption {
   redeemed_at: string
   status: string
   rewards: {
-    name: string
+    reward_name: string
     points_required: number
     image_url: string | null
   }
@@ -107,7 +107,7 @@ export default function CustomerDashboard() {
             redeemed_at,
             status,
             rewards (
-              name,
+              reward_name,
               points_required,
               image_url
             )
@@ -337,7 +337,7 @@ export default function CustomerDashboard() {
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium text-foreground">{redemption.rewards.name}</p>
+                              <p className="font-medium text-foreground">{redemption.rewards.reward_name}</p>
                               <p className="text-sm text-muted-foreground">
                                 {new Date(redemption.redeemed_at).toLocaleDateString("en-US", {
                                   month: "short",

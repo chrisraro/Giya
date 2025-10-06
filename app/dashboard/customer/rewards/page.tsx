@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Loader2, Gift, ArrowLeft, Check } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
+import { QRCodeSVG } from "qrcode.react"
 
 interface Business {
   id: string
@@ -34,6 +35,9 @@ export default function CustomerRewardsPage() {
   const [showRedeemDialog, setShowRedeemDialog] = useState(false)
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [showRedemptionQR, setShowRedemptionQR] = useState(false)
+  const [redemptionQRCode, setRedemptionQRCode] = useState<string>("")
+  const [redemptionDetails, setRedemptionDetails] = useState<any>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -127,21 +131,35 @@ export default function CustomerRewardsPage() {
 
       if (!user) throw new Error("Not authenticated")
 
-      // Create redemption record
-      const { error: redemptionError } = await supabase.from("reward_redemptions").insert({
-        customer_id: user.id,
-        reward_id: selectedReward.id,
-        business_id: selectedReward.business_id,
-        points_redeemed: selectedReward.points_required,
-      })
+      const redemptionCode = `GIYA-REDEEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+      const { data: redemption, error: redemptionError } = await supabase
+        .from("reward_redemptions")
+        .insert({
+          customer_id: user.id,
+          reward_id: selectedReward.id,
+          business_id: selectedReward.business_id,
+          points_redeemed: selectedReward.points_required,
+          redemption_qr_code: redemptionCode,
+          status: "pending",
+        })
+        .select()
+        .single()
 
       if (redemptionError) throw redemptionError
 
-      toast.success("Reward redeemed successfully! Show this to the business.")
+      toast.success("Reward redeemed! Show the QR code to the business.")
+
+      setRedemptionQRCode(redemptionCode)
+      setRedemptionDetails({
+        reward: selectedReward,
+        redemption: redemption,
+      })
+      setShowRedeemDialog(false)
+      setShowRedemptionQR(true)
+      setSelectedReward(null)
 
       // Refresh data
-      setShowRedeemDialog(false)
-      setSelectedReward(null)
       fetchData()
     } catch (error) {
       console.error("[v0] Error redeeming reward:", error)
@@ -296,6 +314,41 @@ export default function CustomerRewardsPage() {
                   )}
                 </Button>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRedemptionQR} onOpenChange={setShowRedemptionQR}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Redemption QR Code</DialogTitle>
+            <DialogDescription>Show this QR code to the business to validate your reward</DialogDescription>
+          </DialogHeader>
+          {redemptionDetails && (
+            <div className="space-y-4">
+              <div className="flex justify-center rounded-lg border bg-white p-6">
+                <QRCodeSVG value={redemptionQRCode} size={200} level="H" />
+              </div>
+
+              <div className="rounded-lg border bg-secondary p-4">
+                <h3 className="font-semibold mb-2">{redemptionDetails.reward.reward_name}</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {redemptionDetails.reward.businesses.business_name}
+                </p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Points redeemed:</span>
+                  <span className="font-bold text-primary">{redemptionDetails.reward.points_required}</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground">
+                This QR code is valid for one-time use. The business will scan it to validate your redemption.
+              </p>
+
+              <Button onClick={() => setShowRedemptionQR(false)} className="w-full">
+                Done
+              </Button>
             </div>
           )}
         </DialogContent>

@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { X } from "lucide-react"
+import { X, Camera } from "lucide-react"
 import { toast } from "sonner"
+import jsQR from "jsqr"
 
 interface QrScannerProps {
   onScanSuccess: (data: string) => void
@@ -15,7 +16,7 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [stream, setStream] = useState<MediaStream | null>(null)
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const scanIntervalRef = useRef<number | null>(null)
 
   useEffect(() => {
     startCamera()
@@ -28,7 +29,11 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
       })
 
       if (videoRef.current) {
@@ -36,10 +41,9 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
         setStream(mediaStream)
         setIsScanning(true)
 
-        // Start scanning for QR codes
-        scanIntervalRef.current = setInterval(() => {
+        scanIntervalRef.current = window.setInterval(() => {
           scanQRCode()
-        }, 500)
+        }, 100) // Scan every 100ms for better responsiveness
       }
     } catch (error) {
       console.error("[v0] Camera error:", error)
@@ -72,20 +76,22 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
 
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
 
-    // Simple QR code detection (in production, use a library like jsQR)
-    // For now, we'll simulate detection by looking for manual input
-    // In a real implementation, you would use: import jsQR from 'jsqr'
-    // const code = jsQR(imageData.data, imageData.width, imageData.height)
-    // if (code) { onScanSuccess(code.data) }
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "dontInvert",
+    })
+
+    if (code && code.data) {
+      console.log("[v0] QR Code detected:", code.data)
+      stopCamera()
+      onScanSuccess(code.data)
+    }
   }
 
   const handleManualInput = () => {
-    const qrCode = prompt("Enter QR code manually (format: GIYA-XXXXXXXXXXXX):")
-    if (qrCode && qrCode.startsWith("GIYA-")) {
+    const qrCode = prompt("Enter QR code manually:")
+    if (qrCode) {
       stopCamera()
       onScanSuccess(qrCode)
-    } else if (qrCode) {
-      toast.error("Invalid QR code format")
     }
   }
 
@@ -97,18 +103,25 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
 
         {/* Scanning overlay */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-48 w-48 border-2 border-primary">
-            <div className="absolute left-0 top-0 h-8 w-8 border-l-4 border-t-4 border-primary" />
-            <div className="absolute right-0 top-0 h-8 w-8 border-r-4 border-t-4 border-primary" />
-            <div className="absolute bottom-0 left-0 h-8 w-8 border-b-4 border-l-4 border-primary" />
-            <div className="absolute bottom-0 right-0 h-8 w-8 border-b-4 border-r-4 border-primary" />
+          <div className="relative h-64 w-64">
+            <div className="absolute inset-0 border-2 border-primary/50" />
+            <div className="absolute left-0 top-0 h-12 w-12 border-l-4 border-t-4 border-primary" />
+            <div className="absolute right-0 top-0 h-12 w-12 border-r-4 border-t-4 border-primary" />
+            <div className="absolute bottom-0 left-0 h-12 w-12 border-b-4 border-l-4 border-primary" />
+            <div className="absolute bottom-0 right-0 h-12 w-12 border-b-4 border-r-4 border-primary" />
           </div>
+        </div>
+
+        {/* Camera indicator */}
+        <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-white">
+          <Camera className="h-4 w-4 animate-pulse" />
+          <span className="text-sm">Scanning...</span>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
         <Button onClick={handleManualInput} variant="outline" className="w-full bg-transparent">
-          Enter QR Code Manually
+          Enter Code Manually
         </Button>
         <Button onClick={onClose} variant="ghost" className="w-full">
           <X className="mr-2 h-4 w-4" />
@@ -117,7 +130,7 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        Position the QR code within the frame or enter it manually
+        Position the QR code within the frame to scan automatically
       </p>
     </div>
   )
