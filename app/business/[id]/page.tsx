@@ -8,7 +8,6 @@ import { MapPin, Clock, Gift, Star, ExternalLink, ArrowLeft } from "lucide-react
 import Link from "next/link"
 import Image from "next/image"
 import { GoogleMap } from "@/components/google-map"
-import { convertGoogleMapsUrlToEmbed, isGoogleMapsEmbeddable } from "@/lib/utils"
 
 interface PageProps {
   params: {
@@ -40,6 +39,12 @@ export default async function BusinessProfilePage({ params }: PageProps) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  // Get Google Maps API key from environment variables
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+  
+  console.log("Google Maps API Key available:", !!googleMapsApiKey)
+  console.log("Business Google Maps URL:", business.gmaps_link)
 
   return (
     <div className="min-h-svh bg-secondary">
@@ -126,7 +131,11 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <GoogleMap url={business.gmaps_link} address={business.address} />
+                    <GoogleMap 
+                      url={business.gmaps_link} 
+                      address={business.address} 
+                      apiKey={googleMapsApiKey}
+                    />
                     <a href={business.gmaps_link} target="_blank" rel="noopener noreferrer">
                       <Button className="mt-3 w-full sm:w-auto gap-2">
                         <MapPin className="h-4 w-4" />
