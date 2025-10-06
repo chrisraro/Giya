@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { ArrowLeft } from "lucide-react"
 
-export default function CustomerSignupPage() {
+export default function CustomerSignupPage({ searchParams }: { searchParams: { ref?: string } }) {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -23,13 +23,14 @@ export default function CustomerSignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const referralCode = searchParams.get('ref')
+  const referralCode = searchParams?.ref
 
   // Store referral code in localStorage so it persists through email verification
   useEffect(() => {
     if (referralCode) {
-      localStorage.setItem('affiliate_referral_code', referralCode)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('affiliate_referral_code', referralCode)
+      }
     }
   }, [referralCode])
 
@@ -48,7 +49,7 @@ export default function CustomerSignupPage() {
 
     try {
       // Get referral code from localStorage if not in URL (for email verification flow)
-      const storedReferralCode = referralCode || localStorage.getItem('affiliate_referral_code')
+      const storedReferralCode = referralCode || (typeof window !== 'undefined' ? localStorage.getItem('affiliate_referral_code') : null)
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
