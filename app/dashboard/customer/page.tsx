@@ -688,7 +688,7 @@ export default function CustomerDashboard() {
                       </div>
                       <div className="mt-4 flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Points per ₱</span>
-                        <span className="text-xl font-bold text-primary">{business.points_per_currency || 100}</span>
+                        <span className="text-2xl font-bold text-primary">{business.points_per_currency || 100}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -750,7 +750,7 @@ export default function CustomerDashboard() {
                       </div>
                       <div className="mt-4 flex items-center justify-between">
                         <span className="text-sm font-medium">Your Points</span>
-                        <span className="text-lg font-bold text-primary">{business.total_points}</span>
+                        <span className="text-2xl font-bold text-primary">{business.total_points}</span>
                       </div>
                     </CardContent>
                   </Card>

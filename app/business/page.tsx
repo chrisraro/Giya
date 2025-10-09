@@ -228,7 +228,7 @@ export default function BusinessDirectoryPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Points per ₱</span>
-                        <span className="text-xl font-bold text-primary">{business.points_per_currency || 100}</span>
+                        <span className="text-2xl font-bold text-primary">{business.points_per_currency || 100}</span>
                       </div>
                       <Button variant="outline" className="w-full" onClick={(e) => {
                         e.stopPropagation()
