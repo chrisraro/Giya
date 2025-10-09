@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, QrCode, TrendingUp, Users, LogOut, DollarSign, Scan, Gift, Settings } from "lucide-react"
+import { Loader2, QrCode, TrendingUp, Users, LogOut, DollarSign, Scan, Gift, Settings, Tag } from "lucide-react"
 import { toast } from "sonner"
 import { QrScanner } from "@/components/qr-scanner"
 import Link from "next/link"
@@ -451,6 +451,12 @@ export default function BusinessDashboard() {
                   <Button variant="outline" size="lg" className="w-full md:w-auto bg-transparent">
                     <QrCode className="mr-2 h-5 w-5" />
                     Validate Redemptions
+                  </Button>
+                </Link>
+                <Link href="/dashboard/business/discounts">
+                  <Button variant="outline" size="lg" className="w-full md:w-auto bg-transparent">
+                    <Tag className="mr-2 h-5 w-5" />
+                    Manage Discounts
                   </Button>
                 </Link>
               </div>
