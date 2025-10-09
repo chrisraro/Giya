@@ -33,12 +33,12 @@ interface Business {
 interface Reward {
   id: string
   business_id: string
-  reward_name: string
+  name: string
   description: string
   points_required: number
   is_active: boolean
   businesses: Business
-  name?: string // Add this for backward compatibility
+  reward_name?: string // Add this for backward compatibility
 }
 
 interface SupabaseReward {
@@ -123,8 +123,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       // Fetch all active rewards from all businesses - optimized query
       const { data: rewardsData, error: rewardsError } = await supabase
         .from("rewards")
-        .select(
-          `
+        .select(`
           id,
           business_id,
           name,
@@ -136,8 +135,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
             business_name,
             profile_pic_url
           )
-        `,
-        )
+        `)
         .eq("is_active", true)
         .order("points_required", { ascending: true })
 
@@ -146,7 +144,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       // Map the name field to reward_name for consistency
       const mappedRewards = rewardsData?.map((reward: SupabaseReward) => ({
         ...reward,
-        name: reward.name || "Unnamed Reward"
+        reward_name: reward.name
       })) || []
       
       setRewards(mappedRewards)
@@ -416,7 +414,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
                         <p className="text-xs text-muted-foreground">{reward.businesses.business_name}</p>
                       </div>
                     </div>
-                    <CardTitle className="text-lg">{reward.reward_name}</CardTitle>
+                    <CardTitle className="text-lg">{reward.reward_name || reward.name}</CardTitle>
                     <CardDescription className="text-sm">{reward.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -470,7 +468,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
                     <AvatarFallback>{selectedReward.businesses.business_name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{selectedReward.reward_name}</h3>
+                    <h3 className="font-semibold">{selectedReward.reward_name || selectedReward.name}</h3>
                     <p className="text-sm text-muted-foreground">{selectedReward.businesses.business_name}</p>
                   </div>
                 </div>
@@ -526,7 +524,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
               </div>
 
               <div className="rounded-lg border bg-secondary p-4">
-                <h3 className="font-semibold mb-2">{redemptionDetails.reward.reward_name}</h3>
+                <h3 className="font-semibold mb-2">{redemptionDetails.reward.reward_name || redemptionDetails.reward.name}</h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   {redemptionDetails.reward.businesses.business_name}
                 </p>
