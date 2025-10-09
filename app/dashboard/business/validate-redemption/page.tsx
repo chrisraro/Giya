@@ -58,11 +58,24 @@ export default function ValidateRedemptionPage() {
           )
         `,
         )
-        .eq("redemption_qr_code", qrCode)
+        .eq("redemption_qr_code", qrCode.trim()) // Trim whitespace
         .single()
 
       if (redemptionError || !redemption) {
-        toast.error("Invalid or expired redemption code")
+        console.error("Redemption query error:", redemptionError)
+        console.log("QR Code searched:", qrCode.trim())
+        
+        // Provide more specific error messages
+        if (redemptionError) {
+          if (redemptionError.code === 'PGRST116') {
+            toast.error("No redemption found with this code. Please check the code and try again.")
+          } else {
+            toast.error(`Database error: ${redemptionError.message}`)
+          }
+        } else {
+          toast.error("Invalid or expired redemption code. Please check the code and try again.")
+        }
+        
         setIsValidating(false)
         return
       }

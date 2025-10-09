@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { X, Camera, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
-import jsQR from "jsqr"
+import { Html5Qrcode, Html5QrcodeScannerState } from "html5-qrcode"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -15,15 +15,12 @@ interface QrScannerProps {
 }
 
 export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const scannerRef = useRef<HTMLDivElement>(null)
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null)
   const [isScanning, setIsScanning] = useState(false)
-  const [stream, setStream] = useState<MediaStream | null>(null)
   const [showManualInput, setShowManualInput] = useState(false)
   const [manualCode, setManualCode] = useState("")
-  const [scanAttempts, setScanAttempts] = useState(0)
   const [cameraError, setCameraError] = useState<string | null>(null)
-  const scanIntervalRef = useRef<number | null>(null)
 
   useEffect(() => {
     startCamera()
@@ -34,100 +31,76 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
   }, [])
 
   const startCamera = async () => {
+    if (!scannerRef.current) return
+
     try {
       setCameraError(null)
-      // Try environment camera first (rear camera on mobile)
-      let mediaStream: MediaStream;
       
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-        });
-      } catch (environmentError) {
-        // If environment camera fails, try user camera (front camera)
-        try {
-          mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: "user",
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-            },
-          });
-        } catch (userError) {
-          // If both fail, try any available camera
-          mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-            },
-          });
+      // Clear previous scanner if exists
+      if (html5QrCodeRef.current) {
+        if (html5QrCodeRef.current.getState() !== Html5QrcodeScannerState.NOT_STARTED) {
+          await html5QrCodeRef.current.stop()
         }
       }
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        setStream(mediaStream);
-        setIsScanning(true);
-        setScanAttempts(0);
+      // Create new scanner instance
+      html5QrCodeRef.current = new Html5Qrcode("qr-scanner-container")
+      
+      // Configure camera
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        disableFlip: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        }
+      }
 
-        scanIntervalRef.current = window.setInterval(() => {
-          scanQRCode();
-        }, 150); // Scan every 150ms for better responsiveness
+      // Start scanning
+      await html5QrCodeRef.current.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText, decodedResult) => {
+          // QR code detected
+          console.log("QR Code detected:", decodedText)
+          stopCamera()
+          onScanSuccess(decodedText)
+        },
+        (errorMessage) => {
+          // QR code parsing error - this is normal during scanning
+          // console.log("QR Code parse error:", errorMessage)
+        }
+      )
+
+      setIsScanning(true)
+    } catch (error) {
+      console.error("Camera start error:", error)
+      setCameraError("Failed to access camera. Please check permissions.")
+      toast.error("Failed to access camera. Please check permissions or try manual input.")
+    }
+  }
+
+  const stopCamera = async () => {
+    try {
+      if (html5QrCodeRef.current) {
+        if (html5QrCodeRef.current.getState() !== Html5QrcodeScannerState.NOT_STARTED) {
+          await html5QrCodeRef.current.stop()
+        }
       }
     } catch (error) {
-      setCameraError("Failed to access camera. Please check permissions.");
-      toast.error("Failed to access camera. Please check permissions or try manual input.");
-    }
-  }
-
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop())
-    }
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current)
-    }
-    setIsScanning(false)
-  }
-
-  const scanQRCode = () => {
-    if (!videoRef.current || !canvasRef.current || !isScanning) return
-
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    const context = canvas.getContext("2d")
-
-    if (!context || video.readyState !== video.HAVE_ENOUGH_DATA) return
-
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    context.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
-
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert",
-    })
-
-    if (code && code.data) {
-      stopCamera()
-      onScanSuccess(code.data)
-    } else {
-      // Increment scan attempts to show user feedback
-      setScanAttempts(prev => prev + 1)
+      console.error("Error stopping camera:", error)
+    } finally {
+      setIsScanning(false)
     }
   }
 
   const handleManualSubmit = () => {
     if (manualCode.trim() !== "") {
-      stopCamera();
-      onScanSuccess(manualCode.trim());
+      stopCamera()
+      onScanSuccess(manualCode.trim())
     } else {
-      toast.error("Please enter a valid code");
+      toast.error("Please enter a valid code")
     }
   }
 
@@ -149,19 +122,12 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
           </div>
         ) : null}
         
-        <video ref={videoRef} autoPlay playsInline className="h-full w-full object-cover" />
-        <canvas ref={canvasRef} className="hidden" />
-
-        {/* Scanning overlay */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative h-64 w-64">
-            <div className="absolute inset-0 border-2 border-primary/50" />
-            <div className="absolute left-0 top-0 h-12 w-12 border-l-4 border-t-4 border-primary" />
-            <div className="absolute right-0 top-0 h-12 w-12 border-r-4 border-t-4 border-primary" />
-            <div className="absolute bottom-0 left-0 h-12 w-12 border-b-4 border-l-4 border-primary" />
-            <div className="absolute bottom-0 right-0 h-12 w-12 border-b-4 border-r-4 border-primary" />
-          </div>
-        </div>
+        {/* Scanner container */}
+        <div 
+          id="qr-scanner-container" 
+          ref={scannerRef}
+          className="w-full h-full"
+        />
 
         {/* Camera indicator */}
         <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-white">
@@ -170,13 +136,6 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
             {isScanning ? "Scanning..." : "Initializing..."}
           </span>
         </div>
-        
-        {/* Scan attempts indicator */}
-        {isScanning && scanAttempts > 0 && (
-          <div className="absolute bottom-4 left-4 text-xs text-white/70">
-            Scans: {scanAttempts}
-          </div>
-        )}
       </div>
 
       <div className="flex flex-col gap-2">
