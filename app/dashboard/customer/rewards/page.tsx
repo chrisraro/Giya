@@ -33,12 +33,12 @@ interface Business {
 interface Reward {
   id: string
   business_id: string
-  name: string
+  reward_name: string
   description: string
   points_required: number
   is_active: boolean
   businesses: Business
-  reward_name?: string // Add this for backward compatibility
+  name?: string // Add this for backward compatibility
 }
 
 export default function CustomerRewardsPage({ searchParams }: { searchParams: { businessId?: string, rewardId?: string } }) {
@@ -63,7 +63,13 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
   const supabase = createClient()
 
   // Get unique categories from rewards
-  const categories = Array.from(new Set(rewards.map(reward => reward.businesses.business_category)))
+  const categories = Array.from(
+    new Set(
+      rewards
+        .map(reward => reward.businesses?.business_category)
+        .filter((category): category is string => Boolean(category)) // Type guard to filter out null/undefined
+    )
+  )
 
   useEffect(() => {
     // Check if there's a businessId in the query parameters
@@ -72,6 +78,8 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
     
     if (businessId) {
       setSelectedBusinessId(businessId)
+    } else {
+      setSelectedBusinessId(null)
     }
     
     fetchData().then(() => {
@@ -87,6 +95,31 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       }
     })
   }, [searchParams?.businessId, searchParams?.rewardId])
+
+  useEffect(() => {
+    // Filter rewards when selectedBusinessId or selectedCategory changes
+    if (selectedBusinessId) {
+      const businessRewards = rewards.filter((reward: Reward) => reward.business_id === selectedBusinessId)
+      if (selectedCategory) {
+        // Further filter by category
+        const categoryRewards = businessRewards.filter((reward: Reward) => 
+          reward.businesses?.business_category === selectedCategory
+        )
+        setFilteredRewards(categoryRewards)
+      } else {
+        setFilteredRewards(businessRewards)
+      }
+    } else if (selectedCategory) {
+      // Filter by category only
+      const categoryRewards = rewards.filter((reward: Reward) => 
+        reward.businesses?.business_category === selectedCategory
+      )
+      setFilteredRewards(categoryRewards)
+    } else {
+      // Show all rewards
+      setFilteredRewards(rewards)
+    }
+  }, [selectedBusinessId, selectedCategory, rewards])
 
   const fetchData = async () => {
     try {
@@ -128,11 +161,35 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       setCustomerPoints(pointsMap)
 
       // Fetch all active rewards from all businesses - optimized query
-      const { data: rewardsData, error: rewardsError } = await supabase
+      let rewardsData = null
+      let rewardsError = null
+      
+      // First try with reward_name column
+      let { data, error } = await supabase
         .from("rewards")
-        .select("id,business_id,name,description,points_required,image_url,businesses(id,business_name,profile_pic_url,business_category)")
+        .select("id,business_id,reward_name,description,points_required,image_url,businesses(id,business_name,profile_pic_url,business_category)")
         .eq("is_active", true)
         .order("points_required", { ascending: true })
+
+      if (error) {
+        console.error("Rewards query error with reward_name:", error)
+        // Try alternative query with 'name' column if 'reward_name' doesn't exist
+        const altResult = await supabase
+          .from("rewards")
+          .select("id,business_id,name as reward_name,description,points_required,image_url,businesses(id,business_name,profile_pic_url,business_category)")
+          .eq("is_active", true)
+          .order("points_required", { ascending: true })
+          
+        data = altResult.data
+        error = altResult.error
+          
+        if (error) {
+          throw error
+        }
+      }
+      
+      rewardsData = data
+      rewardsError = error
 
       if (rewardsError) throw rewardsError
       
@@ -145,7 +202,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
         
         // If there's only one reward from this business and no specific rewardId, show the redeem dialog directly
         if (businessRewards.length === 1 && !searchParams?.rewardId) {
-          const userPoints = pointsMap[selectedBusinessId] || 0
+          const userPoints = customerPoints[selectedBusinessId] || 0
           if (userPoints >= businessRewards[0].points_required) {
             // Small delay to allow UI to render first
             setTimeout(() => {
@@ -153,7 +210,14 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
             }, 500)
           }
         }
+      } else if (selectedCategory) {
+        // If there's a category filter but no business filter
+        const categoryRewards = (rewardsData || []).filter((reward: Reward) => 
+          reward.businesses?.business_category === selectedCategory
+        )
+        setFilteredRewards(categoryRewards)
       } else {
+        // If no business or category filter, show all rewards
         setFilteredRewards(rewardsData || [])
       }
     } catch (error) {
@@ -206,7 +270,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       toast.success("Reward redeemed! Show the QR code to the business.")
 
       // Add this line to show a more prominent success message
-      toast.success(`Successfully redeemed ${selectedReward.name}! Points have been deducted from your account.`, {
+      toast.success(`Successfully redeemed ${selectedReward.reward_name}! Points have been deducted from your account.`, {
         duration: 5000
       })
 
@@ -220,7 +284,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       setSelectedReward(null)
 
       // Show snackbar with undo option
-      setSnackbarMessage(`Successfully redeemed ${selectedReward.name}!`)
+      setSnackbarMessage(`Successfully redeemed ${selectedReward.reward_name}!`)
       setSnackbarAction("Undo")
       setSnackbarOnAction(() => async () => {
         try {
@@ -264,25 +328,21 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
   const filterByCategory = (category: string | null) => {
     setSelectedCategory(category)
     
-    if (!category) {
-      // If no category selected, show all rewards or filtered by business
-      if (selectedBusinessId) {
-        setFilteredRewards(rewards.filter(reward => reward.business_id === selectedBusinessId))
-      } else {
-        setFilteredRewards(rewards)
-      }
-      return
-    }
+    let filtered = rewards
     
-    // Filter by category
-    const categoryRewards = rewards.filter(reward => reward.businesses.business_category === category)
-    
+    // First filter by business if selected
     if (selectedBusinessId) {
-      // Further filter by business if selected
-      setFilteredRewards(categoryRewards.filter(reward => reward.business_id === selectedBusinessId))
-    } else {
-      setFilteredRewards(categoryRewards)
+      filtered = filtered.filter(reward => reward.business_id === selectedBusinessId)
     }
+    
+    // Then filter by category if selected
+    if (category) {
+      filtered = filtered.filter(reward => 
+        reward.businesses?.business_category === category
+      )
+    }
+    
+    setFilteredRewards(filtered)
   }
 
   if (isLoading) {
@@ -448,7 +508,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
                         <p className="text-xs font-medium">{reward.businesses.business_category}</p>
                       </div>
                     </div>
-                    <CardTitle className="text-lg">{reward.name}</CardTitle>
+                    <CardTitle className="text-lg">{reward.reward_name}</CardTitle>
                     <CardDescription className="text-sm">{reward.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -502,7 +562,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
                     <AvatarFallback>{selectedReward.businesses.business_name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{selectedReward.name}</h3>
+                    <h3 className="font-semibold">{selectedReward.reward_name}</h3>
                     <p className="text-sm text-muted-foreground">{selectedReward.businesses.business_name}</p>
                   </div>
                 </div>
@@ -558,7 +618,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
               </div>
 
               <div className="rounded-lg border bg-secondary p-4">
-                <h3 className="font-semibold mb-2">{redemptionDetails.reward.name}</h3>
+                <h3 className="font-semibold mb-2">{redemptionDetails.reward.reward_name}</h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   {redemptionDetails.reward.businesses.business_name}
                 </p>
