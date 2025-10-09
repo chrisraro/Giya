@@ -775,6 +775,12 @@ export default function CustomerDashboard() {
                   <span>View Rewards</span>
                 </Button>
               </Link>
+              <Link href="/dashboard/customer/discounts">
+                <Button variant="outline" size="lg" className="h-auto w-full flex-col gap-2 py-6 bg-transparent">
+                  <Tag className="h-8 w-8" />
+                  <span>View Discounts</span>
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
