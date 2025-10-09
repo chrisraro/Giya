@@ -75,10 +75,19 @@ interface FallbackRedemption {
   }
 }
 
+interface BusinessPoints {
+  business_id: string
+  business_name: string
+  profile_pic_url: string | null
+  total_points: number
+  available_rewards: number
+}
+
 export default function CustomerDashboard() {
   const [customerData, setCustomerData] = useState<CustomerData | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [redemptions, setRedemptions] = useState<Redemption[]>([])
+  const [businessPoints, setBusinessPoints] = useState<BusinessPoints[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showQRDialog, setShowQRDialog] = useState(false)
   const router = useRouter()
@@ -220,6 +229,106 @@ export default function CustomerDashboard() {
         } else {
           console.log("Redemptions data:", redemptionsData)
           setRedemptions(redemptionsData || [])
+        }
+
+        // Fetch business points data
+        // First get all businesses the customer has transacted with
+        const { data: businessTransactions, error: businessTransactionsError } = await supabase
+          .from("points_transactions")
+          .select(`
+            business_id,
+            businesses (
+              business_name,
+              profile_pic_url
+            )
+          `)
+          .eq("customer_id", user.id)
+          .order("transaction_date", { ascending: false })
+
+        if (businessTransactionsError) {
+          console.error("Business transactions query error:", businessTransactionsError)
+        } else {
+          // Get unique businesses
+          const uniqueBusinesses = Array.from(
+            new Map(
+              businessTransactions.map((transaction: any) => [
+                transaction.business_id,
+                {
+                  business_id: transaction.business_id,
+                  business_name: transaction.businesses?.business_name || 'Business',
+                  profile_pic_url: transaction.businesses?.profile_pic_url || null
+                }
+              ])
+            ).values()
+          )
+
+          // Calculate points per business
+          const businessPointsMap = new Map()
+          
+          // Get all transactions
+          const { data: allTransactions, error: transactionsError } = await supabase
+            .from("points_transactions")
+            .select("business_id, points_earned")
+            .eq("customer_id", user.id)
+            
+          if (!transactionsError && allTransactions) {
+            allTransactions.forEach((transaction: any) => {
+              const currentPoints = businessPointsMap.get(transaction.business_id) || 0
+              businessPointsMap.set(transaction.business_id, currentPoints + transaction.points_earned)
+            })
+          }
+          
+          // Subtract redemptions
+          const { data: allRedemptions, error: redemptionsError } = await supabase
+            .from("redemptions")
+            .select(`
+              business_id,
+              points_redeemed
+            `)
+            .eq("customer_id", user.id)
+            
+          if (!redemptionsError && allRedemptions) {
+            allRedemptions.forEach((redemption: any) => {
+              if (redemption.business_id && redemption.points_redeemed) {
+                const currentPoints = businessPointsMap.get(redemption.business_id) || 0
+                businessPointsMap.set(redemption.business_id, currentPoints - redemption.points_redeemed)
+              }
+            })
+          }
+          
+          // Get available rewards count per business
+          const { data: allRewards, error: rewardsError } = await supabase
+            .from("rewards")
+            .select(`
+              business_id,
+              id,
+              is_active
+            `)
+            
+          const rewardsCountMap = new Map()
+          if (!rewardsError && allRewards) {
+            allRewards
+              .filter((reward: any) => reward.is_active)
+              .forEach((reward: any) => {
+                const currentCount = rewardsCountMap.get(reward.business_id) || 0
+                rewardsCountMap.set(reward.business_id, currentCount + 1)
+              })
+          }
+          
+          // Combine all data
+          const businessPointsResult: BusinessPoints[] = uniqueBusinesses.map((business: any) => {
+            const businessId = business.business_id
+            const points = businessPointsMap.get(businessId) || 0
+            const availableRewardsCount = rewardsCountMap.get(businessId) || 0
+            
+            return {
+              ...business,
+              total_points: points,
+              available_rewards: availableRewardsCount
+            }
+          })
+          
+          setBusinessPoints(businessPointsResult)
         }
       } catch (error) {
         console.error("CustomerDashboard.fetchData error:", error)
@@ -475,9 +584,10 @@ export default function CustomerDashboard() {
 
           {/* Tabs for Transactions and Redemptions */}
           <Tabs defaultValue="transactions" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="transactions">Transaction History</TabsTrigger>
               <TabsTrigger value="redemptions">Redemption History</TabsTrigger>
+              <TabsTrigger value="business-points">Business Points</TabsTrigger>
             </TabsList>
 
             <TabsContent value="transactions" className="mt-4">
@@ -598,6 +708,53 @@ export default function CustomerDashboard() {
                             </p>
                           </div>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="business-points" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Business Points</CardTitle>
+                  <CardDescription>Your points balance at each business</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {businessPoints.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Award className="mb-2 h-12 w-12 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">No business points yet</p>
+                      <p className="text-xs text-muted-foreground">Start shopping to earn points at businesses!</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {businessPoints.map((business) => (
+                        <Card 
+                          key={business.business_id} 
+                          className="cursor-pointer transition-all hover:shadow-md"
+                          onClick={() => router.push(`/business/${business.business_id}`)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-12 w-12">
+                                <AvatarImage src={business.profile_pic_url || undefined} />
+                                <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <h3 className="font-semibold">{business.business_name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {business.available_rewards} reward{business.available_rewards !== 1 ? 's' : ''} available
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-4 flex items-center justify-between">
+                              <span className="text-sm font-medium">Your Points</span>
+                              <span className="text-lg font-bold text-primary">{business.total_points}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
                   )}
