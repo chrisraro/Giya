@@ -14,6 +14,14 @@ import { toast } from "sonner"
 import { QrScanner } from "@/components/qr-scanner"
 import Link from "next/link"
 import { handleApiError } from "@/lib/error-handler"
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbList, 
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface BusinessData {
   id: string
@@ -235,8 +243,87 @@ export default function BusinessDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-svh bg-secondary">
+        {/* Header with skeleton loading */}
+        <header className="border-b bg-background">
+          <div className="container-padding-x container mx-auto flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-8 rounded" />
+              <Skeleton className="h-8 w-16 rounded" />
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content with skeleton loading */}
+        <main className="container-padding-x container mx-auto py-8">
+          <div className="flex flex-col gap-6">
+            {/* Breadcrumb skeleton */}
+            <Skeleton className="h-4 w-48" />
+            
+            {/* Stats Overview skeleton */}
+            <div className="grid gap-4 md:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-4 rounded-full" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-6 w-16" />
+                    <Skeleton className="mt-1 h-3 w-24" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Scan QR Card skeleton */}
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="mt-1 h-4 w-64" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Skeleton className="h-10 w-full rounded" />
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-10 w-full rounded" />
+              </CardContent>
+            </Card>
+
+            {/* Transaction History skeleton */}
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="mt-1 h-4 w-64" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="space-y-1">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="mt-1 h-3 w-12" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
       </div>
     )
   }
@@ -287,6 +374,19 @@ export default function BusinessDashboard() {
       {/* Main Content */}
       <main className="container-padding-x container mx-auto py-8">
         <div className="flex flex-col gap-6">
+          {/* Breadcrumbs */}
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem isCurrent>
+                Dashboard
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
           {/* Stats Overview */}
           <div className="grid gap-4 md:grid-cols-3">
             <Card>

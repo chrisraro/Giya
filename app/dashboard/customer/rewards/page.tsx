@@ -12,6 +12,17 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
 import { handleApiError } from "@/lib/error-handler"
+// Add new imports for our UI components
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbList, 
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb"
+import { Snackbar } from "@/components/ui/snackbar"
+import { Chip } from "@/components/ui/chip"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface Business {
   id: string
@@ -39,6 +50,11 @@ export default function CustomerRewardsPage() {
   const [showRedemptionQR, setShowRedemptionQR] = useState(false)
   const [redemptionQRCode, setRedemptionQRCode] = useState<string>("")
   const [redemptionDetails, setRedemptionDetails] = useState<any>(null)
+  // Snackbar state
+  const [snackbarOpen, setSnackbarOpen] = useState(false)
+  const [snackbarMessage, setSnackbarMessage] = useState("")
+  const [snackbarAction, setSnackbarAction] = useState<React.ReactNode>(null)
+  const [snackbarOnAction, setSnackbarOnAction] = useState<(() => void) | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -165,6 +181,28 @@ export default function CustomerRewardsPage() {
       setShowRedemptionQR(true)
       setSelectedReward(null)
 
+      // Show snackbar with undo option
+      setSnackbarMessage("Reward redeemed successfully!")
+      setSnackbarAction("Undo")
+      setSnackbarOnAction(() => async () => {
+        try {
+          // Delete the redemption record
+          const { error } = await supabase
+            .from("redemptions")
+            .delete()
+            .eq("id", redemption.id)
+          
+          if (error) throw error
+          
+          // Refresh data
+          fetchData()
+          toast.success("Redemption undone successfully!")
+        } catch (error) {
+          handleApiError(error, "Failed to undo redemption", "CustomerRewards.undoRedemption")
+        }
+      })
+      setSnackbarOpen(true)
+
       // Refresh data
       fetchData()
     } catch (error) {
@@ -176,8 +214,59 @@ export default function CustomerRewardsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-svh bg-secondary">
+        <header className="border-b bg-background">
+          <div className="container-padding-x container mx-auto flex items-center gap-3 py-4">
+            <Skeleton className="h-8 w-8 rounded" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+        </header>
+
+        <main className="container-padding-x container mx-auto py-8">
+          <div className="flex flex-col gap-6">
+            {/* Breadcrumb skeleton */}
+            <Skeleton className="h-4 w-48" />
+            
+            {/* Category filters skeleton */}
+            <div className="flex flex-wrap gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-8 w-20 rounded-full" />
+              ))}
+            </div>
+
+            {/* Rewards grid skeleton */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i}>
+                  <CardHeader>
+                    <div className="flex items-center gap-3 mb-2">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="mt-1 h-4 w-full" />
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-10 w-full rounded" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </main>
       </div>
     )
   }
@@ -199,6 +288,32 @@ export default function CustomerRewardsPage() {
       </header>
 
       <main className="container-padding-x container mx-auto py-8">
+        {/* Breadcrumbs */}
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/dashboard/customer">Dashboard</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem isCurrent>
+              Rewards
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        {/* Category Filters */}
+        <div className="mb-6 flex flex-wrap gap-2">
+          <Chip variant="default">All Rewards</Chip>
+          <Chip variant="outline">Food & Dining</Chip>
+          <Chip variant="outline">Shopping</Chip>
+          <Chip variant="outline">Entertainment</Chip>
+          <Chip variant="outline">Travel</Chip>
+        </div>
+
         {rewards.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -358,6 +473,19 @@ export default function CustomerRewardsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Snackbar for undo functionality */}
+      <Snackbar
+        open={snackbarOpen}
+        onOpenChange={setSnackbarOpen}
+        action={snackbarAction}
+        onAction={snackbarOnAction || undefined}
+        duration={5000}
+        variant="success"
+        position="bottom-right"
+      >
+        {snackbarMessage}
+      </Snackbar>
     </div>
   )
 }
