@@ -11,7 +11,6 @@ import { Loader2, Gift, ArrowLeft, Check } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
-import { handleApiError } from "@/lib/error-handler"
 // Add new imports for our UI components
 import { 
   Breadcrumb, 
@@ -28,6 +27,7 @@ interface Business {
   id: string
   business_name: string
   profile_pic_url: string | null
+  business_category: string
 }
 
 interface Reward {
@@ -53,6 +53,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
   const [redemptionQRCode, setRedemptionQRCode] = useState<string>("")
   const [redemptionDetails, setRedemptionDetails] = useState<any>(null)
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   // Snackbar state
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState("")
@@ -60,6 +61,9 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
   const [snackbarOnAction, setSnackbarOnAction] = useState<(() => void) | null>(null)
   const router = useRouter()
   const supabase = createClient()
+
+  // Get unique categories from rewards
+  const categories = Array.from(new Set(rewards.map(reward => reward.businesses.business_category)))
 
   useEffect(() => {
     // Check if there's a businessId in the query parameters
@@ -82,7 +86,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
         }
       }
     })
-  }, [searchParams])
+  }, [searchParams?.businessId, searchParams?.rewardId])
 
   const fetchData = async () => {
     try {
@@ -126,19 +130,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       // Fetch all active rewards from all businesses - optimized query
       const { data: rewardsData, error: rewardsError } = await supabase
         .from("rewards")
-        .select(`
-          id,
-          business_id,
-          name,
-          description,
-          points_required,
-          image_url,
-          businesses (
-            id,
-            business_name,
-            profile_pic_url
-          )
-        `)
+        .select("id,business_id,name,description,points_required,image_url,businesses(id,business_name,profile_pic_url,business_category)")
         .eq("is_active", true)
         .order("points_required", { ascending: true })
 
@@ -165,7 +157,8 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
         setFilteredRewards(rewardsData || [])
       }
     } catch (error) {
-      handleApiError(error, "Failed to load rewards", "CustomerRewards.fetchData")
+      console.error("CustomerRewards.fetchData:", error)
+      toast.error("Failed to load rewards")
     } finally {
       setIsLoading(false)
     }
@@ -193,7 +186,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
 
       if (!user) throw new Error("Not authenticated")
 
-      const redemptionCode = `GIYA-REDEEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const redemptionCode = "GIYA-REDEEM-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9)
 
       const { data: redemption, error: redemptionError } = await supabase
         .from("redemptions")
@@ -212,6 +205,11 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
 
       toast.success("Reward redeemed! Show the QR code to the business.")
 
+      // Add this line to show a more prominent success message
+      toast.success(`Successfully redeemed ${selectedReward.reward_name}! Points have been deducted from your account.`, {
+        duration: 5000
+      })
+
       setRedemptionQRCode(redemptionCode)
       setRedemptionDetails({
         reward: selectedReward,
@@ -222,7 +220,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       setSelectedReward(null)
 
       // Show snackbar with undo option
-      setSnackbarMessage("Reward redeemed successfully!")
+      setSnackbarMessage(`Successfully redeemed ${selectedReward.reward_name}!`)
       setSnackbarAction("Undo")
       setSnackbarOnAction(() => async () => {
         try {
@@ -238,7 +236,8 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
           fetchData()
           toast.success("Redemption undone successfully!")
         } catch (error) {
-          handleApiError(error, "Failed to undo redemption", "CustomerRewards.undoRedemption")
+          console.error("CustomerRewards.undoRedemption:", error)
+          toast.error("Failed to undo redemption")
         }
       })
       setSnackbarOpen(true)
@@ -246,7 +245,8 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       // Refresh data
       fetchData()
     } catch (error) {
-      handleApiError(error, "Failed to redeem reward", "CustomerRewards.handleConfirmRedeem")
+      console.error("CustomerRewards.handleConfirmRedeem:", error)
+      toast.error("Failed to redeem reward")
     } finally {
       setIsProcessing(false)
     }
@@ -256,7 +256,33 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
     // Remove the businessId parameter from the URL
     router.push('/dashboard/customer/rewards')
     setSelectedBusinessId(null)
+    setSelectedCategory(null)
     setFilteredRewards(rewards)
+  }
+
+  // Filter rewards by category
+  const filterByCategory = (category: string | null) => {
+    setSelectedCategory(category)
+    
+    if (!category) {
+      // If no category selected, show all rewards or filtered by business
+      if (selectedBusinessId) {
+        setFilteredRewards(rewards.filter(reward => reward.business_id === selectedBusinessId))
+      } else {
+        setFilteredRewards(rewards)
+      }
+      return
+    }
+    
+    // Filter by category
+    const categoryRewards = rewards.filter(reward => reward.businesses.business_category === category)
+    
+    if (selectedBusinessId) {
+      // Further filter by business if selected
+      setFilteredRewards(categoryRewards.filter(reward => reward.business_id === selectedBusinessId))
+    } else {
+      setFilteredRewards(categoryRewards)
+    }
   }
 
   if (isLoading) {
@@ -369,11 +395,21 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
 
         {/* Category Filters */}
         <div className="mb-6 flex flex-wrap gap-2">
-          <Chip variant="default">All Rewards</Chip>
-          <Chip variant="outline">Food & Dining</Chip>
-          <Chip variant="outline">Shopping</Chip>
-          <Chip variant="outline">Entertainment</Chip>
-          <Chip variant="outline">Travel</Chip>
+          <Chip 
+            variant={!selectedCategory ? "default" : "outline"} 
+            onClick={() => filterByCategory(null)}
+          >
+            All Rewards
+          </Chip>
+          {categories.map((category) => (
+            <Chip 
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              onClick={() => filterByCategory(category)}
+            >
+              {category}
+            </Chip>
+          ))}
         </div>
 
         {filteredRewards.length === 0 ? (
@@ -409,6 +445,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
                       </Avatar>
                       <div className="flex-1">
                         <p className="text-xs text-muted-foreground">{reward.businesses.business_name}</p>
+                        <p className="text-xs font-medium">{reward.businesses.business_category}</p>
                       </div>
                     </div>
                     <CardTitle className="text-lg">{reward.name}</CardTitle>
@@ -438,7 +475,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
                           Redeem Now
                         </>
                       ) : (
-                        `Need ${reward.points_required - userPoints} more points`
+                        "Need " + (reward.points_required - userPoints) + " more points"
                       )}
                     </Button>
                   </CardContent>

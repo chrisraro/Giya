@@ -52,6 +52,10 @@ interface Redemption {
     points_required: number
     image_url: string | null
   }
+  businesses: {
+    business_name: string
+    profile_pic_url: string | null
+  }
 }
 
 export default function CustomerDashboard() {
@@ -120,6 +124,10 @@ export default function CustomerDashboard() {
               reward_name,
               points_required,
               image_url
+            ),
+            businesses (
+              business_name,
+              profile_pic_url
             )
           `,
           )
@@ -464,26 +472,33 @@ export default function CustomerDashboard() {
                             </Avatar>
                             <div>
                               <p className="font-medium text-foreground">{redemption.rewards.reward_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(redemption.redeemed_at).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(redemption.redeemed_at).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })}
+                                </p>
+                                {redemption.businesses && (
+                                  <span className="text-xs text-muted-foreground">
+                                    at {redemption.businesses.business_name}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="text-right">
                             <Badge
                               variant={
-                                redemption.status === "completed"
+                                redemption.status === "validated"
                                   ? "default"
                                   : redemption.status === "pending"
                                     ? "secondary"
                                     : "destructive"
                               }
                             >
-                              {redemption.status}
+                              {redemption.status === "validated" ? "Completed" : redemption.status}
                             </Badge>
                             <p className="text-sm text-muted-foreground">{redemption.rewards.points_required} pts</p>
                           </div>

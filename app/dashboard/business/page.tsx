@@ -440,12 +440,20 @@ export default function BusinessDashboard() {
               <p className="text-sm text-muted-foreground">
                 Points configuration: 1 point per ₱{businessData.points_per_currency}
               </p>
-              <Link href="/dashboard/business/rewards">
-                <Button variant="outline" size="lg" className="w-full md:w-auto bg-transparent">
-                  <Gift className="mr-2 h-5 w-5" />
-                  Manage Rewards
-                </Button>
-              </Link>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Link href="/dashboard/business/rewards">
+                  <Button variant="outline" size="lg" className="w-full md:w-auto bg-transparent">
+                    <Gift className="mr-2 h-5 w-5" />
+                    Manage Rewards
+                  </Button>
+                </Link>
+                <Link href="/dashboard/business/validate-redemption">
+                  <Button variant="outline" size="lg" className="w-full md:w-auto bg-transparent">
+                    <QrCode className="mr-2 h-5 w-5" />
+                    Validate Redemptions
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
 

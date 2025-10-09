@@ -8,6 +8,12 @@ import { MapPin, Clock, Gift, Star, ExternalLink, ArrowLeft } from "lucide-react
 import Link from "next/link"
 import Image from "next/image"
 import { GoogleMap } from "@/components/google-map"
+import dynamic from 'next/dynamic'
+
+// Dynamically import the client component
+const RewardCard = dynamic(
+  () => import('@/app/business/[id]/reward-card').then(mod => mod.RewardCard)
+)
 
 interface PageProps {
   params: Promise<{
@@ -15,6 +21,26 @@ interface PageProps {
   }> | {
     id: string
   }
+}
+
+interface Business {
+  id: string
+  business_name: string
+  business_category: string
+  address: string
+  gmaps_link: string
+  profile_pic_url: string
+  points_per_currency: number
+  business_hours: any
+}
+
+interface Reward {
+  id: string
+  business_id: string
+  name: string
+  description: string
+  points_required: number
+  is_active: boolean
 }
 
 export default async function BusinessProfilePage({ params }: PageProps) {
@@ -217,33 +243,14 @@ export default async function BusinessProfilePage({ params }: PageProps) {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {rewards.map((reward) => (
-                <Card key={reward.id} className="overflow-hidden">
-                  <CardHeader className="bg-gradient-to-br from-primary/10 to-primary/5">
-                    <CardTitle className="text-lg">{reward.name}</CardTitle>
-                    <CardDescription>{reward.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <div className="mb-4">
-                      <p className="text-3xl font-bold text-primary">{reward.points_required}</p>
-                      <p className="text-sm text-muted-foreground">points required</p>
-                    </div>
-                    {user ? (
-                      <Link href={`/dashboard/customer/rewards?businessId=${resolvedParams.id}&rewardId=${reward.id}`}>
-                        <Button className="w-full">
-                          <Gift className="mr-2 h-4 w-4" />
-                          Claim Reward
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Link href="/auth/signup">
-                        <Button className="w-full">
-                          <Gift className="mr-2 h-4 w-4" />
-                          Sign Up to Claim
-                        </Button>
-                      </Link>
-                    )}
-                  </CardContent>
-                </Card>
+                <div key={reward.id}>
+                  <RewardCard 
+                    reward={reward} 
+                    business={business} 
+                    user={user} 
+                    businessId={resolvedParams.id} 
+                  />
+                </div>
               ))}
             </div>
           )}

@@ -74,3 +74,21 @@ create trigger deduct_points_trigger
   after insert on public.redemptions
   for each row
   execute function deduct_points_on_redemption();
+
+-- Add a function to update redemption timestamp
+create or replace function update_redeemed_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.redeemed_at = now();
+  return new;
+end;
+$$;
+
+-- Create trigger for setting redeemed_at timestamp
+drop trigger if exists update_redeemed_at_trigger on public.redemptions;
+create trigger update_redeemed_at_trigger
+  before insert on public.redemptions
+  for each row
+  execute function update_redeemed_at();

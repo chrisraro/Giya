@@ -111,6 +111,12 @@ export default function ValidateRedemptionPage() {
       if (updateError) throw updateError
 
       toast.success("Redemption validated successfully!")
+      
+      // Add this line to show a more detailed success message
+      toast.success(`Successfully validated redemption for ${redemptionData.rewards.reward_name}!`, {
+        duration: 5000
+      })
+      
       setRedemptionData(null)
       router.push("/dashboard/business")
     } catch (error) {
