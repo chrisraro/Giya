@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, Link2, TrendingUp, LogOut, Award, Copy, Check, Users, Settings } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
+import { handleApiError } from "@/lib/error-handler"
 
 interface InfluencerData {
   id: string
@@ -69,32 +70,32 @@ export default function InfluencerDashboard() {
           return
         }
 
-        // Fetch influencer data
+        // Fetch influencer data - only select necessary fields
         const { data: influencer, error: influencerError } = await supabase
           .from("influencers")
-          .select("*")
+          .select("id, full_name, profile_pic_url, total_points")
           .eq("id", user.id)
           .single()
 
         if (influencerError) {
-          console.error("[v0] Error fetching influencer data:", influencerError)
-          throw new Error(influencerError.message || "Failed to fetch influencer data")
+          handleApiError(influencerError, "Failed to fetch influencer data", "InfluencerDashboard.fetchInfluencerData")
+          return
         }
         setInfluencerData(influencer)
 
-        // Fetch all businesses
+        // Fetch all businesses - optimized query with only necessary fields
         const { data: businessesData, error: businessesError } = await supabase
           .from("businesses")
           .select("id, business_name, business_category, profile_pic_url")
           .order("business_name")
 
         if (businessesError) {
-          console.error("[v0] Error fetching businesses:", businessesError)
-          throw new Error(businessesError.message || "Failed to fetch businesses")
+          handleApiError(businessesError, "Failed to fetch businesses", "InfluencerDashboard.fetchBusinesses")
+          return
         }
         setBusinesses(businessesData || [])
 
-        // Fetch affiliate links
+        // Fetch affiliate links - optimized query with covering index
         const { data: linksData, error: linksError } = await supabase
           .from("affiliate_links")
           .select(
@@ -113,12 +114,12 @@ export default function InfluencerDashboard() {
           .order("created_at", { ascending: false })
 
         if (linksError) {
-          console.error("[v0] Error fetching affiliate links:", linksError)
-          throw new Error(linksError.message || "Failed to fetch affiliate links")
+          handleApiError(linksError, "Failed to fetch affiliate links", "InfluencerDashboard.fetchAffiliateLinks")
+          return
         }
         setAffiliateLinks(linksData || [])
 
-        // Fetch conversions with points earned
+        // Fetch conversions with points earned - optimized query with covering index
         const { data: conversionsData, error: conversionsError } = await supabase
           .from("affiliate_conversions")
           .select(
@@ -139,14 +140,12 @@ export default function InfluencerDashboard() {
           .limit(10)
 
         if (conversionsError) {
-          console.error("[v0] Error fetching conversions:", conversionsError)
-          throw new Error(conversionsError.message || "Failed to fetch conversions")
+          handleApiError(conversionsError, "Failed to fetch conversions", "InfluencerDashboard.fetchConversions")
+          return
         }
         setConversions(conversionsData || [])
-      } catch (error: any) {
-        console.error("[v0] Error fetching data:", error)
-        const errorMessage = error.message || "Failed to load dashboard data. Please try again."
-        toast.error(errorMessage)
+      } catch (error) {
+        handleApiError(error, "Failed to load dashboard data. Please try again.", "InfluencerDashboard.fetchData")
       } finally {
         setIsLoading(false)
       }
@@ -189,10 +188,8 @@ export default function InfluencerDashboard() {
 
       setAffiliateLinks([data, ...affiliateLinks])
       toast.success("Affiliate link generated successfully!")
-    } catch (error: any) {
-      console.error("[v0] Error generating link:", error)
-      const errorMessage = error.message || "Failed to generate affiliate link"
-      toast.error(errorMessage)
+    } catch (error) {
+      handleApiError(error, "Failed to generate affiliate link", "InfluencerDashboard.generateAffiliateLink")
     }
   }
 

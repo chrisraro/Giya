@@ -47,9 +47,6 @@ export default async function BusinessProfilePage({ params }: PageProps) {
 
   // Get Google Maps API key from environment variables
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
-  
-  console.log("Google Maps API Key available:", !!googleMapsApiKey)
-  console.log("Business Google Maps URL:", business.gmaps_link)
 
   return (
     <div className="min-h-svh bg-secondary">

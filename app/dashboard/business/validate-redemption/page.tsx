@@ -11,6 +11,7 @@ import { Loader2, QrCode, CheckCircle2, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { QrScanner } from "@/components/qr-scanner"
+import { handleApiError } from "@/lib/error-handler"
 
 export default function ValidateRedemptionPage() {
   const [showScanner, setShowScanner] = useState(false)
@@ -34,18 +35,23 @@ export default function ValidateRedemptionPage() {
         return
       }
 
-      // Fetch redemption details
+      // Fetch redemption details - optimized query with only necessary fields
       const { data: redemption, error: redemptionError } = await supabase
         .from("redemptions")
         .select(
           `
-          *,
+          id,
+          customer_id,
+          reward_id,
+          points_redeemed,
+          status,
+          validated_at,
           customers (
             full_name,
             profile_pic_url
           ),
           rewards (
-            reward_name,
+            name as reward_name,
             description,
             points_required
           )
@@ -74,8 +80,7 @@ export default function ValidateRedemptionPage() {
 
       setRedemptionData(redemption)
     } catch (error) {
-      console.error("[v0] Error validating redemption:", error)
-      toast.error("Failed to validate redemption")
+      handleApiError(error, "Failed to validate redemption", "ValidateRedemption.handleScanSuccess")
     } finally {
       setIsValidating(false)
     }
@@ -109,8 +114,7 @@ export default function ValidateRedemptionPage() {
       setRedemptionData(null)
       router.push("/dashboard/business")
     } catch (error) {
-      console.error("[v0] Error validating redemption:", error)
-      toast.error("Failed to validate redemption")
+      handleApiError(error, "Failed to validate redemption", "ValidateRedemption.handleValidateRedemption")
     } finally {
       setIsValidating(false)
     }

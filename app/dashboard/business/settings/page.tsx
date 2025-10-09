@@ -36,6 +36,9 @@ export default function BusinessProfileSettings() {
   const [isSaving, setIsSaving] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  
+  // Get Google Maps API key from environment variables
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
   useEffect(() => {
     const fetchData = async () => {
@@ -253,7 +256,7 @@ export default function BusinessProfileSettings() {
                     <GoogleMap 
                       url={formData.gmaps_link} 
                       address={formData.address} 
-                      apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+                      apiKey={googleMapsApiKey}
                     />
                     <div className="text-sm text-muted-foreground">
                       <MapPin className="inline h-4 w-4 mr-1" />

@@ -2,9 +2,12 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { X, Camera } from "lucide-react"
+import { X, Camera, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import jsQR from "jsqr"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface QrScannerProps {
   onScanSuccess: (data: string) => void
@@ -16,6 +19,10 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [stream, setStream] = useState<MediaStream | null>(null)
+  const [showManualInput, setShowManualInput] = useState(false)
+  const [manualCode, setManualCode] = useState("")
+  const [scanAttempts, setScanAttempts] = useState(0)
+  const [cameraError, setCameraError] = useState<string | null>(null)
   const scanIntervalRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -28,6 +35,7 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
 
   const startCamera = async () => {
     try {
+      setCameraError(null)
       // Try environment camera first (rear camera on mobile)
       let mediaStream: MediaStream;
       
@@ -64,13 +72,14 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
         videoRef.current.srcObject = mediaStream;
         setStream(mediaStream);
         setIsScanning(true);
+        setScanAttempts(0);
 
         scanIntervalRef.current = window.setInterval(() => {
           scanQRCode();
-        }, 100); // Scan every 100ms for better responsiveness
+        }, 150); // Scan every 150ms for better responsiveness
       }
     } catch (error) {
-      console.error("[v0] Camera error:", error);
+      setCameraError("Failed to access camera. Please check permissions.");
       toast.error("Failed to access camera. Please check permissions or try manual input.");
     }
   }
@@ -105,25 +114,41 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
     })
 
     if (code && code.data) {
-      console.log("[v0] QR Code detected:", code.data)
       stopCamera()
       onScanSuccess(code.data)
+    } else {
+      // Increment scan attempts to show user feedback
+      setScanAttempts(prev => prev + 1)
     }
   }
 
-  const handleManualInput = () => {
-    const qrCode = prompt("Enter QR code manually:");
-    if (qrCode && qrCode.trim() !== "") {
+  const handleManualSubmit = () => {
+    if (manualCode.trim() !== "") {
       stopCamera();
-      onScanSuccess(qrCode.trim());
-    } else if (qrCode !== null) {
-      toast.error("Please enter a valid QR code");
+      onScanSuccess(manualCode.trim());
+    } else {
+      toast.error("Please enter a valid code");
     }
+  }
+
+  const handleRetryCamera = () => {
+    setCameraError(null)
+    startCamera()
   }
 
   return (
     <div className="space-y-4">
       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-black">
+        {cameraError ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10 p-4 text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mb-3" />
+            <p className="text-destructive mb-3">{cameraError}</p>
+            <Button onClick={handleRetryCamera} variant="secondary" size="sm">
+              Retry Camera Access
+            </Button>
+          </div>
+        ) : null}
+        
         <video ref={videoRef} autoPlay playsInline className="h-full w-full object-cover" />
         <canvas ref={canvasRef} className="hidden" />
 
@@ -140,13 +165,22 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
 
         {/* Camera indicator */}
         <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-white">
-          <Camera className="h-4 w-4 animate-pulse" />
-          <span className="text-sm">Scanning...</span>
+          <Camera className={`h-4 w-4 ${isScanning ? "animate-pulse" : ""}`} />
+          <span className="text-sm">
+            {isScanning ? "Scanning..." : "Initializing..."}
+          </span>
         </div>
+        
+        {/* Scan attempts indicator */}
+        {isScanning && scanAttempts > 0 && (
+          <div className="absolute bottom-4 left-4 text-xs text-white/70">
+            Scans: {scanAttempts}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
-        <Button onClick={handleManualInput} variant="outline" className="w-full bg-transparent">
+        <Button onClick={() => setShowManualInput(true)} variant="outline" className="w-full bg-transparent">
           Enter Code Manually
         </Button>
         <Button onClick={onClose} variant="ghost" className="w-full">
@@ -158,6 +192,42 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
       <p className="text-center text-xs text-muted-foreground">
         Position the QR code within the frame to scan automatically
       </p>
+
+      {/* Manual Input Dialog */}
+      <Dialog open={showManualInput} onOpenChange={setShowManualInput}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enter Code Manually</DialogTitle>
+            <DialogDescription>
+              Enter the code from the QR code to proceed
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="manual-code">Code</Label>
+              <Input
+                id="manual-code"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                placeholder="Enter code here"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleManualSubmit()
+                  }
+                }}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowManualInput(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleManualSubmit} className="flex-1">
+                Submit
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -19,15 +19,12 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
   // Convert Google Maps URL to embed format
   const getEmbedUrl = () => {
     try {
-      console.log("Processing Google Maps URL:", { url, apiKey })
-      
       // Check if it's a Google Maps short URL
       const isShort = url.includes('maps.app.goo.gl') || url.includes('goo.gl/maps');
       setIsShortUrl(isShort);
       
       // If we don't have an API key, return the original URL
-      if (!apiKey || apiKey.length < 10) {
-        console.log("No valid API key provided for Google Maps")
+      if (!apiKey || apiKey.length < 30) { // Google Maps API keys are typically 39 characters
         // For place URLs, we can still try to create an embed URL without API key
         if (url.includes('google.com/maps/place/')) {
           // Try to extract coordinates if available
@@ -44,7 +41,6 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
       
       // Handle Google Maps short URLs (goo.gl) - these can't be embedded directly
       if (isShort) {
-        console.log("Google Maps short URL detected - cannot embed directly. Showing fallback.")
         return null
       }
       
@@ -69,12 +65,10 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
             const lat = coordsMatch[1]
             const lng = coordsMatch[2]
             const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${lat},${lng}&zoom=15`
-            console.log("Generated embed URL with coordinates:", embedUrl)
             return embedUrl
           }
           // Fallback to place name search
           const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(placeIdentifier)}`
-          console.log("Generated embed URL with place name:", embedUrl)
           return embedUrl
         }
       }
@@ -85,7 +79,6 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
         if (searchMatch && searchMatch[1]) {
           const searchQuery = searchMatch[1]
           const embedUrl = `https://www.google.com/maps/embed/v1/search?key=${apiKey}&q=${encodeURIComponent(searchQuery)}`
-          console.log("Generated embed URL for search:", embedUrl)
           return embedUrl
         }
       }
@@ -97,7 +90,6 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
           const origin = dirMatch[1]
           const destination = dirMatch[2]
           const embedUrl = `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`
-          console.log("Generated embed URL for directions:", embedUrl)
           return embedUrl
         }
       }
@@ -109,16 +101,13 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
           const lat = coordsMatch[1]
           const lng = coordsMatch[2]
           const embedUrl = `https://www.google.com/maps/embed/v1/view?key=${apiKey}&center=${lat},${lng}&zoom=15`
-          console.log("Generated embed URL with view:", embedUrl)
           return embedUrl
         }
       }
       
       // Return null for URLs we can't convert, which will trigger fallback
-      console.log("Could not convert URL, triggering fallback:", url)
       return null
     } catch (error) {
-      console.error('Error converting Google Maps URL:', error)
       return null
     }
   }
@@ -127,24 +116,20 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
     // Process the URL when component mounts or props change
     const processed = getEmbedUrl()
     setProcessedUrl(processed)
-    console.log("Processed URL for iframe:", processed)
   }, [url, apiKey])
 
   const handleMapLoad = () => {
-    console.log("Google Maps loaded successfully")
     setMapLoaded(true)
     setMapError(false)
   }
 
   const handleMapError = (e: any) => {
-    console.error("Google Maps failed to load:", e)
     setMapError(true)
     setMapLoaded(true)
   }
 
   // If it's a short URL, show fallback
   if (isShortUrl) {
-    console.log("Showing fallback UI for short URL", { isShortUrl })
     return (
       <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
         <div className="text-center p-4">
@@ -171,7 +156,6 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
 
   // If we can't process the URL, show fallback
   if (processedUrl === null) {
-    console.log("Showing fallback UI for unprocessable URL", { processedUrl })
     return (
       <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
         <div className="text-center p-4">
@@ -195,8 +179,6 @@ export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
       </div>
     )
   }
-
-  console.log("Rendering iframe with URL:", processedUrl)
 
   return (
     <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted relative">

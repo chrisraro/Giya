@@ -13,6 +13,7 @@ import { Loader2, QrCode, TrendingUp, Users, LogOut, DollarSign, Scan, Gift, Set
 import { toast } from "sonner"
 import { QrScanner } from "@/components/qr-scanner"
 import Link from "next/link"
+import { handleApiError } from "@/lib/error-handler"
 
 interface BusinessData {
   id: string
@@ -73,17 +74,17 @@ export default function BusinessDashboard() {
           return
         }
 
-        // Fetch business data
+        // Fetch business data - only select necessary fields
         const { data: business, error: businessError } = await supabase
           .from("businesses")
-          .select("*")
+          .select("id, business_name, business_category, profile_pic_url, points_per_currency, address")
           .eq("id", user.id)
           .single()
 
         if (businessError) throw businessError
         setBusinessData(business)
 
-        // Fetch transactions
+        // Fetch transactions - optimized query with covering index
         const { data: transactionsData, error: transactionsError } = await supabase
           .from("points_transactions")
           .select(
@@ -106,7 +107,7 @@ export default function BusinessDashboard() {
         if (transactionsError) throw transactionsError
         setTransactions(transactionsData || [])
 
-        // Calculate stats
+        // Calculate stats - optimized query with only necessary fields
         const { data: allTransactions } = await supabase
           .from("points_transactions")
           .select("amount_spent, customer_id")
@@ -123,8 +124,7 @@ export default function BusinessDashboard() {
           })
         }
       } catch (error) {
-        console.error("[v0] Error fetching data:", error)
-        toast.error("Failed to load dashboard data")
+        handleApiError(error, "Failed to load dashboard data", "BusinessDashboard.fetchData")
       } finally {
         setIsLoading(false)
       }
@@ -153,8 +153,7 @@ export default function BusinessDashboard() {
       setScannedCustomer(customer)
       setShowTransactionDialog(true)
     } catch (error) {
-      console.error("[v0] Error scanning QR:", error)
-      toast.error("Failed to scan QR code")
+      handleApiError(error, "Failed to scan QR code", "BusinessDashboard.handleScanSuccess")
     } finally {
       setIsProcessing(false)
     }
@@ -223,8 +222,7 @@ export default function BusinessDashboard() {
       setScannedCustomer(null)
       setTransactionAmount("")
     } catch (error) {
-      console.error("[v0] Error creating transaction:", error)
-      toast.error("Failed to create transaction")
+      handleApiError(error, "Failed to create transaction", "BusinessDashboard.handleCreateTransaction")
     } finally {
       setIsProcessing(false)
     }

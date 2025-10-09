@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, QrCode, TrendingUp, Gift, LogOut, Award, Settings } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import Link from "next/link"
+import { handleApiError } from "@/lib/error-handler"
 
 interface CustomerData {
   id: string
@@ -65,17 +66,17 @@ export default function CustomerDashboard() {
           return
         }
 
-        // Fetch customer data
+        // Fetch customer data - only select necessary fields
         const { data: customer, error: customerError } = await supabase
           .from("customers")
-          .select("*")
+          .select("id, full_name, nickname, profile_pic_url, qr_code_data, total_points")
           .eq("id", user.id)
           .single()
 
         if (customerError) throw customerError
         setCustomerData(customer)
 
-        // Fetch transactions
+        // Fetch transactions - optimized query with covering index
         const { data: transactionsData, error: transactionsError } = await supabase
           .from("points_transactions")
           .select(
@@ -98,7 +99,7 @@ export default function CustomerDashboard() {
         if (transactionsError) throw transactionsError
         setTransactions(transactionsData || [])
 
-        // Fetch redemptions
+        // Fetch redemptions - optimized query with covering index
         const { data: redemptionsData, error: redemptionsError } = await supabase
           .from("redemptions")
           .select(
@@ -120,7 +121,7 @@ export default function CustomerDashboard() {
         if (redemptionsError) throw redemptionsError
         setRedemptions(redemptionsData || [])
       } catch (error) {
-        console.error("[v0] Error fetching data:", error)
+        handleApiError(error, "Failed to load dashboard data", "CustomerDashboard.fetchData")
       } finally {
         setIsLoading(false)
       }

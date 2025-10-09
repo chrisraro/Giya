@@ -11,6 +11,7 @@ import { Loader2, Gift, ArrowLeft, Check } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
+import { handleApiError } from "@/lib/error-handler"
 
 interface Business {
   id: string
@@ -56,6 +57,7 @@ export default function CustomerRewardsPage() {
         return
       }
 
+      // Optimized query for transactions with only necessary fields
       const { data: transactions, error: transactionsError } = await supabase
         .from("points_transactions")
         .select("business_id, points_earned")
@@ -65,10 +67,11 @@ export default function CustomerRewardsPage() {
 
       // Aggregate points by business
       const pointsMap: Record<string, number> = {}
-      transactions?.forEach((t) => {
+      transactions?.forEach((t: { business_id: string; points_earned: number }) => {
         pointsMap[t.business_id] = (pointsMap[t.business_id] || 0) + t.points_earned
       })
 
+      // Optimized query for redemptions with only necessary fields
       const { data: redemptions, error: redemptionsError } = await supabase
         .from("redemptions")
         .select("business_id, points_redeemed")
@@ -76,18 +79,23 @@ export default function CustomerRewardsPage() {
 
       if (redemptionsError) throw redemptionsError
 
-      redemptions?.forEach((r) => {
+      redemptions?.forEach((r: { business_id: string; points_redeemed: number }) => {
         pointsMap[r.business_id] = (pointsMap[r.business_id] || 0) - r.points_redeemed
       })
 
       setCustomerPoints(pointsMap)
 
-      // Fetch all active rewards from all businesses
+      // Fetch all active rewards from all businesses - optimized query
       const { data: rewardsData, error: rewardsError } = await supabase
         .from("rewards")
         .select(
           `
-          *,
+          id,
+          business_id,
+          name as reward_name,
+          description,
+          points_required,
+          image_url,
           businesses (
             id,
             business_name,
@@ -101,8 +109,7 @@ export default function CustomerRewardsPage() {
       if (rewardsError) throw rewardsError
       setRewards(rewardsData || [])
     } catch (error) {
-      console.error("[v0] Error fetching data:", error)
-      toast.error("Failed to load rewards")
+      handleApiError(error, "Failed to load rewards", "CustomerRewards.fetchData")
     } finally {
       setIsLoading(false)
     }
@@ -161,8 +168,7 @@ export default function CustomerRewardsPage() {
       // Refresh data
       fetchData()
     } catch (error) {
-      console.error("[v0] Error redeeming reward:", error)
-      toast.error("Failed to redeem reward")
+      handleApiError(error, "Failed to redeem reward", "CustomerRewards.handleConfirmRedeem")
     } finally {
       setIsProcessing(false)
     }
