@@ -58,6 +58,23 @@ interface Redemption {
   }
 }
 
+interface FallbackRedemption {
+  id: string
+  redeemed_at: string
+  status: string
+  business_id: string | null
+  reward_id: string
+  rewards: {
+    reward_name: string
+    points_required: number
+    image_url: string | null
+  }
+  businesses?: {
+    business_name: string
+    profile_pic_url: string | null
+  }
+}
+
 export default function CustomerDashboard() {
   const [customerData, setCustomerData] = useState<CustomerData | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -114,7 +131,7 @@ export default function CustomerDashboard() {
 
         // Fetch redemptions - optimized query with covering index
         console.log("Fetching redemptions for customer:", user.id)
-        const { data: redemptionsData, error: redemptionsError } = await supabase
+        const redemptionsQuery = supabase
           .from("redemptions")
           .select(
             `
@@ -122,12 +139,13 @@ export default function CustomerDashboard() {
             redeemed_at,
             status,
             business_id,
+            reward_id,
             rewards (
               reward_name,
               points_required,
               image_url
             ),
-            businesses (
+            businesses!inner (
               business_name,
               profile_pic_url
             )
@@ -137,12 +155,72 @@ export default function CustomerDashboard() {
           .order("redeemed_at", { ascending: false })
           .limit(10)
 
+        console.log("Redemptions query:", redemptionsQuery)
+        const { data: redemptionsData, error: redemptionsError } = await redemptionsQuery
+
         if (redemptionsError) {
           console.error("Redemptions query error:", redemptionsError)
-          throw redemptionsError
+          // Try a simpler query as fallback
+          const fallbackQuery = supabase
+            .from("redemptions")
+            .select(
+              `
+              id,
+              redeemed_at,
+              status,
+              business_id,
+              reward_id,
+              rewards (
+                reward_name,
+                points_required,
+                image_url
+              )
+            `,
+            )
+            .eq("customer_id", user.id)
+            .order("redeemed_at", { ascending: false })
+            .limit(10)
+            
+          console.log("Fallback redemptions query:", fallbackQuery)
+          const { data: fallbackData, error: fallbackError } = await fallbackQuery
+          
+          if (fallbackError) {
+            console.error("Fallback redemptions query error:", fallbackError)
+            throw fallbackError
+          }
+          
+          // Manually fetch business information for each redemption
+          const redemptionsWithBusiness = await Promise.all(
+            (fallbackData || []).map(async (redemption: FallbackRedemption) => {
+              if (redemption.business_id) {
+                const businessQuery = supabase
+                  .from("businesses")
+                  .select("business_name, profile_pic_url")
+                  .eq("id", redemption.business_id)
+                  .single()
+                  
+                console.log("Business query for redemption:", redemption.id, businessQuery)
+                const { data: businessData, error: businessError } = await businessQuery
+                  
+                if (!businessError && businessData) {
+                  return {
+                    ...redemption,
+                    businesses: businessData
+                  }
+                } else {
+                  console.error("Business query error for redemption:", redemption.id, businessError)
+                }
+              }
+              return redemption
+            })
+          )
+          
+          console.log("Redemptions data with manual business fetch:", redemptionsWithBusiness)
+          setRedemptions(redemptionsWithBusiness as unknown as Redemption[] || [])
+        } else {
+          console.log("Redemptions data:", redemptionsData)
+          setRedemptions(redemptionsData || [])
         }
-        console.log("Redemptions data:", redemptionsData)
-        setRedemptions(redemptionsData || [])
       } catch (error) {
         console.error("CustomerDashboard.fetchData error:", error)
         handleApiError(error, "Failed to load dashboard data", "CustomerDashboard.fetchData")
