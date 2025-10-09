@@ -82,22 +82,11 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       setSelectedBusinessId(null)
     }
     
-    fetchData().then(() => {
-      // If a specific rewardId is provided, auto-open that reward
-      if (rewardId && rewards.length > 0) {
-        const reward = rewards.find(r => r.id === rewardId)
-        if (reward) {
-          // Small delay to allow UI to render first
-          setTimeout(() => {
-            handleRedeemClick(reward)
-          }, 500)
-        }
-      }
-    })
+    fetchData()
   }, [searchParams?.businessId, searchParams?.rewardId])
 
+  // Separate useEffect for filtering rewards when data or filters change
   useEffect(() => {
-    // Filter rewards when selectedBusinessId or selectedCategory changes
     if (selectedBusinessId) {
       const businessRewards = rewards.filter((reward: Reward) => reward.business_id === selectedBusinessId)
       if (selectedCategory) {
@@ -119,7 +108,19 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       // Show all rewards
       setFilteredRewards(rewards)
     }
-  }, [selectedBusinessId, selectedCategory, rewards])
+    
+    // Handle auto-opening reward dialog if a specific rewardId is provided
+    const rewardId = searchParams?.rewardId
+    if (rewardId && rewards.length > 0) {
+      const reward = rewards.find(r => r.id === rewardId)
+      if (reward) {
+        // Small delay to allow UI to render first
+        setTimeout(() => {
+          handleRedeemClick(reward)
+        }, 500)
+      }
+    }
+  }, [selectedBusinessId, selectedCategory, rewards, searchParams?.rewardId])
 
   const fetchData = async () => {
     try {
@@ -146,6 +147,8 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
         pointsMap[t.business_id] = (pointsMap[t.business_id] || 0) + t.points_earned
       })
 
+      console.log("Points from transactions:", pointsMap)
+
       // Optimized query for redemptions with only necessary fields
       const { data: redemptions, error: redemptionsError } = await supabase
         .from("redemptions")
@@ -158,6 +161,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
         pointsMap[r.business_id] = (pointsMap[r.business_id] || 0) - r.points_redeemed
       })
 
+      console.log("Final points after redemptions:", pointsMap)
       setCustomerPoints(pointsMap)
 
       // Fetch all active rewards from all businesses - optimized query
@@ -165,6 +169,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       let rewardsError = null
       
       // First try with reward_name column
+      console.log("Attempting to fetch rewards with reward_name column")
       let { data, error } = await supabase
         .from("rewards")
         .select("id,business_id,reward_name,description,points_required,image_url,businesses(id,business_name,profile_pic_url,business_category)")
@@ -174,6 +179,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       if (error) {
         console.error("Rewards query error with reward_name:", error)
         // Try alternative query with 'name' column if 'reward_name' doesn't exist
+        console.log("Attempting to fetch rewards with name column (fallback)")
         const altResult = await supabase
           .from("rewards")
           .select("id,business_id,name as reward_name,description,points_required,image_url,businesses(id,business_name,profile_pic_url,business_category)")
@@ -184,13 +190,15 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
         error = altResult.error
           
         if (error) {
+          console.error("Rewards query error with fallback:", error)
           throw error
         }
       }
       
       rewardsData = data
       rewardsError = error
-
+      
+      console.log("Rewards data fetched:", rewardsData)
       if (rewardsError) throw rewardsError
       
       setRewards(rewardsData || [])
@@ -270,7 +278,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       toast.success("Reward redeemed! Show the QR code to the business.")
 
       // Add this line to show a more prominent success message
-      toast.success(`Successfully redeemed ${selectedReward.reward_name}! Points have been deducted from your account.`, {
+      toast.success(`Successfully redeemed ${selectedReward?.reward_name || 'reward'}! Points have been deducted from your account.`, {
         duration: 5000
       })
 
@@ -284,7 +292,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       setSelectedReward(null)
 
       // Show snackbar with undo option
-      setSnackbarMessage(`Successfully redeemed ${selectedReward.reward_name}!`)
+      setSnackbarMessage(`Successfully redeemed ${selectedReward?.reward_name || 'reward'}!`)
       setSnackbarAction("Undo")
       setSnackbarOnAction(() => async () => {
         try {
@@ -500,26 +508,26 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
                   <CardHeader>
                     <div className="flex items-center gap-3 mb-2">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={reward.businesses.profile_pic_url || undefined} />
-                        <AvatarFallback>{reward.businesses.business_name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={reward.businesses?.profile_pic_url || undefined} />
+                        <AvatarFallback>{reward.businesses?.business_name?.charAt(0) || 'B'}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="text-xs text-muted-foreground">{reward.businesses.business_name}</p>
-                        <p className="text-xs font-medium">{reward.businesses.business_category}</p>
+                        <p className="text-xs text-muted-foreground">{reward.businesses?.business_name || 'Business'}</p>
+                        <p className="text-xs font-medium">{reward.businesses?.business_category || 'Category'}</p>
                       </div>
                     </div>
-                    <CardTitle className="text-lg">{reward.reward_name}</CardTitle>
-                    <CardDescription className="text-sm">{reward.description}</CardDescription>
+                    <CardTitle className="text-lg">{reward.reward_name || 'Reward'}</CardTitle>
+                    <CardDescription className="text-sm">{reward.description || 'No description'}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Your points:</span>
-                        <span className="font-semibold">{userPoints}</span>
+                        <span className="font-semibold">{userPoints || 0}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Required:</span>
-                        <span className="font-semibold text-primary">{reward.points_required}</span>
+                        <span className="font-semibold text-primary">{reward.points_required || 0}</span>
                       </div>
                     </div>
 
@@ -558,26 +566,26 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
               <div className="rounded-lg border bg-secondary p-4">
                 <div className="mb-3 flex items-center gap-3">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={selectedReward.businesses.profile_pic_url || undefined} />
-                    <AvatarFallback>{selectedReward.businesses.business_name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={selectedReward?.businesses?.profile_pic_url || undefined} />
+                    <AvatarFallback>{selectedReward?.businesses?.business_name?.charAt(0) || 'B'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{selectedReward.reward_name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedReward.businesses.business_name}</p>
+                    <h3 className="font-semibold">{selectedReward?.reward_name || 'Reward'}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedReward?.businesses?.business_name || 'Business'}</p>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{selectedReward.description}</p>
+                <p className="text-sm text-muted-foreground">{selectedReward?.description || 'No description'}</p>
               </div>
 
               <div className="rounded-lg border bg-primary/5 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Points to redeem:</span>
-                  <span className="text-lg font-bold text-primary">{selectedReward.points_required}</span>
+                  <span className="text-lg font-bold text-primary">{selectedReward?.points_required || 0}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Remaining points:</span>
                   <span className="font-semibold">
-                    {customerPoints[selectedReward.business_id] - selectedReward.points_required}
+                    {(customerPoints[selectedReward?.business_id] || 0) - (selectedReward?.points_required || 0)}
                   </span>
                 </div>
               </div>
@@ -618,13 +626,13 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
               </div>
 
               <div className="rounded-lg border bg-secondary p-4">
-                <h3 className="font-semibold mb-2">{redemptionDetails.reward.reward_name}</h3>
+                <h3 className="font-semibold mb-2">{redemptionDetails?.reward?.reward_name || 'Reward'}</h3>
                 <p className="text-sm text-muted-foreground mb-3">
-                  {redemptionDetails.reward.businesses.business_name}
+                  {redemptionDetails?.reward?.businesses?.business_name || 'Business'}
                 </p>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Points redeemed:</span>
-                  <span className="font-bold text-primary">{redemptionDetails.reward.points_required}</span>
+                  <span className="font-bold text-primary">{redemptionDetails?.reward?.points_required || 0}</span>
                 </div>
               </div>
 

@@ -36,7 +36,7 @@ export default function ValidateRedemptionPage() {
       }
 
       // Fetch redemption details - optimized query with only necessary fields
-      const { data: redemption, error: redemptionError } = await supabase
+      let redemptionQuery = await supabase
         .from("redemptions")
         .select(
           `
@@ -52,7 +52,7 @@ export default function ValidateRedemptionPage() {
             profile_pic_url
           ),
           rewards (
-            name as reward_name,
+            reward_name,
             description,
             points_required
           )
@@ -60,6 +60,41 @@ export default function ValidateRedemptionPage() {
         )
         .eq("redemption_qr_code", qrCode.trim()) // Trim whitespace
         .single()
+
+      let { data: redemption, error: redemptionError } = redemptionQuery
+
+      // If the query fails due to column name, try with the old column name
+      if (redemptionError && redemptionError.message && 
+          (redemptionError.message.includes("reward_name") || redemptionError.message.includes("does not exist"))) {
+        console.log("Trying with old column name 'name'")
+        const altResult = await supabase
+          .from("redemptions")
+          .select(
+            `
+            id,
+            customer_id,
+            reward_id,
+            points_redeemed,
+            status,
+            validated_at,
+            business_id,
+            customers (
+              full_name,
+              profile_pic_url
+            ),
+            rewards (
+              name as reward_name,
+              description,
+              points_required
+            )
+          `,
+          )
+          .eq("redemption_qr_code", qrCode.trim()) // Trim whitespace
+          .single()
+          
+        redemption = altResult.data
+        redemptionError = altResult.error
+      }
 
       if (redemptionError || !redemption) {
         console.error("Redemption query error:", redemptionError)
@@ -127,7 +162,7 @@ export default function ValidateRedemptionPage() {
       toast.success("Redemption validated successfully!")
       
       // Add this line to show a more detailed success message
-      toast.success(`Successfully validated redemption for ${redemptionData.rewards.reward_name}!`, {
+      toast.success(`Successfully validated redemption for ${redemptionData.rewards?.reward_name || 'reward'}!`, {
         duration: 5000
       })
       
