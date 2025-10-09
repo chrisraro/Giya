@@ -86,7 +86,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
             </Button>
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/giya-logo.jpg" alt="Giya" width={32} height={32} className="object-contain" />
+            <Image src="/giya-logo.png" alt="Giya" width={32} height={32} className="object-contain" />
             <span className="font-semibold hidden sm:inline">Giya</span>
           </Link>
         </div>
