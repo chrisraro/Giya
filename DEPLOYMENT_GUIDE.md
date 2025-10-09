@@ -106,11 +106,28 @@ The following additional fixes have been implemented to resolve production issue
 
 1. **RLS Policy Fix**: Updated the "Users can view their own redemptions" policy to include the `auth.uid() = user_id` condition for backward compatibility with existing records
 
-2. **Data Migration**: Script 018 has been added to fix existing redemption records that had [user_id](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/001_create_tables.sql#L97-L97) populated but [customer_id](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/007_update_redemptions_table.sql#L3-L3) as null
+2. **Data Migration**: Script 018 has been added to fix existing redemption records that had [user_id](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/001_create_tables.sql#L97-L97) but missing [customer_id](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/007_update_redemptions_table.sql#L3-L3)
 
 3. **Query Fix**: Business validation page now correctly selects the [business_id](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/007_update_redemptions_table.sql#L4-L4) field needed for validation
 
-For detailed information about these fixes, see [PRODUCTION_ISSUE_FIXES.md](file:///c%3A/Users/User/OneDrive/Desktop/giya/PRODUCTION_ISSUE_FIXES.md).
+4. **Toast Notification Fix**: Added the missing `<Toaster />` component to the root layout to enable toast notifications
+
+5. **Reward Name Reference Fix**: Updated references from `reward_name` to [name](file://c:\Users\User\OneDrive\Desktop\giya\app\business\[id]\page.tsx#L39-L39) in toast messages
+
+For detailed information about these fixes, see [PRODUCTION_ISSUE_FIXES.md](file:///c%3A/Users/User/OneDrive/Desktop/giya/PRODUCTION_ISSUE_FIXES.md) and [PRODUCTION_DEBUG_STEPS.md](file:///c%3A/Users/User/OneDrive/Desktop/giya/PRODUCTION_DEBUG_STEPS.md).
+
+## Post-Deployment Checklist
+
+After deploying the fixes, verify:
+
+- [ ] Toast notifications appear when redeeming rewards
+- [ ] QR codes are generated and displayed correctly
+- [ ] Business users can validate redemptions
+- [ ] Redemption history shows in customer dashboard
+- [ ] Snackbar undo functionality works
+- [ ] All database scripts (008 and 018) have been applied
+
+If any issues persist, refer to [PRODUCTION_DEBUG_STEPS.md](file:///c%3A/Users/User/OneDrive/Desktop/giya/PRODUCTION_DEBUG_STEPS.md) for detailed debugging steps.
 
 ## Rollback Plan
 

@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Onest } from "next/font/google"
 import "./globals.css"
+import { Toaster } from "sonner"
 
 const onest = Onest({
   subsets: ["latin"],
@@ -24,7 +25,10 @@ export default function RootLayout({
     <>
       <html lang="en" suppressHydrationWarning>
         <head />
-        <body className={`${onest.variable} relative antialiased`}>{children}</body>
+        <body className={`${onest.variable} relative antialiased`}>
+          {children}
+          <Toaster />
+        </body>
       </html>
     </>
   )

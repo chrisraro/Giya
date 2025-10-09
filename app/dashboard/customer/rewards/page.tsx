@@ -206,7 +206,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       toast.success("Reward redeemed! Show the QR code to the business.")
 
       // Add this line to show a more prominent success message
-      toast.success(`Successfully redeemed ${selectedReward.reward_name}! Points have been deducted from your account.`, {
+      toast.success(`Successfully redeemed ${selectedReward.name}! Points have been deducted from your account.`, {
         duration: 5000
       })
 
@@ -220,7 +220,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
       setSelectedReward(null)
 
       // Show snackbar with undo option
-      setSnackbarMessage(`Successfully redeemed ${selectedReward.reward_name}!`)
+      setSnackbarMessage(`Successfully redeemed ${selectedReward.name}!`)
       setSnackbarAction("Undo")
       setSnackbarOnAction(() => async () => {
         try {
