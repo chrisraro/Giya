@@ -38,10 +38,22 @@ interface Reward {
   points_required: number
   is_active: boolean
   businesses: Business
+  name?: string // Add this for backward compatibility
 }
 
-export default function CustomerRewardsPage() {
+interface SupabaseReward {
+  id: string
+  business_id: string
+  name: string
+  description: string
+  points_required: number
+  is_active: boolean
+  businesses: Business
+}
+
+export default function CustomerRewardsPage({ searchParams }: { searchParams: { businessId?: string } }) {
   const [rewards, setRewards] = useState<Reward[]>([])
+  const [filteredRewards, setFilteredRewards] = useState<Reward[]>([])
   const [customerPoints, setCustomerPoints] = useState<Record<string, number>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [showRedeemDialog, setShowRedeemDialog] = useState(false)
@@ -50,6 +62,7 @@ export default function CustomerRewardsPage() {
   const [showRedemptionQR, setShowRedemptionQR] = useState(false)
   const [redemptionQRCode, setRedemptionQRCode] = useState<string>("")
   const [redemptionDetails, setRedemptionDetails] = useState<any>(null)
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null)
   // Snackbar state
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState("")
@@ -59,8 +72,14 @@ export default function CustomerRewardsPage() {
   const supabase = createClient()
 
   useEffect(() => {
+    // Check if there's a businessId in the query parameters
+    const businessId = searchParams?.businessId
+    if (businessId) {
+      setSelectedBusinessId(businessId)
+    }
+    
     fetchData()
-  }, [])
+  }, [searchParams])
 
   const fetchData = async () => {
     try {
@@ -108,7 +127,7 @@ export default function CustomerRewardsPage() {
           `
           id,
           business_id,
-          name as reward_name,
+          name,
           description,
           points_required,
           image_url,
@@ -123,7 +142,33 @@ export default function CustomerRewardsPage() {
         .order("points_required", { ascending: true })
 
       if (rewardsError) throw rewardsError
-      setRewards(rewardsData || [])
+      
+      // Map the name field to reward_name for consistency
+      const mappedRewards = rewardsData?.map((reward: SupabaseReward) => ({
+        ...reward,
+        name: reward.name || "Unnamed Reward"
+      })) || []
+      
+      setRewards(mappedRewards)
+      
+      // Filter rewards if a businessId is specified
+      if (selectedBusinessId) {
+        const businessRewards = mappedRewards.filter((reward: Reward) => reward.business_id === selectedBusinessId)
+        setFilteredRewards(businessRewards)
+        
+        // If there's only one reward from this business, show the redeem dialog directly
+        if (businessRewards.length === 1) {
+          const userPoints = pointsMap[selectedBusinessId] || 0
+          if (userPoints >= businessRewards[0].points_required) {
+            // Small delay to allow UI to render first
+            setTimeout(() => {
+              handleRedeemClick(businessRewards[0])
+            }, 500)
+          }
+        }
+      } else {
+        setFilteredRewards(mappedRewards)
+      }
     } catch (error) {
       handleApiError(error, "Failed to load rewards", "CustomerRewards.fetchData")
     } finally {
@@ -210,6 +255,13 @@ export default function CustomerRewardsPage() {
     } finally {
       setIsProcessing(false)
     }
+  }
+
+  const handleViewAllRewards = () => {
+    // Remove the businessId parameter from the URL
+    router.push('/dashboard/customer/rewards')
+    setSelectedBusinessId(null)
+    setFilteredRewards(rewards)
   }
 
   if (isLoading) {
@@ -305,6 +357,21 @@ export default function CustomerRewardsPage() {
           </BreadcrumbList>
         </Breadcrumb>
 
+        {/* Show business filter info if applicable */}
+        {selectedBusinessId && (
+          <div className="mb-4 p-3 bg-primary/10 rounded-lg flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Showing rewards for a specific business</h3>
+              <p className="text-sm text-muted-foreground">
+                {filteredRewards.length} reward{filteredRewards.length !== 1 ? 's' : ''} available
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleViewAllRewards}>
+              View All Rewards
+            </Button>
+          </div>
+        )}
+
         {/* Category Filters */}
         <div className="mb-6 flex flex-wrap gap-2">
           <Chip variant="default">All Rewards</Chip>
@@ -314,19 +381,26 @@ export default function CustomerRewardsPage() {
           <Chip variant="outline">Travel</Chip>
         </div>
 
-        {rewards.length === 0 ? (
+        {filteredRewards.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Gift className="mb-4 h-16 w-16 text-muted-foreground" />
               <h3 className="mb-2 text-lg font-semibold">No rewards available</h3>
               <p className="text-sm text-muted-foreground">
-                Start earning points at your favorite businesses to unlock rewards
+                {selectedBusinessId 
+                  ? "This business doesn't have any available rewards." 
+                  : "Start earning points at your favorite businesses to unlock rewards"}
               </p>
+              {selectedBusinessId && (
+                <Button onClick={handleViewAllRewards} className="mt-4">
+                  View All Rewards
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {rewards.map((reward) => {
+            {filteredRewards.map((reward) => {
               const userPoints = customerPoints[reward.business_id] || 0
               const canRedeem = userPoints >= reward.points_required
 

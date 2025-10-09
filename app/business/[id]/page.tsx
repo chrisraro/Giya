@@ -228,7 +228,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                       <p className="text-sm text-muted-foreground">points required</p>
                     </div>
                     {user ? (
-                      <Link href="/dashboard/customer/rewards">
+                      <Link href={`/dashboard/customer/rewards?businessId=${resolvedParams.id}`}>
                         <Button className="w-full">
                           <Gift className="mr-2 h-4 w-4" />
                           Claim Reward
