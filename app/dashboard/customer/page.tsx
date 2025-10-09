@@ -449,38 +449,59 @@ export default function CustomerDashboard() {
               </CardContent>
             </Card>
 
-            {/* Tabs skeleton */}
-            <div className="space-y-4">
-              <div className="flex gap-4 border-b">
-                <Skeleton className="h-8 w-32" />
-                <Skeleton className="h-8 w-32" />
-              </div>
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-5 w-40" />
-                  <Skeleton className="mt-1 h-4 w-64" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[1, 2].map((i) => (
-                      <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0">
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="h-10 w-10 rounded-full" />
-                          <div className="space-y-1">
-                            <Skeleton className="h-4 w-24" />
-                            <Skeleton className="h-3 w-20" />
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <Skeleton className="h-4 w-16" />
-                          <Skeleton className="mt-1 h-3 w-12" />
+            {/* Transaction History skeleton */}
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="mt-1 h-4 w-64" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="space-y-1">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-3 w-20" />
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                      <div className="text-right">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="mt-1 h-3 w-12" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Redemption History skeleton */}
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="mt-1 h-4 w-64" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="space-y-1">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="mt-1 h-3 w-12" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </main>
       </div>
@@ -663,186 +684,128 @@ export default function CustomerDashboard() {
             </CardContent>
           </Card>
 
-          {/* Tabs for Transactions and Redemptions */}
-          <Tabs defaultValue="transactions" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="transactions">Transaction History</TabsTrigger>
-              <TabsTrigger value="redemptions">Redemption History</TabsTrigger>
-              <TabsTrigger value="business-points">Business Points</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="transactions" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Transactions</CardTitle>
-                  <CardDescription>Your latest points earning activities</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {transactions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <TrendingUp className="mb-2 h-12 w-12 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">No transactions yet</p>
-                      <p className="text-xs text-muted-foreground">Start shopping to earn points!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {transactions.map((transaction) => (
-                        <div
-                          key={transaction.id}
-                          className="flex items-center justify-between border-b pb-4 last:border-0"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={transaction.businesses?.profile_pic_url || undefined} />
-                              <AvatarFallback>{transaction.businesses?.business_name?.charAt(0) || 'B'}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium text-foreground">{transaction.businesses?.business_name || 'Business'}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {transaction.transaction_date
-                                  ? new Date(transaction.transaction_date).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })
-                                  : 'Unknown date'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-primary">+{transaction.points_earned} pts</p>
-                            <p className="text-sm text-muted-foreground">₱{transaction.amount_spent.toFixed(2)}</p>
-                          </div>
+          {/* Transaction History */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Transactions</CardTitle>
+              <CardDescription>Your latest points earning activities</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {transactions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <TrendingUp className="mb-2 h-12 w-12 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No transactions yet</p>
+                  <p className="text-xs text-muted-foreground">Start shopping to earn points!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {transactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between border-b pb-4 last:border-0"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={transaction.businesses?.profile_pic_url || undefined} />
+                          <AvatarFallback>{transaction.businesses?.business_name?.charAt(0) || 'B'}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-foreground">{transaction.businesses?.business_name || 'Business'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {transaction.transaction_date
+                              ? new Date(transaction.transaction_date).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })
+                              : 'Unknown date'}
+                          </p>
                         </div>
-                      ))}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-primary">+{transaction.points_earned} pts</p>
+                        <p className="text-sm text-muted-foreground">₱{transaction.amount_spent.toFixed(2)}</p>
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-            <TabsContent value="redemptions" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Redemption History</CardTitle>
-                  <CardDescription>Your redeemed rewards</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {redemptions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <Gift className="mb-2 h-12 w-12 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">No redemptions yet</p>
-                      <p className="text-xs text-muted-foreground">Browse rewards to redeem your points!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {redemptions.map((redemption) => (
-                        <div
-                          key={redemption.id}
-                          className="flex items-center justify-between border-b pb-4 last:border-0"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={redemption.rewards?.image_url || undefined} />
-                              <AvatarFallback>
-                                <Gift className="h-5 w-5" />
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium text-foreground">{redemption.rewards?.reward_name || 'Reward'}</p>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm text-muted-foreground">
-                                  {redemption.redeemed_at 
-                                    ? new Date(redemption.redeemed_at).toLocaleDateString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                      })
-                                    : 'Unknown date'}
-                                </p>
-                                {redemption.businesses?.business_name && (
-                                  <span className="text-xs text-muted-foreground">
-                                    at {redemption.businesses.business_name}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge
-                              variant={
-                                redemption.status === "validated"
-                                  ? "default"
-                                  : redemption.status === "pending"
-                                    ? "secondary"
-                                    : "destructive"
-                              }
-                            >
-                              {redemption.status === "validated" 
-                                ? "Completed" 
-                                : redemption.status === "pending"
-                                  ? "Pending"
-                                  : redemption.status || "Unknown"}
-                            </Badge>
+          {/* Redemption History */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Redemption History</CardTitle>
+              <CardDescription>Your redeemed rewards</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {redemptions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Gift className="mb-2 h-12 w-12 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No redemptions yet</p>
+                  <p className="text-xs text-muted-foreground">Browse rewards to redeem your points!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {redemptions.map((redemption) => (
+                    <div
+                      key={redemption.id}
+                      className="flex items-center justify-between border-b pb-4 last:border-0"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={redemption.rewards?.image_url || undefined} />
+                          <AvatarFallback>
+                            <Gift className="h-5 w-5" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-foreground">{redemption.rewards?.reward_name || 'Reward'}</p>
+                          <div className="flex items-center gap-2">
                             <p className="text-sm text-muted-foreground">
-                              {redemption.rewards?.points_required || 0} pts
+                              {redemption.redeemed_at 
+                                ? new Date(redemption.redeemed_at).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })
+                                : 'Unknown date'}
                             </p>
+                            {redemption.businesses?.business_name && (
+                              <span className="text-xs text-muted-foreground">
+                                at {redemption.businesses.business_name}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="business-points" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Business Points</CardTitle>
-                  <CardDescription>Your points balance at each business</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {businessPoints.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <Award className="mb-2 h-12 w-12 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">No business points yet</p>
-                      <p className="text-xs text-muted-foreground">Start shopping to earn points at businesses!</p>
-                    </div>
-                  ) : (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {businessPoints.map((business) => (
-                        <Card 
-                          key={business.business_id} 
-                          className="cursor-pointer transition-all hover:shadow-md"
-                          onClick={() => router.push(`/business/${business.business_id}`)}
+                      </div>
+                      <div className="text-right">
+                        <Badge
+                          variant={
+                            redemption.status === "validated"
+                              ? "default"
+                              : redemption.status === "pending"
+                                ? "secondary"
+                                : "destructive"
+                          }
                         >
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-12 w-12">
-                                <AvatarImage src={business.profile_pic_url || undefined} />
-                                <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <h3 className="font-semibold">{business.business_name}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                  {business.available_rewards} reward{business.available_rewards !== 1 ? 's' : ''} available
-                                </p>
-                              </div>
-                            </div>
-                            <div className="mt-4 flex items-center justify-between">
-                              <span className="text-sm font-medium">Your Points</span>
-                              <span className="text-lg font-bold text-primary">{business.total_points}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                          {redemption.status === "validated" 
+                            ? "Completed" 
+                            : redemption.status === "pending"
+                              ? "Pending"
+                              : redemption.status || "Unknown"}
+                        </Badge>
+                        <p className="text-sm text-muted-foreground">
+                          {redemption.rewards?.points_required || 0} pts
+                        </p>
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
