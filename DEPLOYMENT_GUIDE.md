@@ -71,13 +71,13 @@ After deployment, verify that the fixes work correctly:
 
 2. **Test QR Code Scanning**:
    - Log in as a business
-   - Navigate to Validate Redemption page
+   - Navigate to Validate Redemption page (now accessible via the new button in dashboard)
    - Scan the customer's redemption QR code
    - Validate the redemption
    - Verify the redemption status updates
 
 3. **Check Redemption History**:
-   - As a customer, check that redemptions appear in your history
+   - As a customer, check that redemptions appear in your history with business information
    - As a business, check that validated redemptions appear in your records
 
 ## Troubleshooting
@@ -90,6 +90,7 @@ If you encounter issues after deployment:
 
 2. **Verify Database Schema**:
    - Check that script 008 was executed successfully
+   - Verify that script 018 was executed to fix existing data
    - Verify that the `redemptions` table has all the required columns
 
 3. **Check Environment Variables**:
@@ -98,6 +99,18 @@ If you encounter issues after deployment:
 4. **Clear Cache**:
    - Clear your browser cache
    - Restart your application if running locally
+
+## Additional Fixes Applied
+
+The following additional fixes have been implemented to resolve production issues:
+
+1. **RLS Policy Fix**: Updated the "Users can view their own redemptions" policy to include the `auth.uid() = user_id` condition for backward compatibility with existing records
+
+2. **Data Migration**: Script 018 has been added to fix existing redemption records that had [user_id](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/001_create_tables.sql#L97-L97) populated but [customer_id](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/007_update_redemptions_table.sql#L3-L3) as null
+
+3. **Query Fix**: Business validation page now correctly selects the [business_id](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/007_update_redemptions_table.sql#L4-L4) field needed for validation
+
+For detailed information about these fixes, see [PRODUCTION_ISSUE_FIXES.md](file:///c%3A/Users/User/OneDrive/Desktop/giya/PRODUCTION_ISSUE_FIXES.md).
 
 ## Rollback Plan
 

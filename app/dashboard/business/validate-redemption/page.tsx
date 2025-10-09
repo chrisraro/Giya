@@ -46,6 +46,7 @@ export default function ValidateRedemptionPage() {
           points_redeemed,
           status,
           validated_at,
+          business_id,
           customers (
             full_name,
             profile_pic_url

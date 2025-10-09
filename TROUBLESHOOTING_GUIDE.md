@@ -78,22 +78,45 @@ Updated all frontend components to use the unified `redemptions` table:
    - Verify the redemption status updates
    - Check that the redemption appears in transaction history
 
-## Common Issues and Solutions
+## Common Issues and Troubleshooting
 
 ### Points Not Deducting
-- Ensure the `deduct_points_on_redemption` function is properly created
-- Check that the trigger is active on the `redemptions` table
-- Verify the customer has sufficient points before redemption
+
+1. Check that the `deduct_points_on_redemption` function exists in Supabase
+2. Verify that the trigger is active on the `redemptions` table
+3. Check the function logic to ensure it's properly retrieving reward points
 
 ### QR Code Not Scanning
-- Ensure the business is scanning the correct QR code
-- Check that the redemption record exists in the database
-- Verify the business is associated with the correct business_id
+
+1. Verify that the QR code contains the correct redemption ID
+2. Check that the redemption record exists in the database
+3. Ensure the business is associated with the correct business_id
+4. Make sure the business is using the "Validate Redemptions" page (newly added button in dashboard)
 
 ### Redemption History Not Showing
-- Ensure queries are using `customer_id` rather than `user_id`
-- Check that the redemption status is properly set
-- Verify RLS policies allow customers to view their own redemptions
+
+1. Check that queries are using `customer_id` rather than `user_id`
+2. Verify that the redemption status is properly set
+3. Confirm RLS policies allow customers to view their own redemptions
+4. Ensure the database includes business information with redemptions (apply script [017_update_customer_redemption_query.sql](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/017_update_customer_redemption_query.sql))
+
+### Database Errors
+
+1. Ensure all SQL scripts have been run in the correct order
+2. Check that foreign key relationships are properly established
+3. Verify that all required columns exist in the tables
+
+### Missing Navigation to Validate Redemptions
+
+1. Verify the business dashboard has the "Validate Redemptions" button
+2. Check that the button correctly links to `/dashboard/business/validate-redemption`
+3. Ensure the validation page loads the QR scanner component properly
+
+### Missing or Poor Feedback Notifications
+
+1. Check that toast notifications are implemented in both customer rewards and business validation flows
+2. Verify that notifications include meaningful information about the action performed
+3. Ensure notifications remain visible for an appropriate duration
 
 ## Additional Notes
 

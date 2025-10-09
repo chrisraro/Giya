@@ -29,12 +29,13 @@ create policy "Users can view their own redemptions"
   using (
     auth.uid() = customer_id or 
     auth.uid() = business_id or
-    auth.uid() = validated_by
+    auth.uid() = validated_by or
+    auth.uid() = user_id
   );
 
 create policy "Customers can create redemptions"
   on public.redemptions for insert
-  with check (auth.uid() = customer_id);
+  with check (auth.uid() = customer_id or auth.uid() = user_id);
 
 create policy "Businesses can update redemptions"
   on public.redemptions for update
