@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useEffect } from "react"
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -18,10 +19,50 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const supabase = createClient()
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Fetch user profile to determine role
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single()
+
+        if (!profileError && profile) {
+          // Redirect based on role
+          switch (profile.role) {
+            case "customer":
+              router.push("/dashboard/customer")
+              break
+            case "business":
+              router.push("/dashboard/business")
+              break
+            case "influencer":
+              router.push("/dashboard/influencer")
+              break
+            default:
+              router.push("/")
+          }
+        } else {
+          // If no profile, check user metadata
+          const userRole = user.user_metadata?.role
+          if (userRole) {
+            router.push(`/auth/setup/${userRole}`)
+          }
+        }
+      }
+    }
+
+    checkUser()
+  }, [router, supabase])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 

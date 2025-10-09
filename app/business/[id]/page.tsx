@@ -219,7 +219,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
               {rewards.map((reward) => (
                 <Card key={reward.id} className="overflow-hidden">
                   <CardHeader className="bg-gradient-to-br from-primary/10 to-primary/5">
-                    <CardTitle className="text-lg">{reward.reward_name}</CardTitle>
+                    <CardTitle className="text-lg">{reward.name}</CardTitle>
                     <CardDescription>{reward.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-6">
@@ -228,7 +228,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                       <p className="text-sm text-muted-foreground">points required</p>
                     </div>
                     {user ? (
-                      <Link href={`/dashboard/customer/rewards?businessId=${resolvedParams.id}`}>
+                      <Link href={`/dashboard/customer/rewards?businessId=${resolvedParams.id}&rewardId=${reward.id}`}>
                         <Button className="w-full">
                           <Gift className="mr-2 h-4 w-4" />
                           Claim Reward

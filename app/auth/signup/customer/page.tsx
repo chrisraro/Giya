@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useEffect, useState } from "react"
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -9,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
 import { ArrowLeft } from "lucide-react"
 
 export default function CustomerSignupPage({ searchParams }: { searchParams: { ref?: string } }) {
@@ -23,7 +23,48 @@ export default function CustomerSignupPage({ searchParams }: { searchParams: { r
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const supabase = createClient()
   const referralCode = searchParams?.ref
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Fetch user profile to determine role
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single()
+
+        if (!profileError && profile) {
+          // Redirect based on role
+          switch (profile.role) {
+            case "customer":
+              router.push("/dashboard/customer")
+              break
+            case "business":
+              router.push("/dashboard/business")
+              break
+            case "influencer":
+              router.push("/dashboard/influencer")
+              break
+            default:
+              router.push("/")
+          }
+        } else {
+          // If no profile, check user metadata
+          const userRole = user.user_metadata?.role
+          if (userRole) {
+            router.push(`/auth/setup/${userRole}`)
+          }
+        }
+      }
+    }
+
+    checkUser()
+  }, [router, supabase])
 
   // Store referral code in localStorage so it persists through email verification
   useEffect(() => {
@@ -44,8 +85,6 @@ export default function CustomerSignupPage({ searchParams }: { searchParams: { r
       setIsLoading(false)
       return
     }
-
-    const supabase = createClient()
 
     try {
       // Get referral code from localStorage if not in URL (for email verification flow)

@@ -8,9 +8,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Save, MapPin } from "lucide-react"
+import { Loader2, Save, MapPin, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { GoogleMap } from "@/components/google-map"
+// Add breadcrumb components
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbList, 
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb"
 
 interface BusinessData {
   id: string
@@ -149,12 +157,46 @@ export default function BusinessProfileSettings() {
     <div className="min-h-svh bg-secondary">
       <header className="border-b bg-background">
         <div className="container-padding-x container mx-auto py-4">
-          <h1 className="text-2xl font-bold">Business Profile Settings</h1>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => router.push("/dashboard/business")}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="container-padding-x container mx-auto py-8">
-        <form onSubmit={handleSubmit} className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+        {/* Breadcrumbs */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/dashboard/business">Dashboard</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem isCurrent>
+              Settings
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Business Profile Settings</h1>
+            <p className="text-muted-foreground">Manage your business information and preferences</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="grid gap-6 md:grid-cols-1 lg:grid-cols-3 mt-6">
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>

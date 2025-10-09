@@ -1,12 +1,58 @@
 "use client"
 
+import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { Building2, Megaphone, User } from "lucide-react"
 import Image from "next/image"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 
 export default function SignupPage() {
+  const router = useRouter()
+  const supabase = createClient()
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Fetch user profile to determine role
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single()
+
+        if (!profileError && profile) {
+          // Redirect based on role
+          switch (profile.role) {
+            case "customer":
+              router.push("/dashboard/customer")
+              break
+            case "business":
+              router.push("/dashboard/business")
+              break
+            case "influencer":
+              router.push("/dashboard/influencer")
+              break
+            default:
+              router.push("/")
+          }
+        } else {
+          // If no profile, check user metadata
+          const userRole = user.user_metadata?.role
+          if (userRole) {
+            router.push(`/auth/setup/${userRole}`)
+          }
+        }
+      }
+    }
+
+    checkUser()
+  }, [router, supabase])
+
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-4xl">

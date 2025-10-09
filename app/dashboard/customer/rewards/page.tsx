@@ -41,17 +41,7 @@ interface Reward {
   reward_name?: string // Add this for backward compatibility
 }
 
-interface SupabaseReward {
-  id: string
-  business_id: string
-  name: string
-  description: string
-  points_required: number
-  is_active: boolean
-  businesses: Business
-}
-
-export default function CustomerRewardsPage({ searchParams }: { searchParams: { businessId?: string } }) {
+export default function CustomerRewardsPage({ searchParams }: { searchParams: { businessId?: string, rewardId?: string } }) {
   const [rewards, setRewards] = useState<Reward[]>([])
   const [filteredRewards, setFilteredRewards] = useState<Reward[]>([])
   const [customerPoints, setCustomerPoints] = useState<Record<string, number>>({})
@@ -74,11 +64,24 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
   useEffect(() => {
     // Check if there's a businessId in the query parameters
     const businessId = searchParams?.businessId
+    const rewardId = searchParams?.rewardId
+    
     if (businessId) {
       setSelectedBusinessId(businessId)
     }
     
-    fetchData()
+    fetchData().then(() => {
+      // If a specific rewardId is provided, auto-open that reward
+      if (rewardId && rewards.length > 0) {
+        const reward = rewards.find(r => r.id === rewardId)
+        if (reward) {
+          // Small delay to allow UI to render first
+          setTimeout(() => {
+            handleRedeemClick(reward)
+          }, 500)
+        }
+      }
+    })
   }, [searchParams])
 
   const fetchData = async () => {
@@ -141,21 +144,15 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
 
       if (rewardsError) throw rewardsError
       
-      // Map the name field to reward_name for consistency
-      const mappedRewards = rewardsData?.map((reward: SupabaseReward) => ({
-        ...reward,
-        reward_name: reward.name
-      })) || []
-      
-      setRewards(mappedRewards)
+      setRewards(rewardsData || [])
       
       // Filter rewards if a businessId is specified
       if (selectedBusinessId) {
-        const businessRewards = mappedRewards.filter((reward: Reward) => reward.business_id === selectedBusinessId)
+        const businessRewards = (rewardsData || []).filter((reward: Reward) => reward.business_id === selectedBusinessId)
         setFilteredRewards(businessRewards)
         
-        // If there's only one reward from this business, show the redeem dialog directly
-        if (businessRewards.length === 1) {
+        // If there's only one reward from this business and no specific rewardId, show the redeem dialog directly
+        if (businessRewards.length === 1 && !searchParams?.rewardId) {
           const userPoints = pointsMap[selectedBusinessId] || 0
           if (userPoints >= businessRewards[0].points_required) {
             // Small delay to allow UI to render first
@@ -165,7 +162,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
           }
         }
       } else {
-        setFilteredRewards(mappedRewards)
+        setFilteredRewards(rewardsData || [])
       }
     } catch (error) {
       handleApiError(error, "Failed to load rewards", "CustomerRewards.fetchData")
@@ -414,7 +411,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
                         <p className="text-xs text-muted-foreground">{reward.businesses.business_name}</p>
                       </div>
                     </div>
-                    <CardTitle className="text-lg">{reward.reward_name || reward.name}</CardTitle>
+                    <CardTitle className="text-lg">{reward.name}</CardTitle>
                     <CardDescription className="text-sm">{reward.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -468,7 +465,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
                     <AvatarFallback>{selectedReward.businesses.business_name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{selectedReward.reward_name || selectedReward.name}</h3>
+                    <h3 className="font-semibold">{selectedReward.name}</h3>
                     <p className="text-sm text-muted-foreground">{selectedReward.businesses.business_name}</p>
                   </div>
                 </div>
@@ -524,7 +521,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
               </div>
 
               <div className="rounded-lg border bg-secondary p-4">
-                <h3 className="font-semibold mb-2">{redemptionDetails.reward.reward_name || redemptionDetails.reward.name}</h3>
+                <h3 className="font-semibold mb-2">{redemptionDetails.reward.name}</h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   {redemptionDetails.reward.businesses.business_name}
                 </p>
