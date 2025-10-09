@@ -113,6 +113,7 @@ export default function CustomerDashboard() {
         setTransactions(transactionsData || [])
 
         // Fetch redemptions - optimized query with covering index
+        console.log("Fetching redemptions for customer:", user.id)
         const { data: redemptionsData, error: redemptionsError } = await supabase
           .from("redemptions")
           .select(
@@ -120,6 +121,7 @@ export default function CustomerDashboard() {
             id,
             redeemed_at,
             status,
+            business_id,
             rewards (
               reward_name,
               points_required,
@@ -135,9 +137,14 @@ export default function CustomerDashboard() {
           .order("redeemed_at", { ascending: false })
           .limit(10)
 
-        if (redemptionsError) throw redemptionsError
+        if (redemptionsError) {
+          console.error("Redemptions query error:", redemptionsError)
+          throw redemptionsError
+        }
+        console.log("Redemptions data:", redemptionsData)
         setRedemptions(redemptionsData || [])
       } catch (error) {
+        console.error("CustomerDashboard.fetchData error:", error)
         handleApiError(error, "Failed to load dashboard data", "CustomerDashboard.fetchData")
       } finally {
         setIsLoading(false)
@@ -417,17 +424,19 @@ export default function CustomerDashboard() {
                         >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
-                              <AvatarImage src={transaction.businesses.profile_pic_url || undefined} />
-                              <AvatarFallback>{transaction.businesses.business_name.charAt(0)}</AvatarFallback>
+                              <AvatarImage src={transaction.businesses?.profile_pic_url || undefined} />
+                              <AvatarFallback>{transaction.businesses?.business_name?.charAt(0) || 'B'}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium text-foreground">{transaction.businesses.business_name}</p>
+                              <p className="font-medium text-foreground">{transaction.businesses?.business_name || 'Business'}</p>
                               <p className="text-sm text-muted-foreground">
-                                {new Date(transaction.transaction_date).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })}
+                                {transaction.transaction_date
+                                  ? new Date(transaction.transaction_date).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })
+                                  : 'Unknown date'}
                               </p>
                             </div>
                           </div>
@@ -465,22 +474,24 @@ export default function CustomerDashboard() {
                         >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
-                              <AvatarImage src={redemption.rewards.image_url || undefined} />
+                              <AvatarImage src={redemption.rewards?.image_url || undefined} />
                               <AvatarFallback>
                                 <Gift className="h-5 w-5" />
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium text-foreground">{redemption.rewards.reward_name}</p>
+                              <p className="font-medium text-foreground">{redemption.rewards?.reward_name || 'Reward'}</p>
                               <div className="flex items-center gap-2">
                                 <p className="text-sm text-muted-foreground">
-                                  {new Date(redemption.redeemed_at).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                    year: "numeric",
-                                  })}
+                                  {redemption.redeemed_at 
+                                    ? new Date(redemption.redeemed_at).toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })
+                                    : 'Unknown date'}
                                 </p>
-                                {redemption.businesses && (
+                                {redemption.businesses?.business_name && (
                                   <span className="text-xs text-muted-foreground">
                                     at {redemption.businesses.business_name}
                                   </span>
@@ -498,9 +509,15 @@ export default function CustomerDashboard() {
                                     : "destructive"
                               }
                             >
-                              {redemption.status === "validated" ? "Completed" : redemption.status}
+                              {redemption.status === "validated" 
+                                ? "Completed" 
+                                : redemption.status === "pending"
+                                  ? "Pending"
+                                  : redemption.status || "Unknown"}
                             </Badge>
-                            <p className="text-sm text-muted-foreground">{redemption.rewards.points_required} pts</p>
+                            <p className="text-sm text-muted-foreground">
+                              {redemption.rewards?.points_required || 0} pts
+                            </p>
                           </div>
                         </div>
                       ))}
