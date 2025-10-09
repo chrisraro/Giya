@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, QrCode, TrendingUp, Gift, LogOut, Award, Settings } from "lucide-react"
+import { Loader2, QrCode, TrendingUp, Gift, LogOut, Award, Settings, Building2 } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import Link from "next/link"
 import { handleApiError } from "@/lib/error-handler"
@@ -83,11 +83,20 @@ interface BusinessPoints {
   available_rewards: number
 }
 
+interface BusinessDiscovery {
+  id: string
+  business_name: string
+  business_category: string
+  profile_pic_url: string | null
+  points_per_currency: number
+}
+
 export default function CustomerDashboard() {
   const [customerData, setCustomerData] = useState<CustomerData | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [redemptions, setRedemptions] = useState<Redemption[]>([])
   const [businessPoints, setBusinessPoints] = useState<BusinessPoints[]>([])
+  const [businessDiscovery, setBusinessDiscovery] = useState<BusinessDiscovery[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showQRDialog, setShowQRDialog] = useState(false)
   const router = useRouter()
@@ -368,6 +377,18 @@ export default function CustomerDashboard() {
           
           setBusinessPoints(businessPointsResult)
         }
+
+        // Fetch businesses for discovery section
+        const { data: discoveryBusinesses, error: discoveryError } = await supabase
+          .from("businesses")
+          .select("id, business_name, business_category, profile_pic_url, points_per_currency")
+          .limit(10)
+
+        if (discoveryError) {
+          console.error("Business discovery query error:", discoveryError)
+        } else {
+          setBusinessDiscovery(discoveryBusinesses || [])
+        }
       } catch (error) {
         console.error("CustomerDashboard.fetchData error:", error)
         handleApiError(error, "Failed to load dashboard data", "CustomerDashboard.fetchData")
@@ -426,6 +447,44 @@ export default function CustomerDashboard() {
               ))}
             </div>
 
+            {/* Quick Actions skeleton */}
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-28" />
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                <Skeleton className="h-16 rounded-lg" />
+                <Skeleton className="h-16 rounded-lg" />
+              </CardContent>
+            </Card>
+
+            {/* Discover Businesses skeleton */}
+            <div className="w-full">
+              <div className="flex items-center justify-between mb-4">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-3 w-8" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
             {/* QR Code Card skeleton */}
             <Card>
               <CardHeader>
@@ -435,17 +494,6 @@ export default function CustomerDashboard() {
               <CardContent className="flex flex-col items-center gap-4">
                 <Skeleton className="h-48 w-48 rounded-lg" />
                 <Skeleton className="h-4 w-40" />
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions skeleton */}
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-5 w-28" />
-              </CardHeader>
-              <CardContent className="grid gap-3 sm:grid-cols-2">
-                <Skeleton className="h-16 rounded-lg" />
-                <Skeleton className="h-16 rounded-lg" />
               </CardContent>
             </Card>
 
@@ -601,6 +649,52 @@ export default function CustomerDashboard() {
                 <p className="text-xs text-muted-foreground">Total redemptions</p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Discover Businesses */}
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Discover Businesses</h2>
+              <Button variant="link" onClick={() => router.push("/business")} className="text-primary">
+                View All
+              </Button>
+            </div>
+            {businessDiscovery.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+                  <Building2 className="mb-2 h-12 w-12 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No businesses found</p>
+                  <p className="text-xs text-muted-foreground">Check back later for new businesses!</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {businessDiscovery.map((business) => (
+                  <Card 
+                    key={business.id} 
+                    className="cursor-pointer transition-all hover:shadow-md"
+                    onClick={() => router.push(`/business/${business.id}`)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={business.profile_pic_url || undefined} />
+                          <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{business.business_name}</h3>
+                          <p className="text-sm text-muted-foreground">{business.business_category}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Points per ₱</span>
+                        <span className="text-sm font-medium">{business.points_per_currency || 100}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* QR Code Card */}
