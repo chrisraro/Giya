@@ -16,7 +16,7 @@ import { toast } from "sonner"
 import { Calendar, Tag, Users } from "lucide-react"
 import { handleApiError } from "@/lib/error-handler"
 import Link from "next/link"
-import { QRCodeSVG } from "qrcode"
+import { QRCodeSVG } from "qrcode.react"
 
 interface ExclusiveOffer {
   id: string
