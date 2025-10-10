@@ -17,9 +17,7 @@ const RewardCard = dynamic(
 )
 
 interface PageProps {
-  params: Promise<{
-    id: string
-  }> | {
+  params: {
     id: string
   }
 }
@@ -80,13 +78,10 @@ interface ExclusiveOffer {
 }
 
 export default async function BusinessProfilePage({ params }: PageProps) {
-  // Handle both Promise and resolved params
-  const resolvedParams = params instanceof Promise ? await params : params;
-  
   const supabase = await createServerClient()
 
   // Fetch business details
-  const { data: business, error } = await supabase.from("businesses").select("*").eq("id", resolvedParams.id).single()
+  const { data: business, error } = await supabase.from("businesses").select("*").eq("id", params.id).single()
 
   if (error || !business) {
     notFound()
@@ -96,23 +91,52 @@ export default async function BusinessProfilePage({ params }: PageProps) {
   const { data: rewards } = await supabase
     .from("rewards")
     .select("*")
-    .eq("business_id", resolvedParams.id)
+    .eq("business_id", params.id)
     .eq("is_active", true)
     .order("points_required", { ascending: true })
 
   // Fetch discount offers
   const { data: discountOffers } = await supabase
     .from("discount_offers")
-    .select("*")
-    .eq("business_id", resolvedParams.id)
+    .select(`
+      id,
+      business_id,
+      title,
+      description,
+      discount_type,
+      discount_value,
+      minimum_purchase,
+      is_active,
+      usage_limit,
+      used_count,
+      valid_from,
+      valid_until,
+      is_first_visit_only
+    `)
+    .eq("business_id", params.id)
     .eq("is_active", true)
     .order("created_at", { ascending: false })
 
   // Fetch exclusive offers
   const { data: exclusiveOffers } = await supabase
     .from("exclusive_offers")
-    .select("*")
-    .eq("business_id", resolvedParams.id)
+    .select(`
+      id,
+      business_id,
+      title,
+      description,
+      product_name,
+      original_price,
+      discounted_price,
+      discount_percentage,
+      image_url,
+      is_active,
+      usage_limit,
+      used_count,
+      valid_from,
+      valid_until
+    `)
+    .eq("business_id", params.id)
     .eq("is_active", true)
     .order("created_at", { ascending: false })
 
@@ -300,7 +324,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                     reward={reward} 
                     business={business} 
                     user={user} 
-                    businessId={resolvedParams.id} 
+                    businessId={params.id} 
                   />
                 </div>
               ))}
@@ -351,7 +375,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                       )}
                     </div>
                     <Button className="w-full" onClick={() => {
-                      toast.info("Customers can scan the QR code on their discount offers page to redeem this offer")
+                      toast.info("Customers can access this offer by visiting their Discounts page and clicking 'Redeem Now'")
                     }}>
                       View Details
                     </Button>
@@ -406,7 +430,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                       )}
                     </div>
                     <Button className="w-full" onClick={() => {
-                      toast.info("Customers can scan the QR code on their exclusive offers page to redeem this offer")
+                      toast.info("Customers can access this offer by visiting their Exclusive Offers page and clicking 'Redeem Now'")
                     }}>
                       View Details
                     </Button>

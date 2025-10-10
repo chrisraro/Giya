@@ -13,10 +13,17 @@ import {
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb"
 import { toast } from "sonner"
-import { Calendar, Tag, Users } from "lucide-react"
+import { Calendar, Tag, Users, QrCode } from "lucide-react"
 import { handleApiError } from "@/lib/error-handler"
 import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface ExclusiveOffer {
   id: string
@@ -43,6 +50,8 @@ interface ExclusiveOffer {
 export default function CustomerExclusiveOffersPage() {
   const [offers, setOffers] = useState<ExclusiveOffer[]>([])
   const [loading, setLoading] = useState(true)
+  const [showQRDialog, setShowQRDialog] = useState(false)
+  const [selectedOffer, setSelectedOffer] = useState<ExclusiveOffer | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -93,6 +102,15 @@ export default function CustomerExclusiveOffersPage() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "No expiry"
     return new Date(dateString).toLocaleDateString()
+  }
+
+  const handleRedeemClick = (offer: ExclusiveOffer) => {
+    if (!offer.qr_code_data) {
+      toast.error("QR code data not available for this offer")
+      return
+    }
+    setSelectedOffer(offer)
+    setShowQRDialog(true)
   }
 
   return (
@@ -199,23 +217,9 @@ export default function CustomerExclusiveOffersPage() {
                       </div>
                     </div>
                     
-                    {/* QR Code Section */}
-                    {offer.qr_code_data && (
-                      <div className="pt-4 border-t">
-                        <p className="text-xs text-muted-foreground mb-2">Show this QR code to redeem offer:</p>
-                        <div className="flex justify-center">
-                          <div className="border rounded p-2 bg-white">
-                            <QRCodeSVG value={offer.qr_code_data} size={120} level="H" />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
                     <div className="mt-auto pt-4">
-                      <Button className="w-full" onClick={() => {
-                        // Show QR code for immediate redemption
-                        toast.info("Show the QR code above to the business to redeem this offer")
-                      }}>
+                      <Button className="w-full" onClick={() => handleRedeemClick(offer)}>
+                        <QrCode className="mr-2 h-4 w-4" />
                         Redeem Now
                       </Button>
                     </div>
@@ -226,6 +230,45 @@ export default function CustomerExclusiveOffersPage() {
           )}
         </div>
       </main>
+
+      {/* QR Code Dialog */}
+      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Redeem Exclusive Offer</DialogTitle>
+            <DialogDescription>
+              Show this QR code to the business to redeem your exclusive offer
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOffer && (
+            <div className="space-y-4">
+              <div className="flex justify-center rounded-lg border bg-white p-4">
+                <QRCodeSVG value={selectedOffer.qr_code_data || ""} size={200} level="H" />
+              </div>
+              
+              <div className="rounded-lg border bg-secondary p-4">
+                <h3 className="font-semibold">{selectedOffer.title}</h3>
+                <p className="text-sm text-muted-foreground">{selectedOffer.businesses.business_name}</p>
+                <p className="text-sm font-medium">{selectedOffer.product_name}</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-primary">
+                    {formatCurrency(selectedOffer.discounted_price)}
+                  </span>
+                </div>
+              </div>
+              
+              <p className="text-center text-sm text-muted-foreground">
+                Present this QR code to the business staff to redeem your exclusive offer
+              </p>
+              
+              <Button onClick={() => setShowQRDialog(false)} className="w-full">
+                Close
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
