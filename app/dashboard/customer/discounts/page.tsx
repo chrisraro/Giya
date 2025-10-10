@@ -228,10 +228,11 @@ export default function CustomerDiscountsPage() {
                     
                     <div className="mt-auto pt-4">
                       <Button className="w-full" onClick={() => {
-                        // Navigate to business profile to use the discount
-                        router.push(`/business/${discount.business_id}`)
+                        // Show QR code for immediate redemption
+                        // This would open a modal with the QR code for the business to scan
+                        toast.info("Show the QR code above to the business to redeem this offer")
                       }}>
-                        View Business
+                        Redeem Now
                       </Button>
                     </div>
                   </CardContent>

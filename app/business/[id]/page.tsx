@@ -9,6 +9,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { GoogleMap } from "@/components/google-map"
 import dynamic from 'next/dynamic'
+import { toast } from "sonner"
 
 // Dynamically import the client component
 const RewardCard = dynamic(
@@ -43,6 +44,41 @@ interface Reward {
   is_active: boolean
 }
 
+interface DiscountOffer {
+  id: string
+  business_id: string
+  title: string
+  description: string | null
+  discount_type: string
+  discount_value: number
+  minimum_purchase: number | null
+  is_active: boolean
+  usage_limit: number | null
+  used_count: number
+  valid_from: string | null
+  valid_until: string | null
+  is_first_visit_only: boolean
+  qr_code_data?: string
+}
+
+interface ExclusiveOffer {
+  id: string
+  business_id: string
+  title: string
+  description: string | null
+  product_name: string
+  original_price: number | null
+  discounted_price: number | null
+  discount_percentage: number | null
+  image_url: string | null
+  is_active: boolean
+  usage_limit: number | null
+  used_count: number
+  valid_from: string | null
+  valid_until: string | null
+  qr_code_data?: string
+}
+
 export default async function BusinessProfilePage({ params }: PageProps) {
   // Handle both Promise and resolved params
   const resolvedParams = params instanceof Promise ? await params : params;
@@ -63,6 +99,22 @@ export default async function BusinessProfilePage({ params }: PageProps) {
     .eq("business_id", resolvedParams.id)
     .eq("is_active", true)
     .order("points_required", { ascending: true })
+
+  // Fetch discount offers
+  const { data: discountOffers } = await supabase
+    .from("discount_offers")
+    .select("*")
+    .eq("business_id", resolvedParams.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+
+  // Fetch exclusive offers
+  const { data: exclusiveOffers } = await supabase
+    .from("exclusive_offers")
+    .select("*")
+    .eq("business_id", resolvedParams.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
 
   const businessHours = business.business_hours
 
@@ -251,6 +303,115 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                     businessId={resolvedParams.id} 
                   />
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Discount Offers Section */}
+      <section className="section-padding-y bg-background">
+        <div className="container-padding-x container mx-auto">
+          <div className="mb-8">
+            <h2 className="heading-lg mb-2">Special Discounts</h2>
+            <p className="text-muted-foreground">Take advantage of these exclusive discount offers</p>
+          </div>
+
+          {!discountOffers || discountOffers.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <Gift className="mb-4 h-16 w-16 text-muted-foreground" />
+                <h3 className="mb-2 text-lg font-semibold">No discount offers yet</h3>
+                <p className="text-sm text-muted-foreground">
+                  This business hasn't added any discount offers yet. Check back soon!
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {discountOffers.map((offer) => (
+                <Card key={offer.id}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{offer.title}</CardTitle>
+                    <CardDescription>{offer.description || "Special discount offer"}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <p className="text-2xl font-bold text-primary">
+                        {offer.discount_type === "percentage" 
+                          ? `${offer.discount_value}% OFF` 
+                          : offer.discount_type === "fixed_amount" 
+                            ? `₱${offer.discount_value.toFixed(2)} OFF` 
+                            : `${offer.discount_value} POINTS`}
+                      </p>
+                      {offer.minimum_purchase && (
+                        <p className="text-sm text-muted-foreground">
+                          Min. purchase: ₱{offer.minimum_purchase.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                    <Button className="w-full" onClick={() => {
+                      toast.info("Customers can scan the QR code on their discount offers page to redeem this offer")
+                    }}>
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Exclusive Offers Section */}
+      <section className="section-padding-y">
+        <div className="container-padding-x container mx-auto">
+          <div className="mb-8">
+            <h2 className="heading-lg mb-2">Exclusive Offers</h2>
+            <p className="text-muted-foreground">Special deals on specific products and services</p>
+          </div>
+
+          {!exclusiveOffers || exclusiveOffers.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <Gift className="mb-4 h-16 w-16 text-muted-foreground" />
+                <h3 className="mb-2 text-lg font-semibold">No exclusive offers yet</h3>
+                <p className="text-sm text-muted-foreground">
+                  This business hasn't added any exclusive offers yet. Check back soon!
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {exclusiveOffers.map((offer) => (
+                <Card key={offer.id}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{offer.title}</CardTitle>
+                    <CardDescription>{offer.product_name}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      {offer.original_price && (
+                        <p className="text-sm text-muted-foreground line-through">
+                          ₱{offer.original_price.toFixed(2)}
+                        </p>
+                      )}
+                      <p className="text-2xl font-bold text-primary">
+                        {offer.discounted_price ? `₱${offer.discounted_price.toFixed(2)}` : "Special Offer"}
+                      </p>
+                      {offer.discount_percentage && (
+                        <p className="text-sm text-green-600 font-medium">
+                          Save {offer.discount_percentage.toFixed(0)}%
+                        </p>
+                      )}
+                    </div>
+                    <Button className="w-full" onClick={() => {
+                      toast.info("Customers can scan the QR code on their exclusive offers page to redeem this offer")
+                    }}>
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}

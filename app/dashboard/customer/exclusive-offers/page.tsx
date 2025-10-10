@@ -213,10 +213,10 @@ export default function CustomerExclusiveOffersPage() {
                     
                     <div className="mt-auto pt-4">
                       <Button className="w-full" onClick={() => {
-                        // Navigate to business profile to use the offer
-                        router.push(`/business/${offer.business_id}`)
+                        // Show QR code for immediate redemption
+                        toast.info("Show the QR code above to the business to redeem this offer")
                       }}>
-                        View Business
+                        Redeem Now
                       </Button>
                     </div>
                   </CardContent>
