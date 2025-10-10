@@ -56,7 +56,6 @@ interface DiscountOffer {
   valid_from: string | null
   valid_until: string | null
   is_first_visit_only: boolean
-  qr_code_data?: string
 }
 
 interface ExclusiveOffer {
@@ -74,7 +73,6 @@ interface ExclusiveOffer {
   used_count: number
   valid_from: string | null
   valid_until: string | null
-  qr_code_data?: string
 }
 
 export default async function BusinessProfilePage({ params }: PageProps) {

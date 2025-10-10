@@ -18,7 +18,7 @@ as $$
 begin
   -- Generate QR code data if not already set
   if new.qr_code_data is null then
-    new.qr_code_data := 'GIYA-DISCOUNT-' || new.id::text;
+    new.qr_code_data := 'GIYA-DISCOUNT-' || gen_random_uuid()::text;
   end if;
   return new;
 end;
@@ -33,7 +33,7 @@ as $$
 begin
   -- Generate QR code data if not already set
   if new.qr_code_data is null then
-    new.qr_code_data := 'GIYA-EXCLUSIVE-' || new.id::text;
+    new.qr_code_data := 'GIYA-EXCLUSIVE-' || gen_random_uuid()::text;
   end if;
   return new;
 end;
