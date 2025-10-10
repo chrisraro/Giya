@@ -86,6 +86,18 @@ Updated all frontend components to use the unified `redemptions` table:
 2. Verify that the trigger is active on the `redemptions` table
 3. Check the function logic to ensure it's properly retrieving reward points
 
+### Row Level Security Issues
+
+1. Verify that RLS is enabled on all tables:
+   - Run the verification script [check_rls_policies_extended.js](file:///c%3A/Users/User/OneDrive/Desktop/giya/check_rls_policies_extended.js)
+   - Check that all tables show "RLS enabled"
+2. Confirm that appropriate policies exist for each table:
+   - Customers should only see their own data
+   - Businesses should only see their own data
+   - Public access should be limited to active records only
+3. If RLS policies are missing, run the script [029_enable_rls_for_discount_and_exclusive_offers.sql](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/029_enable_rls_for_discount_and_exclusive_offers.sql)
+4. For detailed policy information, see [RLS_POLICIES_FOR_NEW_TABLES.md](file:///c%3A/Users/User/OneDrive/Desktop/giya/RLS_POLICIES_FOR_NEW_TABLES.md)
+
 ### QR Code Not Scanning
 
 1. Verify that the QR code contains the correct redemption ID
@@ -108,9 +120,14 @@ Updated all frontend components to use the unified `redemptions` table:
 
 ### Missing Navigation to Validate Redemptions
 
-1. Verify the business dashboard has the "Validate Redemptions" button
-2. Check that the button correctly links to `/dashboard/business/validate-redemption`
-3. Ensure the validation page loads the QR scanner component properly
+Note: The separate Validate Redemptions page has been removed. QR code validation is now handled through the main business dashboard QR scanner.
+
+### QR Code Issues
+
+1. Verify that QR codes are generated for new discount and exclusive offers
+2. Check that the business dashboard QR scanner can process all types of QR codes
+3. Ensure customers can view and show QR codes for their offers
+4. Confirm that QR code redemption functions work correctly in the database
 
 ### Missing or Poor Feedback Notifications
 

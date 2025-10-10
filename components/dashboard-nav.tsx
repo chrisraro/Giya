@@ -68,11 +68,7 @@ export function DashboardNav({ userRole, userName, userAvatar }: DashboardNavPro
       href: "/dashboard/business/rewards",
       icon: Gift,
     },
-    {
-      title: "Redemption",
-      href: "/dashboard/business/validate-redemption",
-      icon: QrCode,
-    },
+
     {
       title: "Settings",
       href: "/dashboard/business/settings",

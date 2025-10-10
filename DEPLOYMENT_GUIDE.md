@@ -24,11 +24,20 @@ Before deploying the frontend code, you need to update your Supabase database sc
    - Copy and paste the contents of [008_fix_redemptions_schema.sql](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/008_fix_redemptions_schema.sql)
    - Run the script
 
+3. Run the new RLS policies for discount and exclusive offers tables:
+   - Run [029_enable_rls_for_discount_and_exclusive_offers.sql](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/029_enable_rls_for_discount_and_exclusive_offers.sql) to enable RLS on the new tables
+   - Optionally run [030_create_rls_verification_functions.sql](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/030_create_rls_verification_functions.sql) to create helper functions for verifying RLS policies
+
+4. Run the new QR code implementation scripts:
+   - Run [031_add_qr_code_columns_to_offers.sql](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/031_add_qr_code_columns_to_offers.sql) to add QR code columns to discount and exclusive offers tables
+   - Run [032_create_offer_redemption_functions.sql](file:///c%3A/Users/User/OneDrive/Desktop/giya/scripts/032_create_offer_redemption_functions.sql) to create database functions for offer redemption
+
 This script will:
 - Drop the separate `reward_redemptions` table
 - Update the existing `redemptions` table with all necessary columns
 - Fix Row Level Security (RLS) policies
 - Update the point deduction function to work with the unified schema
+- Enable RLS for discount and exclusive offers tables with appropriate policies
 
 ## Code Deployment
 

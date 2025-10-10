@@ -1,5 +1,6 @@
 "use client"
 
+// Customer Discounts Page
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -16,6 +17,7 @@ import { toast } from "sonner"
 import { Calendar, Tag, Users } from "lucide-react"
 import { handleApiError } from "@/lib/error-handler"
 import Link from "next/link"
+import { QRCodeSVG } from "qrcode.react"
 
 interface DiscountOffer {
   id: string
@@ -35,6 +37,7 @@ interface DiscountOffer {
     business_name: string
     profile_pic_url: string | null
   }
+  qr_code_data?: string
 }
 
 export default function CustomerDiscountsPage() {
@@ -75,7 +78,7 @@ export default function CustomerDiscountsPage() {
       if (error) throw error
       
       // Filter for first visit only offers if needed
-      const filteredDiscounts = data?.filter(discount => {
+      const filteredDiscounts = data?.filter((discount: DiscountOffer) => {
         // If it's a first visit only offer, check if customer has visited this business before
         if (discount.is_first_visit_only) {
           return checkFirstVisit(user.id, discount.business_id)
@@ -210,6 +213,18 @@ export default function CustomerDiscountsPage() {
                         </span>
                       </div>
                     </div>
+                    
+                    {/* QR Code Section */}
+                    {discount.qr_code_data && (
+                      <div className="pt-4 border-t">
+                        <p className="text-xs text-muted-foreground mb-2">Show this QR code to redeem offer:</p>
+                        <div className="flex justify-center">
+                          <div className="border rounded p-2 bg-white">
+                            <QRCodeSVG value={discount.qr_code_data} size={120} level="H" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="mt-auto pt-4">
                       <Button className="w-full" onClick={() => {

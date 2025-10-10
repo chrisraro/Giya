@@ -123,6 +123,27 @@ The app requires the following environment variables:
 - Row Level Security (RLS) policies are implemented
 - User roles and permissions are configured
 
+## Row Level Security Policies
+
+The application implements comprehensive Row Level Security policies to ensure data isolation and security:
+
+1. **Core Tables**: All core tables (profiles, customers, businesses, influencers, points_transactions, rewards, redemptions, affiliate_links, affiliate_conversions) have RLS policies configured
+2. **Discount Offers Tables**: New RLS policies for discount_offers and discount_usage tables (see [RLS_POLICIES_FOR_NEW_TABLES.md](file:///c%3A/Users/User/OneDrive/Desktop/giya/RLS_POLICIES_FOR_NEW_TABLES.md))
+3. **Exclusive Offers Tables**: New RLS policies for exclusive_offers and exclusive_offer_usage tables (see [RLS_POLICIES_FOR_NEW_TABLES.md](file:///c%3A/Users/User/OneDrive/Desktop/giya/RLS_POLICIES_FOR_NEW_TABLES.md))
+
+For detailed information about the RLS policies for the new tables, see [RLS_POLICIES_FOR_NEW_TABLES.md](file:///c%3A/Users/User/OneDrive/Desktop/giya/RLS_POLICIES_FOR_NEW_TABLES.md).
+
+## QR Code Implementation
+
+The application implements QR code functionality for multiple use cases:
+
+1. **Customer Points**: Customers have personal QR codes for earning points
+2. **Reward Redemptions**: Customers generate QR codes when redeeming rewards
+3. **Discount Offers**: Businesses and customers use QR codes for discount offers
+4. **Exclusive Offers**: Businesses and customers use QR codes for exclusive offers
+
+For detailed information about the QR code implementation, see [QR_CODE_IMPLEMENTATION_SUMMARY.md](file:///c%3A/Users/User/OneDrive/Desktop/giya/QR_CODE_IMPLEMENTATION_SUMMARY.md).
+
 ## Deployment to Production
 
 ### Current Deployment

@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { Calendar, Tag, Users } from "lucide-react"
 import { handleApiError } from "@/lib/error-handler"
 import Link from "next/link"
+import { QRCodeSVG } from "qrcode"
 
 interface ExclusiveOffer {
   id: string
@@ -36,6 +37,7 @@ interface ExclusiveOffer {
     business_name: string
     profile_pic_url: string | null
   }
+  qr_code_data?: string
 }
 
 export default function CustomerExclusiveOffersPage() {
@@ -196,6 +198,18 @@ export default function CustomerExclusiveOffersPage() {
                         </span>
                       </div>
                     </div>
+                    
+                    {/* QR Code Section */}
+                    {offer.qr_code_data && (
+                      <div className="pt-4 border-t">
+                        <p className="text-xs text-muted-foreground mb-2">Show this QR code to redeem offer:</p>
+                        <div className="flex justify-center">
+                          <div className="border rounded p-2 bg-white">
+                            <QRCodeSVG value={offer.qr_code_data} size={120} level="H" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="mt-auto pt-4">
                       <Button className="w-full" onClick={() => {

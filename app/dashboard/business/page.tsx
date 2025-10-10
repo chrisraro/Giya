@@ -1,5 +1,6 @@
 "use client"
 
+// Business Dashboard Page
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -9,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, QrCode, TrendingUp, Users, LogOut, DollarSign, Scan, Gift, Settings, Tag } from "lucide-react"
+import { Loader2, QrCode, TrendingUp, Users, LogOut, DollarSign, Scan, Gift, Settings, Tag, Check } from "lucide-react"
 import { toast } from "sonner"
 import { QrScanner } from "@/components/qr-scanner"
 import Link from "next/link"
@@ -67,6 +68,8 @@ export default function BusinessDashboard() {
   const [scannedCustomer, setScannedCustomer] = useState<CustomerInfo | null>(null)
   const [transactionAmount, setTransactionAmount] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [redemptionData, setRedemptionData] = useState<any>(null)
+  const [isValidating, setIsValidating] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -146,24 +149,149 @@ export default function BusinessDashboard() {
     setIsProcessing(true)
 
     try {
-      // Fetch customer by QR code
+      // First, try to process as a customer QR code for points
       const { data: customer, error: customerError } = await supabase
         .from("customers")
         .select("*")
         .eq("qr_code_data", qrData)
         .single()
 
-      if (customerError) {
-        toast.error("Customer not found")
+      if (customer && !customerError) {
+        // This is a customer QR code, proceed with points transaction
+        setScannedCustomer(customer)
+        setShowTransactionDialog(true)
         return
       }
 
-      setScannedCustomer(customer)
-      setShowTransactionDialog(true)
+      // If not a customer QR code, try to process as a redemption QR code
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        router.push("/auth/login")
+        return
+      }
+
+      // Try to find a reward redemption
+      const { data: redemption, error: redemptionError } = await supabase
+        .from("redemptions")
+        .select(
+          `
+          id,
+          customer_id,
+          reward_id,
+          points_redeemed,
+          status,
+          validated_at,
+          business_id,
+          customers (
+            full_name,
+            profile_pic_url
+          ),
+          rewards (
+            reward_name,
+            description,
+            points_required
+          )
+        `,
+        )
+        .eq("redemption_qr_code", qrData.trim())
+        .single()
+
+      if (redemption && !redemptionError) {
+        // This is a reward redemption QR code
+        if (redemption.status === "validated") {
+          toast.error("This redemption has already been validated")
+          return
+        }
+
+        if (redemption.business_id !== user.id) {
+          toast.error("This redemption is not for your business")
+          return
+        }
+
+        setRedemptionData(redemption)
+        return
+      }
+
+      // Try to find a discount offer redemption
+      const discountResult = await supabase.rpc('redeem_discount_offer', {
+        p_qr_code: qrData,
+        p_customer_id: redemption?.customer_id || null,
+        p_business_id: user.id
+      })
+
+      if (discountResult.data?.success) {
+        toast.success(discountResult.data.message)
+        // Refresh data to update usage counts
+        fetchDiscounts()
+        return
+      }
+
+      // Try to find an exclusive offer redemption
+      const exclusiveResult = await supabase.rpc('redeem_exclusive_offer', {
+        p_qr_code: qrData,
+        p_customer_id: redemption?.customer_id || null,
+        p_business_id: user.id
+      })
+
+      if (exclusiveResult.data?.success) {
+        toast.success(exclusiveResult.data.message)
+        // Refresh data to update usage counts
+        fetchExclusiveOffers()
+        return
+      }
+
+      // If we get here, it's an unknown QR code
+      toast.error("Unknown QR code. Please scan a valid customer or redemption QR code.")
     } catch (error) {
-      handleApiError(error, "Failed to scan QR code", "BusinessDashboard.handleScanSuccess")
+      handleApiError(error, "Failed to process QR code", "BusinessDashboard.handleScanSuccess")
     } finally {
       setIsProcessing(false)
+    }
+  }
+
+  // Add new functions to fetch discounts and exclusive offers for usage count updates
+  const fetchDiscounts = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) return
+
+      const { data, error } = await supabase
+        .from("discount_offers")
+        .select("*")
+        .eq("business_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+      // We don't need to set state here since this is just for refreshing data
+    } catch (error) {
+      console.error("Error fetching discounts:", error)
+    }
+  }
+
+  const fetchExclusiveOffers = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) return
+
+      const { data, error } = await supabase
+        .from("exclusive_offers")
+        .select("*")
+        .eq("business_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+      // We don't need to set state here since this is just for refreshing data
+    } catch (error) {
+      console.error("Error fetching exclusive offers:", error)
     }
   }
 
@@ -239,6 +367,45 @@ export default function BusinessDashboard() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push("/")
+  }
+
+  const handleValidateRedemption = async () => {
+    if (!redemptionData) return
+
+    setIsValidating(true)
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) throw new Error("Not authenticated")
+
+      // Update redemption status
+      const { error: updateError } = await supabase
+        .from("redemptions")
+        .update({
+          status: "validated",
+          validated_at: new Date().toISOString(),
+          validated_by: user.id,
+        })
+        .eq("id", redemptionData.id)
+
+      if (updateError) throw updateError
+
+      toast.success("Redemption validated successfully!")
+      
+      // Add this line to show a more detailed success message
+      toast.success(`Successfully validated redemption for ${redemptionData.rewards?.reward_name || 'reward'}!`, {
+        duration: 5000
+      })
+      
+      setRedemptionData(null)
+    } catch (error) {
+      handleApiError(error, "Failed to validate redemption", "BusinessDashboard.handleValidateRedemption")
+    } finally {
+      setIsValidating(false)
+    }
   }
 
   if (isLoading) {
@@ -423,14 +590,14 @@ export default function BusinessDashboard() {
             </Card>
           </div>
 
-          {/* Scan QR Button */}
+          {/* Scan QR Button - Updated to remove Validate Redemptions button */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <QrCode className="h-5 w-5" />
                 Scan Customer QR Code
               </CardTitle>
-              <CardDescription>Scan a customer's QR code to award points for their purchase</CardDescription>
+              <CardDescription>Scan a customer's QR code to award points or validate redemptions</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button onClick={() => setShowScanner(true)} size="lg" className="w-full md:w-auto">
@@ -445,12 +612,6 @@ export default function BusinessDashboard() {
                   <Button variant="outline" size="lg" className="w-full md:w-auto bg-transparent">
                     <Gift className="mr-2 h-5 w-5" />
                     Manage Rewards
-                  </Button>
-                </Link>
-                <Link href="/dashboard/business/validate-redemption">
-                  <Button variant="outline" size="lg" className="w-full md:w-auto bg-transparent">
-                    <QrCode className="mr-2 h-5 w-5" />
-                    Validate Redemptions
                   </Button>
                 </Link>
                 <Link href="/dashboard/business/discounts">
@@ -583,6 +744,63 @@ export default function BusinessDashboard() {
                     </>
                   ) : (
                     "Create Transaction"
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Validation Dialog for Reward Redemptions */}
+      <Dialog open={!!redemptionData} onOpenChange={() => setRedemptionData(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-500" />
+              Valid Redemption
+            </DialogTitle>
+            <DialogDescription>Validate this customer's reward redemption</DialogDescription>
+          </DialogHeader>
+          {redemptionData && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 rounded-lg border bg-secondary p-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={redemptionData.customers.profile_pic_url || undefined} />
+                  <AvatarFallback>{redemptionData.customers.full_name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-semibold">{redemptionData.customers.full_name}</h3>
+                  <p className="text-sm text-muted-foreground">Customer</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-lg border bg-primary/5 p-4">
+                <div>
+                  <h4 className="font-semibold text-lg">{redemptionData.rewards.reward_name}</h4>
+                  <p className="text-sm text-muted-foreground">{redemptionData.rewards.description}</p>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <span className="text-sm text-muted-foreground">Points Redeemed:</span>
+                  <span className="text-xl font-bold text-primary">{redemptionData.points_redeemed}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setRedemptionData(null)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={handleValidateRedemption} disabled={isValidating} className="flex-1">
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Validating...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Validate Redemption
+                    </>
                   )}
                 </Button>
               </div>

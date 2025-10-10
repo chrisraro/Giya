@@ -34,6 +34,7 @@ import { toast } from "sonner"
 import { Plus, Edit, Trash2, Calendar, Users } from "lucide-react"
 import { handleApiError } from "@/lib/error-handler"
 import Link from "next/link"
+import { QRCodeSVG } from "qrcode.react"
 
 interface DiscountOffer {
   id: string
@@ -49,6 +50,7 @@ interface DiscountOffer {
   valid_until: string | null
   is_first_visit_only: boolean
   created_at: string
+  qr_code_data?: string
 }
 
 export default function BusinessDiscountsPage() {
@@ -544,6 +546,22 @@ export default function BusinessDiscountsPage() {
                               )}
                             </div>
                           </div>
+                          
+                          {/* QR Code Section */}
+                          {discount.qr_code_data && (
+                            <div className="pt-3 border-t">
+                              <p className="text-xs text-muted-foreground mb-2">Scan this QR code to redeem offer:</p>
+                              <div className="flex items-center gap-3">
+                                <div className="border rounded p-2 bg-white">
+                                  <QRCodeSVG value={discount.qr_code_data} size={80} level="H" />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium">Offer QR Code</p>
+                                  <p className="text-xs text-muted-foreground">Customers can scan this to redeem</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
