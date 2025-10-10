@@ -781,6 +781,12 @@ export default function CustomerDashboard() {
                   <span>View Discounts</span>
                 </Button>
               </Link>
+              <Link href="/dashboard/customer/exclusive-offers">
+                <Button variant="outline" size="lg" className="h-auto w-full flex-col gap-2 py-6 bg-transparent">
+                  <Gift className="h-8 w-8" />
+                  <span>View Exclusive Offers</span>
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
