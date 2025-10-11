@@ -367,10 +367,9 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                         </p>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2 text-center">
-                      Customers can access this offer by visiting their Discounts page and clicking 'Redeem Now'
-                    </p>
-                    <Button className="w-full">
+                    <Button className="w-full" onClick={() => {
+                      toast.info("Customers can access this offer by visiting their Discounts page and clicking 'Redeem Now'")
+                    }}>
                       View Details
                     </Button>
                   </CardContent>
@@ -423,10 +422,9 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                         </p>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2 text-center">
-                      Customers can access this offer by visiting their Exclusive Offers page and clicking 'Redeem Now'
-                    </p>
-                    <Button className="w-full">
+                    <Button className="w-full" onClick={() => {
+                      toast.info("Customers can access this offer by visiting their Exclusive Offers page and clicking 'Redeem Now'")
+                    }}>
                       View Details
                     </Button>
                   </CardContent>
