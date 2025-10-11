@@ -76,74 +76,108 @@ interface ExclusiveOffer {
 }
 
 export default async function BusinessProfilePage({ params }: PageProps) {
-  const supabase = await createServerClient()
+  let business, rewards, discountOffers, exclusiveOffers;
+  let businessError, rewardsError, discountOffersError, exclusiveOffersError;
+  let supabaseClient;
+  
+  try {
+    supabaseClient = await createServerClient()
 
-  // Fetch business details
-  const { data: business, error } = await supabase.from("businesses").select("*").eq("id", params.id).single()
+    // Fetch business details
+    const businessResult = await supabaseClient.from("businesses").select("*").eq("id", params.id).single()
+    business = businessResult.data
+    businessError = businessResult.error
 
-  if (error || !business) {
+    if (businessError || !business) {
+      notFound()
+    }
+
+    // Fetch business rewards
+    const rewardsResult = await supabaseClient
+      .from("rewards")
+      .select("*")
+      .eq("business_id", params.id)
+      .eq("is_active", true)
+      .order("points_required", { ascending: true })
+    rewards = rewardsResult.data
+    rewardsError = rewardsResult.error
+
+    // Fetch discount offers
+    const discountOffersResult = await supabaseClient
+      .from("discount_offers")
+      .select(`
+        id,
+        business_id,
+        title,
+        description,
+        discount_type,
+        discount_value,
+        minimum_purchase,
+        is_active,
+        usage_limit,
+        used_count,
+        valid_from,
+        valid_until,
+        is_first_visit_only
+      `)
+      .eq("business_id", params.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+    discountOffers = discountOffersResult.data
+    discountOffersError = discountOffersResult.error
+
+    // Fetch exclusive offers
+    const exclusiveOffersResult = await supabaseClient
+      .from("exclusive_offers")
+      .select(`
+        id,
+        business_id,
+        title,
+        description,
+        product_name,
+        original_price,
+        discounted_price,
+        discount_percentage,
+        image_url,
+        is_active,
+        usage_limit,
+        used_count,
+        valid_from,
+        valid_until
+      `)
+      .eq("business_id", params.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+    exclusiveOffers = exclusiveOffersResult.data
+    exclusiveOffersError = exclusiveOffersResult.error
+
+    // Log any errors for debugging
+    if (rewardsError) {
+      console.error("Rewards query error:", rewardsError)
+    }
+    if (discountOffersError) {
+      console.error("Discount offers query error:", discountOffersError)
+    }
+    if (exclusiveOffersError) {
+      console.error("Exclusive offers query error:", exclusiveOffersError)
+    }
+  } catch (error) {
+    console.error("Server Components error:", error)
     notFound()
   }
 
-  // Fetch business rewards
-  const { data: rewards } = await supabase
-    .from("rewards")
-    .select("*")
-    .eq("business_id", params.id)
-    .eq("is_active", true)
-    .order("points_required", { ascending: true })
-
-  // Fetch discount offers
-  const { data: discountOffers } = await supabase
-    .from("discount_offers")
-    .select(`
-      id,
-      business_id,
-      title,
-      description,
-      discount_type,
-      discount_value,
-      minimum_purchase,
-      is_active,
-      usage_limit,
-      used_count,
-      valid_from,
-      valid_until,
-      is_first_visit_only
-    `)
-    .eq("business_id", params.id)
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-
-  // Fetch exclusive offers
-  const { data: exclusiveOffers } = await supabase
-    .from("exclusive_offers")
-    .select(`
-      id,
-      business_id,
-      title,
-      description,
-      product_name,
-      original_price,
-      discounted_price,
-      discount_percentage,
-      image_url,
-      is_active,
-      usage_limit,
-      used_count,
-      valid_from,
-      valid_until
-    `)
-    .eq("business_id", params.id)
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-
-  const businessHours = business.business_hours
+  const businessHours = business?.business_hours
 
   // Check if user is authenticated
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null;
+  try {
+    if (supabaseClient) {
+      const userResult = await supabaseClient.auth.getUser()
+      user = userResult.data?.user
+    }
+  } catch (error) {
+    console.error("Auth error:", error)
+  }
 
   // Get Google Maps API key from environment variables
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
@@ -174,22 +208,22 @@ export default async function BusinessProfilePage({ params }: PageProps) {
             <div className="lg:col-span-2 space-y-6">
               <div className="flex items-start gap-6">
                 <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-                  <AvatarImage src={business.profile_pic_url || undefined} />
-                  <AvatarFallback className="text-2xl">{business.business_name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={business?.profile_pic_url || undefined} />
+                  <AvatarFallback className="text-2xl">{business?.business_name?.charAt(0) || 'B'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h1 className="heading-lg mb-2">{business.business_name}</h1>
+                      <h1 className="heading-lg mb-2">{business?.business_name || 'Business'}</h1>
                       <Badge variant="secondary" className="mb-3">
-                        {business.business_category}
+                        {business?.business_category || 'Category'}
                       </Badge>
                     </div>
                   </div>
                   <div className="space-y-2 text-muted-foreground">
                     <div className="flex items-start gap-2">
                       <MapPin className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                      <span>{business.address}</span>
+                      <span>{business?.address || 'Address not available'}</span>
                     </div>
                     {businessHours && (
                       <div className="flex items-start gap-2">
@@ -215,16 +249,16 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="rounded-lg bg-primary/10 p-4">
-                    <p className="text-2xl font-bold text-primary">1 point = ₱{business.points_per_currency || 100}</p>
+                    <p className="text-2xl font-bold text-primary">1 point = ₱{business?.points_per_currency || 100}</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Spend ₱{business.points_per_currency || 100} to earn 1 loyalty point
+                      Spend ₱{business?.points_per_currency || 100} to earn 1 loyalty point
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Google Maps */}
-              {business.gmaps_link && (
+              {business?.gmaps_link && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
