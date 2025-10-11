@@ -11,9 +11,17 @@ import { GoogleMap } from "@/components/google-map"
 import dynamic from 'next/dynamic'
 import { toast } from "sonner"
 
-// Dynamically import the client component
+// Dynamically import the client components
 const RewardCard = dynamic(
   () => import('@/app/business/[id]/reward-card').then(mod => mod.RewardCard)
+)
+
+const DiscountOfferCard = dynamic(
+  () => import('@/app/business/[id]/discount-offer-card').then(mod => mod.DiscountOfferCard)
+)
+
+const ExclusiveOfferCard = dynamic(
+  () => import('@/app/business/[id]/exclusive-offer-card').then(mod => mod.ExclusiveOfferCard)
 )
 
 interface PageProps {
@@ -347,34 +355,14 @@ export default async function BusinessProfilePage({ params }: PageProps) {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {discountOffers.map((offer: any) => (
-                <Card key={offer.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{offer.title}</CardTitle>
-                    <CardDescription>{offer.description || "Special discount offer"}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4">
-                      <p className="text-2xl font-bold text-primary">
-                        {offer.discount_type === "percentage" 
-                          ? `${offer.discount_value}% OFF` 
-                          : offer.discount_type === "fixed_amount" 
-                            ? `₱${offer.discount_value?.toFixed(2)} OFF` 
-                            : `${offer.discount_value} POINTS`}
-                      </p>
-                      {offer.minimum_purchase && (
-                        <p className="text-sm text-muted-foreground">
-                          Min. purchase: ₱{offer.minimum_purchase?.toFixed(2)}
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2 text-center">
-                      Customers can access this offer by visiting their Discounts page and clicking 'Redeem Now'
-                    </p>
-                    <Button className="w-full">
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
+                <div key={offer.id}>
+                  <DiscountOfferCard 
+                    offer={offer} 
+                    business={business} 
+                    user={user} 
+                    businessId={awaitedParams.id} 
+                  />
+                </div>
               ))}
             </div>
           )}
@@ -402,35 +390,14 @@ export default async function BusinessProfilePage({ params }: PageProps) {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {exclusiveOffers.map((offer: any) => (
-                <Card key={offer.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{offer.title}</CardTitle>
-                    <CardDescription>{offer.product_name}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4">
-                      {offer.original_price && (
-                        <p className="text-sm text-muted-foreground line-through">
-                          ₱{offer.original_price?.toFixed(2)}
-                        </p>
-                      )}
-                      <p className="text-2xl font-bold text-primary">
-                        {offer.discounted_price ? `₱${offer.discounted_price?.toFixed(2)}` : "Special Offer"}
-                      </p>
-                      {offer.discount_percentage && (
-                        <p className="text-sm text-green-600 font-medium">
-                          Save {offer.discount_percentage?.toFixed(0)}%
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2 text-center">
-                      Customers can access this offer by visiting their Exclusive Offers page and clicking 'Redeem Now'
-                    </p>
-                    <Button className="w-full">
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
+                <div key={offer.id}>
+                  <ExclusiveOfferCard 
+                    offer={offer} 
+                    business={business} 
+                    user={user} 
+                    businessId={awaitedParams.id} 
+                  />
+                </div>
               ))}
             </div>
           )}
