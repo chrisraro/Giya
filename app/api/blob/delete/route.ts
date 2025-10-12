@@ -12,7 +12,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Path is required' }, { status: 400 });
     }
     
-    await del(path);
+    await del(path, {
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    });
     
     return NextResponse.json({ success: true });
   } catch (error) {

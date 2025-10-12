@@ -106,18 +106,43 @@ export function MediaGallery({
       // Create preview
       const preview = URL.createObjectURL(file);
       
-      // Upload to Vercel Blob
+      // Upload to Vercel Blob via our API route
       const folderPath = `media-gallery/${userType}/${userId}`;
       const fileName = `${Date.now()}-${file.name}`;
       const filePath = `${folderPath}/${fileName}`;
       
-      // Upload directly using put
-      const blob = await put(filePath, file, {
-        access: 'public',
-        contentType: file.type,
+      // First, get a signed URL from our API
+      const response = await fetch('/api/blob/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          path: filePath,
+          contentType: file.type,
+        }),
       });
       
-      const imageUrl = blob.url;
+      if (!response.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+      
+      const { url } = await response.json();
+      
+      // Upload the file content
+      const uploadResponse = await fetch(url, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+      
+      const imageUrl = url.split('?')[0]; // Remove query parameters
       
       // Save reference to database
       const { data: mediaData, error: mediaError } = await supabase

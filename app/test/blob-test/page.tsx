@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { put } from '@vercel/blob';
 
 export default function BlobTestPage() {
   const [isTesting, setIsTesting] = useState(false);
@@ -17,13 +16,39 @@ export default function BlobTestPage() {
         type: "text/plain",
       });
       
-      // Try to upload to Vercel Blob
-      const blob = await put('test/test.txt', testFile, {
-        access: 'public',
+      // Test our upload API route
+      const response = await fetch('/api/blob/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          path: 'test/test.txt',
+          contentType: 'text/plain',
+        }),
       });
       
-      toast.success('Vercel Blob is working correctly!', {
-        description: `File uploaded to: ${blob.url}`
+      if (!response.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+      
+      const { url } = await response.json();
+      
+      // Upload the file content
+      const uploadResponse = await fetch(url, {
+        method: 'PUT',
+        body: testFile,
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+      
+      toast.success('Vercel Blob API routes are working correctly!', {
+        description: `File uploaded successfully`
       });
     } catch (error) {
       console.error('Vercel Blob test failed:', error);
@@ -40,15 +65,15 @@ export default function BlobTestPage() {
       <Card>
         <CardHeader>
           <CardTitle>Vercel Blob Test</CardTitle>
-          <CardDescription>Test if Vercel Blob is properly configured</CardDescription>
+          <CardDescription>Test if Vercel Blob API routes are properly configured</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p>Click the button below to test Vercel Blob functionality:</p>
+          <p>Click the button below to test Vercel Blob API routes:</p>
           <Button 
             onClick={testBlobUpload} 
             disabled={isTesting}
           >
-            {isTesting ? 'Testing...' : 'Test Vercel Blob'}
+            {isTesting ? 'Testing...' : 'Test Vercel Blob API Routes'}
           </Button>
         </CardContent>
       </Card>
