@@ -4,12 +4,16 @@ import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { Building2, Megaphone, User } from "lucide-react"
+import { Building2, Megaphone, User, ArrowRight, LogIn } from "lucide-react"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { Icons } from "@/components/icons"
 
 export default function SignupPage() {
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -53,6 +57,30 @@ export default function SignupPage() {
     checkUser()
   }, [router, supabase])
 
+  const handleGoogleSignup = async () => {
+    setIsGoogleLoading(true)
+    setError(null)
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) throw error
+
+      // The browser will automatically redirect to Google OAuth
+      // After authentication, Google will redirect back to our callback URL
+    } catch (error) {
+      console.log("[v0] Google signup error:", error)
+      setError(error instanceof Error ? error.message : "An error occurred during Google sign-up")
+    } finally {
+      setIsGoogleLoading(false)
+    }
+  }
+
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-4xl">
@@ -63,6 +91,41 @@ export default function SignupPage() {
           <h1 className="text-3xl font-bold mb-2">Join Giya</h1>
           <p className="text-muted-foreground">Choose your account type to get started</p>
         </div>
+        
+        <div className="mb-6">
+          <Button 
+            variant="outline" 
+            onClick={handleGoogleSignup}
+            disabled={isGoogleLoading}
+            className="w-full mb-4"
+          >
+            {isGoogleLoading ? (
+              <>
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                Signing up with Google...
+              </>
+            ) : (
+              <>
+                <Icons.google className="mr-2 h-4 w-4" />
+                Sign up with Google
+              </>
+            )}
+          </Button>
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or sign up with email
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        {error && <p className="text-sm text-destructive text-center mb-4">{error}</p>}
+        
         <div className="grid md:grid-cols-3 gap-6">
           <Card>
             <CardHeader className="text-center">
@@ -76,6 +139,7 @@ export default function SignupPage() {
                 variant="default"
               >
                 Sign Up as Customer
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
@@ -92,6 +156,7 @@ export default function SignupPage() {
                 variant="default"
               >
                 Sign Up as Business
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
@@ -108,6 +173,7 @@ export default function SignupPage() {
                 variant="default"
               >
                 Sign Up as Influencer
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
