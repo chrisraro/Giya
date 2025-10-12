@@ -14,6 +14,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { toast } from "sonner";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -39,8 +40,49 @@ export function DashboardLayout({
   const supabase = createClient();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
+    try {
+      // Get all active channels before signing out
+      const channels = supabase.getChannels();
+      
+      // Unsubscribe from all channels
+      if (channels && channels.length > 0) {
+        console.log(`[v0] Unsubscribing from ${channels.length} channels before logout`);
+        for (const channel of channels) {
+          try {
+            await supabase.removeChannel(channel);
+            console.log(`[v0] Successfully unsubscribed from channel: ${channel.topic}`);
+          } catch (error) {
+            console.warn(`[v0] Failed to remove channel ${channel.topic}:`, error);
+          }
+        }
+      }
+      
+      // Sign out from Supabase
+      console.log("[v0] Signing out user");
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("[v0] Logout error:", error);
+        toast.error("Failed to logout", {
+          description: error.message,
+        });
+        return;
+      }
+      
+      // Clear any client-side state if needed
+      console.log("[v0] Logout successful, redirecting to home");
+      
+      // Redirect to home page
+      router.push("/");
+      router.refresh();
+      
+      toast.success("Logged out successfully");
+    } catch (error) {
+      console.error("[v0] Unexpected logout error:", error);
+      toast.error("Unexpected error during logout", {
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+      });
+    }
   };
 
   return (

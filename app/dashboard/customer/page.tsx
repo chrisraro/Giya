@@ -64,6 +64,13 @@ export default function CustomerDashboard() {
 
   // Add real-time subscription for redemption validations
   useEffect(() => {
+    // Only subscribe if we have customer data
+    if (!data?.customer?.id) {
+      return;
+    }
+
+    console.log("[v0] Setting up redemption validation subscription for customer:", data.customer.id);
+    
     const channel = supabase
       .channel('redemption-validation')
       .on(
@@ -75,6 +82,7 @@ export default function CustomerDashboard() {
           filter: 'status=eq.validated'
         },
         (payload: any) => {
+          console.log("[v0] Received redemption validation update:", payload);
           // Check if this redemption belongs to the current customer
           if (payload.new.customer_id === data?.customer?.id) {
             // Show toast notification
@@ -88,10 +96,18 @@ export default function CustomerDashboard() {
           }
         }
       )
-      .subscribe()
+      .subscribe((status: any) => {
+        console.log("[v0] Redemption validation subscription status:", status);
+      })
 
+    // Cleanup function
     return () => {
-      supabase.removeChannel(channel)
+      console.log("[v0] Cleaning up redemption validation subscription");
+      try {
+        supabase.removeChannel(channel)
+      } catch (error) {
+        console.warn("[v0] Error cleaning up redemption validation subscription:", error);
+      }
     }
   }, [supabase, data?.customer?.id, refetch])
 

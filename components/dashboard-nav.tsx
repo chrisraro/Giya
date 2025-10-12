@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Home, Gift, TrendingUp, Settings, LogOut, Menu, QrCode, Users, LayoutDashboard, Tag } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { createClient } from "@/lib/supabase/client"
 
 interface DashboardNavProps {
   userRole: "customer" | "business" | "influencer"
@@ -17,12 +16,6 @@ interface DashboardNavProps {
 export function DashboardNav({ userRole, userName, userAvatar }: DashboardNavProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const supabase = createClient()
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/")
-  }
 
   const customerItems = [
     {
@@ -129,9 +122,9 @@ export function DashboardNav({ userRole, userName, userAvatar }: DashboardNavPro
 
         {/* User Menu - simplified for now */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline ml-2">Logout</span>
+          <Button variant="ghost" size="sm" onClick={() => router.push(`/dashboard/${userRole}/settings`)}>
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline ml-2">Settings</span>
           </Button>
         </div>
       </div>
