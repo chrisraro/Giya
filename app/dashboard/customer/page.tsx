@@ -217,6 +217,12 @@ export default function CustomerDashboard() {
   const redemptions: Redemption[] = data.redemptions || [];
   const businessPoints: BusinessPoints[] = data.businessPoints || [];
 
+  // Debug logging
+  console.log("[v0] Customer data:", customer);
+  console.log("[v0] Transactions:", transactions);
+  console.log("[v0] Redemptions:", redemptions);
+  console.log("[v0] Business points:", businessPoints);
+
   return (
     <DashboardLayout
       userRole="customer"

@@ -19,7 +19,36 @@ interface Transaction {
 
 interface Redemption {
   id: string
-  // Add other redemption properties as needed
+  redeemed_at: string
+  status: string
+  business_id: string | null
+  reward_id?: string
+  rewards?: {
+    reward_name: string
+    points_required: number
+    image_url: string | null
+  }
+  // For discount redemptions
+  discount_offer_id?: string
+  discount_offers?: {
+    offer_title: string
+    points_required: number
+    image_url: string | null
+  }
+  // For exclusive offer redemptions
+  exclusive_offer_id?: string
+  exclusive_offers?: {
+    offer_title: string
+    points_required: number
+    image_url: string | null
+  }
+  businesses?: {
+    business_name: string
+    profile_pic_url: string | null
+  }
+  // Type field to distinguish between redemption types
+  redemption_type?: 'reward' | 'discount' | 'exclusive'
+  // Allow any other properties
   [key: string]: any
 }
 
@@ -29,6 +58,11 @@ interface CustomerTransactionHistoryProps {
 }
 
 export function CustomerTransactionHistory({ transactions, redemptions }: CustomerTransactionHistoryProps) {
+  // Debug logging
+  console.log("[v0] CustomerTransactionHistory - Transactions:", transactions);
+  console.log("[v0] CustomerTransactionHistory - Redemptions:", redemptions);
+  console.log("[v0] CustomerTransactionHistory - Redemptions length:", redemptions.length);
+
   return (
     <>
       {/* Transaction History */}

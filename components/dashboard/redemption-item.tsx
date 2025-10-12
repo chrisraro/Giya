@@ -41,6 +41,9 @@ interface RedemptionItemProps {
 }
 
 export const RedemptionItem = memo(function RedemptionItem({ redemption }: RedemptionItemProps) {
+  // Debug logging
+  console.log("[v0] Rendering RedemptionItem:", redemption);
+
   // Determine the display information based on redemption type
   const getDisplayInfo = () => {
     switch (redemption.redemption_type) {
@@ -72,11 +75,19 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
   const displayInfo = getDisplayInfo();
   const IconComponent = displayInfo.icon;
 
+  // Debug logging
+  console.log("[v0] Display info:", displayInfo);
+
   // Format the date
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Unknown date';
     try {
-      return new Date(dateString).toLocaleDateString("en-US", {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid date';
+      }
+      return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -88,15 +99,21 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
 
   // Get status display text
   const getStatusText = () => {
-    switch (redemption.status?.toLowerCase()) {
+    // Handle all possible statuses, including undefined/null
+    const status = redemption.status?.toLowerCase() || 'unknown';
+    
+    switch (status) {
       case 'completed':
         return 'Completed';
       case 'validated':
         return 'Validated';
       case 'pending':
         return 'Pending';
+      case 'cancelled':
+        return 'Cancelled';
       default:
-        return redemption.status || 'Completed';
+        // If status is unknown or empty, show the actual value or 'Unknown'
+        return redemption.status || 'Unknown';
     }
   };
 

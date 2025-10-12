@@ -295,19 +295,28 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       console.error("Exclusive offer redemptions query error:", exclusiveOfferRedemptionsError);
     }
 
+    // Debug logging
+    console.log("[v0] Fetching redemptions for customer:", userId);
+    console.log("[v0] Reward redemptions:", rewardRedemptions);
+    console.log("[v0] Discount redemptions:", discountRedemptions);
+    console.log("[v0] Exclusive offer redemptions:", exclusiveOfferRedemptions);
+
     // Combine all redemptions
     let allRedemptions: Redemption[] = [];
 
     // Process reward redemptions
     if (rewardRedemptions && !rewardRedemptionsError) {
+      console.log("[v0] Processing reward redemptions:", rewardRedemptions);
       allRedemptions = rewardRedemptions.map((redemption: any) => ({
         ...redemption,
         redemption_type: 'reward'
       }));
+      console.log("[v0] Processed reward redemptions:", allRedemptions);
     }
 
     // Process discount redemptions
     if (discountRedemptions && !discountRedemptionsError) {
+      console.log("[v0] Processing discount redemptions:", discountRedemptions);
       const processedDiscountRedemptions = discountRedemptions.map((redemption: any) => ({
         id: redemption.id,
         redeemed_at: redemption.used_at,
@@ -319,10 +328,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         redemption_type: 'discount'
       }));
       allRedemptions = [...allRedemptions, ...processedDiscountRedemptions];
+      console.log("[v0] Processed discount redemptions:", processedDiscountRedemptions);
     }
 
     // Process exclusive offer redemptions
     if (exclusiveOfferRedemptions && !exclusiveOfferRedemptionsError) {
+      console.log("[v0] Processing exclusive offer redemptions:", exclusiveOfferRedemptions);
       const processedExclusiveOfferRedemptions = exclusiveOfferRedemptions.map((redemption: any) => ({
         id: redemption.id,
         redeemed_at: redemption.used_at,
@@ -334,7 +345,11 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         redemption_type: 'exclusive'
       }));
       allRedemptions = [...allRedemptions, ...processedExclusiveOfferRedemptions];
+      console.log("[v0] Processed exclusive offer redemptions:", processedExclusiveOfferRedemptions);
     }
+
+    // Debug logging
+    console.log("[v0] All redemptions before sorting:", allRedemptions);
 
     // Sort all redemptions by date (most recent first)
     allRedemptions.sort((a, b) => {
@@ -343,8 +358,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       return dateB - dateA;
     });
 
-    // Limit to 10 most recent redemptions
-    allRedemptions = allRedemptions.slice(0, 10);
+    // Debug logging
+    console.log("[v0] All redemptions after sorting:", allRedemptions);
+
+    // Limit to 20 most recent redemptions (increased from 10)
+    allRedemptions = allRedemptions.slice(0, 20);
+    console.log("[v0] All redemptions after limiting:", allRedemptions);
 
     // Calculate business points
     const businessPoints = await calculateBusinessPoints(userId);
