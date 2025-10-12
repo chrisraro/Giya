@@ -225,7 +225,7 @@ export default function BusinessDirectoryPage() {
                       </div>
                     )}
                   </div>
-                  <CardHeader className="p-4">
+                  <div className="p-4">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={business.profile_pic_url || undefined} />
@@ -236,9 +236,7 @@ export default function BusinessDirectoryPage() {
                         <p className="text-sm text-muted-foreground">{business.business_category}</p>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="space-y-3">
+                    <div className="space-y-3 mt-4">
                       <div className="flex items-center gap-2 text-sm">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         <span className="truncate">{business.address}</span>
@@ -254,7 +252,7 @@ export default function BusinessDirectoryPage() {
                         View Details
                       </Button>
                     </div>
-                  </CardContent>
+                  </div>
                 </Card>
               ))}
             </div>
