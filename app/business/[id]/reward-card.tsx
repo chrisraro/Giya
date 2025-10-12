@@ -139,7 +139,7 @@ export function RewardCard({ reward, business, user, businessId }: {
     <>
       <Card className="overflow-hidden">
         {reward.image_url && (
-          <div className="relative h-40 w-full">
+          <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
             <Image
               src={reward.image_url}
               alt={reward.name}

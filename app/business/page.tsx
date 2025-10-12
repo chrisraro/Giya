@@ -205,22 +205,39 @@ export default function BusinessDirectoryPage() {
               {filteredBusinesses.map((business) => (
                 <Card 
                   key={business.id} 
-                  className="cursor-pointer transition-all hover:shadow-md"
+                  className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
                   onClick={() => router.push(`/business/${business.id}`)}
                 >
-                  <CardHeader>
+                  <div className="relative h-40 w-full overflow-hidden rounded-t-lg">
+                    {business.profile_pic_url ? (
+                      <AvatarImage 
+                        src={business.profile_pic_url} 
+                        alt={business.business_name}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 rounded-t-lg">
+                        <div className="text-center">
+                          <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                            <span className="text-2xl font-bold text-primary">{business.business_name.charAt(0)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <CardHeader className="p-4">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={business.profile_pic_url || undefined} />
                         <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <h3 className="font-semibold">{business.business_name}</h3>
+                        <h3 className="font-semibold text-lg">{business.business_name}</h3>
                         <p className="text-sm text-muted-foreground">{business.business_category}</p>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-4 pt-0">
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-sm">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -228,7 +245,7 @@ export default function BusinessDirectoryPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Points per ₱</span>
-                        <span className="text-2xl font-bold text-primary">{business.points_per_currency || 100}</span>
+                        <span className="text-xl font-bold text-primary">{business.points_per_currency || 100}</span>
                       </div>
                       <Button variant="outline" className="w-full" onClick={(e) => {
                         e.stopPropagation()

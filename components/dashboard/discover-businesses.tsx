@@ -41,9 +41,30 @@ export function DiscoverBusinesses({ businessDiscovery }: DiscoverBusinessesProp
           {businessDiscovery.map((business) => (
             <Card 
               key={business.id} 
-              className="cursor-pointer transition-all hover:shadow-md"
+              className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
               onClick={() => router.push(`/business/${business.id}`)}
             >
+              <div className="relative h-32 w-full overflow-hidden rounded-t-lg">
+                {business.profile_pic_url ? (
+                  <div className="relative h-full w-full">
+                    <OptimizedImage 
+                      src={business.profile_pic_url} 
+                      alt={business.business_name} 
+                      width={200} 
+                      height={128}
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 rounded-t-lg">
+                    <div className="text-center">
+                      <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                        <span className="text-xl font-bold text-primary">{business.business_name.charAt(0)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
@@ -66,7 +87,7 @@ export function DiscoverBusinesses({ businessDiscovery }: DiscoverBusinessesProp
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Points per ₱</span>
-                  <span className="text-2xl font-bold text-primary">{business.points_per_currency || 100}</span>
+                  <span className="text-xl font-bold text-primary">{business.points_per_currency || 100}</span>
                 </div>
               </CardContent>
             </Card>

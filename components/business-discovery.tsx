@@ -48,7 +48,7 @@ function BusinessCard({ business }: { business: Business }) {
   return (
     <Link href={`/business/${business.id}`}>
       <Card className="group overflow-hidden transition-all hover:shadow-lg">
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-t-lg bg-muted">
           {business.profile_pic_url ? (
             <Image
               src={business.profile_pic_url || "/placeholder.svg"}
