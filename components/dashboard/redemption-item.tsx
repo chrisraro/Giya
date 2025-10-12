@@ -72,6 +72,34 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
   const displayInfo = getDisplayInfo();
   const IconComponent = displayInfo.icon;
 
+  // Format the date
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Unknown date';
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
+  // Get status display text
+  const getStatusText = () => {
+    switch (redemption.status?.toLowerCase()) {
+      case 'completed':
+        return 'Completed';
+      case 'validated':
+        return 'Validated';
+      case 'pending':
+        return 'Pending';
+      default:
+        return redemption.status || 'Completed';
+    }
+  };
+
   return (
     <div className="flex items-center justify-between border-b pb-4 last:border-0">
       <div className="flex items-center gap-3">
@@ -94,13 +122,7 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
           <p className="font-medium text-foreground">{displayInfo.name}</p>
           <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">
-              {redemption.redeemed_at 
-                ? new Date(redemption.redeemed_at).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })
-                : 'Unknown date'}
+              {formatDate(redemption.redeemed_at)}
             </p>
             {redemption.businesses?.business_name && (
               <span className="text-xs text-muted-foreground">
@@ -115,7 +137,7 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
           {displayInfo.points} pts
         </div>
         <div className="text-xs text-muted-foreground capitalize">
-          {redemption.redemption_type || 'reward'}
+          {getStatusText()}
         </div>
       </div>
     </div>

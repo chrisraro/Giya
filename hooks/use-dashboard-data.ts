@@ -111,7 +111,7 @@ interface Conversion {
   points_earned: number;
 }
 
-interface DashboardData {
+export interface DashboardData {
   user: any;
   customer?: CustomerData;
   business?: BusinessData;
@@ -282,11 +282,24 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       .eq("customer_id", userId)
       .order("used_at", { ascending: false });
 
+    // Handle errors properly
+    if (rewardRedemptionsError) {
+      console.error("Reward redemptions query error:", rewardRedemptionsError);
+    }
+    
+    if (discountRedemptionsError) {
+      console.error("Discount redemptions query error:", discountRedemptionsError);
+    }
+    
+    if (exclusiveOfferRedemptionsError) {
+      console.error("Exclusive offer redemptions query error:", exclusiveOfferRedemptionsError);
+    }
+
     // Combine all redemptions
     let allRedemptions: Redemption[] = [];
 
     // Process reward redemptions
-    if (rewardRedemptions) {
+    if (rewardRedemptions && !rewardRedemptionsError) {
       allRedemptions = rewardRedemptions.map((redemption: any) => ({
         ...redemption,
         redemption_type: 'reward'
@@ -294,7 +307,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     }
 
     // Process discount redemptions
-    if (discountRedemptions) {
+    if (discountRedemptions && !discountRedemptionsError) {
       const processedDiscountRedemptions = discountRedemptions.map((redemption: any) => ({
         id: redemption.id,
         redeemed_at: redemption.used_at,
@@ -309,7 +322,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     }
 
     // Process exclusive offer redemptions
-    if (exclusiveOfferRedemptions) {
+    if (exclusiveOfferRedemptions && !exclusiveOfferRedemptionsError) {
       const processedExclusiveOfferRedemptions = exclusiveOfferRedemptions.map((redemption: any) => ({
         id: redemption.id,
         redeemed_at: redemption.used_at,
@@ -481,8 +494,8 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
 
     if (businessError) throw businessError;
 
-    // Fetch transactions
-    const { data: transactions, error: transactionsError } = await supabase
+    // Fetch points transactions
+    const { data: pointsTransactions, error: pointsTransactionsError } = await supabase
       .from("points_transactions")
       .select(
         `
@@ -501,10 +514,77 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       .order("transaction_date", { ascending: false })
       .limit(20);
 
-    if (transactionsError) throw transactionsError;
+    if (pointsTransactionsError) throw pointsTransactionsError;
+
+    // Fetch redemption validations
+    const { data: redemptionValidations, error: redemptionValidationsError } = await supabase
+      .from("redemptions")
+      .select(
+        `
+        id,
+        customer_id,
+        reward_id,
+        points_redeemed,
+        validated_at,
+        status,
+        customers (
+          full_name,
+          profile_pic_url
+        ),
+        rewards (
+          reward_name
+        )
+      `,
+      )
+      .eq("business_id", userId)
+      .eq("status", "validated")
+      .order("validated_at", { ascending: false })
+      .limit(20);
+
+    if (redemptionValidationsError) throw redemptionValidationsError;
+
+    // Combine and sort all transactions
+    let allTransactions: any[] = [];
+
+    // Add points transactions with type identifier
+    if (pointsTransactions) {
+      allTransactions = pointsTransactions.map((transaction: any) => ({
+        ...transaction,
+        type: 'points_earned',
+        display_date: transaction.transaction_date
+      }));
+    }
+
+    // Add redemption validations with type identifier
+    if (redemptionValidations) {
+      const validationTransactions = redemptionValidations.map((redemption: any) => ({
+        id: `redemption-${redemption.id}`,
+        customer_id: redemption.customer_id,
+        amount_spent: 0,
+        points_earned: -redemption.points_redeemed, // Negative to show points deducted
+        transaction_date: redemption.validated_at,
+        display_date: redemption.validated_at,
+        customers: redemption.customers,
+        redemption_info: {
+          reward_name: redemption.rewards?.reward_name
+        },
+        type: 'redemption_validated'
+      }));
+      allTransactions = [...allTransactions, ...validationTransactions];
+    }
+
+    // Sort all transactions by date (most recent first)
+    allTransactions.sort((a, b) => {
+      const dateA = new Date(a.display_date).getTime();
+      const dateB = new Date(b.display_date).getTime();
+      return dateB - dateA;
+    });
+
+    // Limit to 20 most recent transactions
+    allTransactions = allTransactions.slice(0, 20);
 
     // Calculate stats
-    const { data: allTransactions } = await supabase
+    const { data: allPointsTransactions } = await supabase
       .from("points_transactions")
       .select("amount_spent, customer_id")
       .eq("business_id", userId);
@@ -515,12 +595,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       uniqueCustomers: 0,
     };
 
-    if (allTransactions) {
-      const totalRevenue = (allTransactions as { amount_spent: number }[]).reduce((sum: number, t: { amount_spent: number }) => sum + Number(t.amount_spent), 0);
-      const uniqueCustomers = new Set((allTransactions as { customer_id: string }[]).map((t: { customer_id: string }) => t.customer_id)).size;
+    if (allPointsTransactions) {
+      const totalRevenue = (allPointsTransactions as { amount_spent: number }[]).reduce((sum: number, t: { amount_spent: number }) => sum + Number(t.amount_spent), 0);
+      const uniqueCustomers = new Set((allPointsTransactions as { customer_id: string }[]).map((t: { customer_id: string }) => t.customer_id)).size;
 
       stats = {
-        totalTransactions: allTransactions.length,
+        totalTransactions: allPointsTransactions.length,
         totalRevenue,
         uniqueCustomers,
       };
@@ -528,7 +608,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
 
     return {
       business,
-      transactions: transactions || [],
+      transactions: allTransactions,
       stats
     };
   };

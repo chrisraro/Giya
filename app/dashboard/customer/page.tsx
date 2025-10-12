@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { OptimizedImage } from "@/components/optimized-image"
+import { toast } from "sonner"
 
 // Import types from the hook
 import type { CustomerData, BusinessPoints, Transaction, Redemption } from "@/hooks/use-dashboard-data"
@@ -43,7 +44,7 @@ export default function CustomerDashboard() {
   const router = useRouter()
   const supabase = createClient()
   
-  const { data, isLoading, error } = useDashboardData({ userType: 'customer' })
+  const { data, isLoading, error, refetch } = useDashboardData({ userType: 'customer' })
 
   // Fetch business discovery data separately since it's not user-specific
   useEffect(() => {
@@ -60,6 +61,39 @@ export default function CustomerDashboard() {
 
     fetchBusinessDiscovery()
   }, [supabase])
+
+  // Add real-time subscription for redemption validations
+  useEffect(() => {
+    const channel = supabase
+      .channel('redemption-validation')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'redemptions',
+          filter: 'status=eq.validated'
+        },
+        (payload: any) => {
+          // Check if this redemption belongs to the current customer
+          if (payload.new.customer_id === data?.customer?.id) {
+            // Show toast notification
+            toast.success('Redemption Validated!', {
+              description: `Your redemption has been validated by the business.`,
+              duration: 5000
+            })
+            
+            // Refetch data to update the UI
+            refetch()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, data?.customer?.id, refetch])
 
   if (isLoading) {
     return (
