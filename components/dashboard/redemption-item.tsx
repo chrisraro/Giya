@@ -18,7 +18,6 @@ interface Redemption {
   discount_offer_id?: string;
   discount_offers?: {
     title: string;
-    image_url: string | null;
   };
   // For exclusive offer redemptions
   exclusive_offer_id?: string;
@@ -50,7 +49,7 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
           name: redemption.discount_offers?.title || 'Discount Offer',
           points: undefined,
           icon: Tag,
-          image_url: redemption.discount_offers?.image_url
+          image_url: undefined
         };
       case 'exclusive':
         return {

@@ -65,7 +65,6 @@ export interface Redemption {
   discount_offer_id?: string;
   discount_offers?: {
     title: string;
-    image_url: string | null;
   };
   // For exclusive offer redemptions
   exclusive_offer_id?: string;
@@ -353,8 +352,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         customer_id,
         discount_offer_id,
         discount_offers (
-          title,
-          image_url
+          title
         )
       `,
       )

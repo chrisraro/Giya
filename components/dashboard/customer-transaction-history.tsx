@@ -32,7 +32,6 @@ interface Redemption {
   discount_offer_id?: string;
   discount_offers?: {
     title: string;
-    image_url: string | null;
   }
   // For exclusive offer redemptions
   exclusive_offer_id?: string;
