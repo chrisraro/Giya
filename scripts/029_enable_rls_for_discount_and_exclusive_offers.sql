@@ -4,6 +4,26 @@ alter table public.discount_usage enable row level security;
 alter table public.exclusive_offers enable row level security;
 alter table public.exclusive_offer_usage enable row level security;
 
+-- Drop existing policies if they exist
+drop policy if exists "Businesses can view their own discount offers" on public.discount_offers;
+drop policy if exists "Businesses can create their own discount offers" on public.discount_offers;
+drop policy if exists "Businesses can update their own discount offers" on public.discount_offers;
+drop policy if exists "Businesses can delete their own discount offers" on public.discount_offers;
+drop policy if exists "Customers can view active discount offers from businesses they've interacted with" on public.discount_offers;
+drop policy if exists "Anyone can view active discount offers" on public.discount_offers;
+drop policy if exists "Customers can view their own discount usage" on public.discount_usage;
+drop policy if exists "Businesses can view discount usage for their offers" on public.discount_usage;
+drop policy if exists "System can insert discount usage" on public.discount_usage;
+drop policy if exists "Businesses can view their own exclusive offers" on public.exclusive_offers;
+drop policy if exists "Businesses can create their own exclusive offers" on public.exclusive_offers;
+drop policy if exists "Businesses can update their own exclusive offers" on public.exclusive_offers;
+drop policy if exists "Businesses can delete their own exclusive offers" on public.exclusive_offers;
+drop policy if exists "Customers can view active exclusive offers from businesses they've interacted with" on public.exclusive_offers;
+drop policy if exists "Anyone can view active exclusive offers" on public.exclusive_offers;
+drop policy if exists "Customers can view their own exclusive offer usage" on public.exclusive_offer_usage;
+drop policy if exists "Businesses can view exclusive offer usage for their offers" on public.exclusive_offer_usage;
+drop policy if exists "System can insert exclusive offer usage" on public.exclusive_offer_usage;
+
 -- Discount offers policies
 create policy "Businesses can view their own discount offers"
   on public.discount_offers for select

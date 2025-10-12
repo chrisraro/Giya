@@ -27,8 +27,7 @@ import { toast } from "sonner"
 import { Plus, Edit, Trash2, Calendar, Users, Tag } from "lucide-react"
 import { handleApiError } from "@/lib/error-handler"
 import Link from "next/link"
-import { QRCodeSVG } from "qrcode.react"
-import { MediaGallery } from "@/components/media-gallery";
+import { OfferImageUpload } from "@/components/offer-image-upload";
 
 interface ExclusiveOffer {
   id: string
@@ -380,11 +379,12 @@ export default function BusinessExclusiveOffersPage() {
                     
                     <div className="grid gap-2">
                       <Label>Product Image</Label>
-                      <MediaGallery
-                        userId={businessId}
-                        userType="business"
+                      <OfferImageUpload
                         currentImageUrl={formData.image_url || null}
-                        onImageSelect={handleImageUpdate}
+                        businessId={businessId}
+                        offerId={editingOffer?.id || 'new'}
+                        offerType="exclusive"
+                        onImageUpdate={handleImageUpdate}
                       />
                     </div>
                     

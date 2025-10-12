@@ -9,6 +9,36 @@ alter table public.redemptions enable row level security;
 alter table public.affiliate_links enable row level security;
 alter table public.affiliate_conversions enable row level security;
 
+-- Drop existing policies if they exist
+drop policy if exists "Users can view their own profile" on public.profiles;
+drop policy if exists "Users can update their own profile" on public.profiles;
+drop policy if exists "Customers can view their own data" on public.customers;
+drop policy if exists "Customers can insert their own data" on public.customers;
+drop policy if exists "Customers can update their own data" on public.customers;
+drop policy if exists "Businesses can view customer data when scanning" on public.customers;
+drop policy if exists "Businesses can view their own data" on public.businesses;
+drop policy if exists "Businesses can insert their own data" on public.businesses;
+drop policy if exists "Businesses can update their own data" on public.businesses;
+drop policy if exists "Anyone can view active businesses" on public.businesses;
+drop policy if exists "Influencers can view their own data" on public.influencers;
+drop policy if exists "Influencers can insert their own data" on public.influencers;
+drop policy if exists "Influencers can update their own data" on public.influencers;
+drop policy if exists "Customers can view their own transactions" on public.points_transactions;
+drop policy if exists "Businesses can view their transactions" on public.points_transactions;
+drop policy if exists "Businesses can create transactions" on public.points_transactions;
+drop policy if exists "Anyone can view active rewards" on public.rewards;
+drop policy if exists "Businesses can view their own rewards" on public.rewards;
+drop policy if exists "Businesses can create rewards" on public.rewards;
+drop policy if exists "Businesses can update their own rewards" on public.rewards;
+drop policy if exists "Businesses can delete their own rewards" on public.rewards;
+drop policy if exists "Users can view their own redemptions" on public.redemptions;
+drop policy if exists "Users can create redemptions" on public.redemptions;
+drop policy if exists "Businesses can view redemptions for their rewards" on public.redemptions;
+drop policy if exists "Influencers can view their own affiliate links" on public.affiliate_links;
+drop policy if exists "Influencers can create affiliate links" on public.affiliate_links;
+drop policy if exists "Influencers can view their conversions" on public.affiliate_conversions;
+drop policy if exists "System can create conversions" on public.affiliate_conversions;
+
 -- Profiles policies
 create policy "Users can view their own profile"
   on public.profiles for select

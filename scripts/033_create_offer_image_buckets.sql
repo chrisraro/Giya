@@ -8,6 +8,16 @@ insert into storage.buckets (id, name, public)
 values ('exclusive-offer-images', 'exclusive-offer-images', true)
 on conflict (id) do nothing;
 
+-- Drop existing policies if they exist
+drop policy if exists "Anyone can view reward images" on storage.objects;
+drop policy if exists "Businesses can upload their own reward images" on storage.objects;
+drop policy if exists "Businesses can update their own reward images" on storage.objects;
+drop policy if exists "Businesses can delete their own reward images" on storage.objects;
+drop policy if exists "Anyone can view exclusive offer images" on storage.objects;
+drop policy if exists "Businesses can upload their own exclusive offer images" on storage.objects;
+drop policy if exists "Businesses can update their own exclusive offer images" on storage.objects;
+drop policy if exists "Businesses can delete their own exclusive offer images" on storage.objects;
+
 -- Set up storage policies for reward images
 create policy "Anyone can view reward images"
   on storage.objects for select

@@ -1,8 +1,7 @@
-import { put } from '@vercel/blob';
 import { createClient } from '@/lib/supabase/client';
 
 /**
- * Uploads a profile image to Vercel Blob storage
+ * Uploads a profile image to Vercel Blob storage via API routes
  * @param file - The image file to upload
  * @param userId - The user ID for folder organization
  * @param userType - The type of user (customer, business, influencer)
@@ -15,13 +14,39 @@ export async function uploadProfileImage(file: File, userId: string, userType: '
     const fileName = `${Date.now()}-${file.name}`;
     const filePath = `${folderPath}/${fileName}`;
     
-    // Upload to Vercel Blob
-    const blob = await put(filePath, file, {
-      access: 'public',
-      contentType: file.type,
+    // First, get a signed URL from our API
+    const response = await fetch('/api/blob/upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        path: filePath,
+        contentType: file.type,
+      }),
     });
     
-    return blob.url;
+    if (!response.ok) {
+      throw new Error('Failed to get upload URL');
+    }
+    
+    const { url } = await response.json();
+    
+    // Upload the file content
+    const uploadResponse = await fetch(url, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+    
+    if (!uploadResponse.ok) {
+      throw new Error('Failed to upload file');
+    }
+    
+    // Return the public URL (remove query parameters)
+    return url.split('?')[0];
   } catch (error) {
     console.error('Error uploading profile image:', error);
     throw new Error('Failed to upload profile image');
@@ -40,10 +65,14 @@ export async function deleteProfileImage(imageUrl: string): Promise<void> {
     // Remove the leading slash
     const blobPath = pathname.substring(1);
     
-    // Delete from Vercel Blob
-    await fetch(`/api/blob/delete?path=${encodeURIComponent(blobPath)}`, {
+    // Delete from Vercel Blob via our API
+    const response = await fetch(`/api/blob/delete?path=${encodeURIComponent(blobPath)}`, {
       method: 'DELETE',
     });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete image');
+    }
   } catch (error) {
     console.error('Error deleting profile image:', error);
     throw new Error('Failed to delete profile image');

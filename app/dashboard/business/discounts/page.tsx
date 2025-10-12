@@ -34,8 +34,7 @@ import { toast } from "sonner"
 import { Plus, Edit, Trash2, Calendar, Users } from "lucide-react"
 import { handleApiError } from "@/lib/error-handler"
 import Link from "next/link"
-import { QRCodeSVG } from "qrcode.react"
-import { MediaGallery } from "@/components/media-gallery";
+import { OfferImageUpload } from "@/components/offer-image-upload";
 
 interface DiscountOffer {
   id: string
@@ -373,11 +372,12 @@ export default function BusinessDiscountsPage() {
                     
                     <div className="grid gap-2">
                       <Label>Discount Image</Label>
-                      <MediaGallery
-                        userId={businessId}
-                        userType="business"
+                      <OfferImageUpload
                         currentImageUrl={formData.image_url || null}
-                        onImageSelect={handleImageUpdate}
+                        businessId={businessId}
+                        offerId={editingDiscount?.id || 'new'}
+                        offerType="discount"
+                        onImageUpdate={handleImageUpdate}
                       />
                     </div>
                     

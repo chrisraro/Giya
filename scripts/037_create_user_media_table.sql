@@ -12,6 +12,11 @@ create table if not exists public.user_media (
 -- Enable RLS
 alter table public.user_media enable row level security;
 
+-- Drop existing policies if they exist
+drop policy if exists "Users can view their own media" on public.user_media;
+drop policy if exists "Users can insert their own media" on public.user_media;
+drop policy if exists "Users can delete their own media" on public.user_media;
+
 -- RLS policies
 create policy "Users can view their own media"
   on public.user_media for select

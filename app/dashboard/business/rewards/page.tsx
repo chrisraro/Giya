@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Plus, Edit, Trash2, Gift, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
-import { MediaGallery } from "@/components/media-gallery";
+import { OfferImageUpload } from "@/components/offer-image-upload";
 
 interface Reward {
   id: string
@@ -330,11 +330,12 @@ export default function BusinessRewardsPage() {
 
             <div className="space-y-2">
               <Label>Reward Image</Label>
-              <MediaGallery
-                userId={businessId}
-                userType="business"
+              <OfferImageUpload
                 currentImageUrl={formData.image_url || null}
-                onImageSelect={handleImageUpdate}
+                businessId={businessId}
+                offerId={editingReward?.id || 'new'}
+                offerType="reward"
+                onImageUpdate={handleImageUpdate}
               />
             </div>
 
