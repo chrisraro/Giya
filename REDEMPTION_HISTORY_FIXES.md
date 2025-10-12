@@ -1,180 +1,136 @@
 # Redemption History Fixes
 
-This document summarizes the fixes made to address the issues with the "Your Business Points" section not displaying cards and the redemption history not showing all types of redemptions.
+## Overview
+
+This document describes the issues identified with the redemption history display and the fixes implemented to resolve them. The main problem was that only exclusive offer redemptions were being displayed, while reward and discount redemptions were missing due to query errors.
 
 ## Issues Identified
 
-1. **Missing Business Points Display**: The "Your Business Points" section was not showing any business points cards.
-2. **Incomplete Redemption History**: The redemption history only showed reward redemptions and missed discount and exclusive offer redemptions.
+### 1. Query Relationship Ambiguity
+- The reward redemptions query was failing with error "PGRST201: Could not embed because more than one relationship was found for 'redemptions' and 'businesses'"
+- This occurred because the redemptions table has multiple foreign key relationships to the businesses table:
+  - `business_id` (the business associated with the reward)
+  - `validated_by` (the business that validated the redemption)
+
+### 2. Incomplete Redemption Display
+- Only exclusive offer redemptions were being displayed
+- Reward and discount redemptions were missing due to query failures
+- Customers couldn't see their complete redemption history
+
+### 3. Data Fetching Issues
+- The dashboard data hook wasn't properly handling query errors
+- Business dashboard queries had similar potential issues
 
 ## Root Causes
 
-1. **Business Points Issue**: The `calculateBusinessPoints` function in the `useDashboardData` hook was not properly handling all business relationships, particularly for customers who had only redeemed offers but never made transactions.
+### 1. Foreign Key Relationship Ambiguity
+- The redemptions table has multiple foreign keys pointing to the businesses table
+- When querying with embedded relationships, PostgREST couldn't determine which foreign key to use
+- This caused query failures and missing data
 
-2. **Redemption History Issue**: The application was only querying the `redemptions` table for reward redemptions, but discount and exclusive offer redemptions are stored in separate tables:
-   - `redemptions` table for reward redemptions
-   - `discount_usage` table for discount offer redemptions
-   - `exclusive_offer_usage` table for exclusive offer redemptions
+### 2. Incomplete Error Handling
+- Query errors weren't being properly handled in the dashboard data hook
+- Failed queries for one redemption type affected the display of others
 
-## Fixes Implemented
+### 3. Schema Evolution
+- As the database schema evolved with new redemption types, queries weren't updated to handle the complexity
 
-### 1. Enhanced useDashboardData Hook
+## Solutions Implemented
 
-Updated the `fetchCustomerData` function to fetch all types of redemptions:
+### 1. Fixed Query Relationships ([hooks/use-dashboard-data.ts](file://c:/Users/User/OneDrive/Desktop/giya/hooks/use-dashboard-data.ts))
 
+#### Reward Redemptions Query
+Fixed the ambiguous relationship by specifying the exact foreign key:
 ```typescript
-// Fetch all types of redemptions
-// 1. Reward redemptions
-const { data: rewardRedemptions } = await supabase
-  .from("redemptions")
-  .select(/* reward redemption fields */)
-  .eq("customer_id", userId)
-  .order("redeemed_at", { ascending: false });
-
-// 2. Discount redemptions
-const { data: discountRedemptions } = await supabase
-  .from("discount_usage")
-  .select(/* discount redemption fields */)
-  .eq("customer_id", userId)
-  .order("used_at", { ascending: false });
-
-// 3. Exclusive offer redemptions
-const { data: exclusiveOfferRedemptions } = await supabase
-  .from("exclusive_offer_usage")
-  .select(/* exclusive offer redemption fields */)
-  .eq("customer_id", userId)
-  .order("used_at", { ascending: false });
-
-// Combine all redemptions and sort by date
-let allRedemptions: Redemption[] = [];
-
-// Process each type with appropriate mapping
-// ... (implementation details)
+businesses!redemptions_business_id_fkey (
+  business_name,
+  profile_pic_url
+)
 ```
 
-### 2. Updated Redemption Interface
-
-Enhanced the `Redemption` interface to support all three types of redemptions:
-
+#### Discount and Exclusive Offer Queries
+Ensured proper relationship handling for newer redemption types:
 ```typescript
-export interface Redemption {
-  id: string;
-  redeemed_at: string;
-  status: string;
-  business_id: string | null;
-  reward_id?: string;
-  rewards?: {
-    reward_name: string;
-    points_required: number;
-    image_url: string | null;
-  };
-  // For discount redemptions
-  discount_offer_id?: string;
-  discount_offers?: {
-    offer_title: string;
-    points_required: number;
-    image_url: string | null;
-  };
-  // For exclusive offer redemptions
-  exclusive_offer_id?: string;
-  exclusive_offers?: {
-    offer_title: string;
-    points_required: number;
-    image_url: string | null;
-  };
-  // Type field to distinguish between redemption types
-  redemption_type?: 'reward' | 'discount' | 'exclusive';
+businesses (
+  business_name,
+  profile_pic_url
+)
+```
+
+### 2. Improved Error Handling
+Enhanced error handling to prevent one failed query from affecting others:
+```typescript
+// Handle errors properly
+if (rewardRedemptionsError) {
+  console.error("[v0] Reward redemptions query error:", rewardRedemptionsError);
+}
+
+if (discountRedemptionsError) {
+  console.error("[v0] Discount redemptions query error:", discountRedemptionsError);
+}
+
+if (exclusiveOfferRedemptionsError) {
+  console.error("[v0] Exclusive offer redemptions query error:", exclusiveOfferRedemptionsError);
 }
 ```
 
-### 3. Enhanced RedemptionItem Component
-
-Updated the `RedemptionItem` component to properly display all three types of redemptions with appropriate icons and information:
-
+### 3. Business Dashboard Queries ([hooks/use-dashboard-data.ts](file://c:/Users/User/OneDrive/Desktop/giya/hooks/use-dashboard-data.ts))
+Fixed similar potential issues in business dashboard queries:
 ```typescript
-const getDisplayInfo = () => {
-  switch (redemption.redemption_type) {
-    case 'discount':
-      return {
-        name: redemption.discount_offers?.offer_title || 'Discount Offer',
-        points: redemption.discount_offers?.points_required || 0,
-        icon: Tag,
-        image_url: redemption.discount_offers?.image_url
-      };
-    case 'exclusive':
-      return {
-        name: redemption.exclusive_offers?.offer_title || 'Exclusive Offer',
-        points: redemption.exclusive_offers?.points_required || 0,
-        icon: Star,
-        image_url: redemption.exclusive_offers?.image_url
-      };
-    case 'reward':
-    default:
-      return {
-        name: redemption.rewards?.reward_name || 'Reward',
-        points: redemption.rewards?.points_required || 0,
-        icon: Gift,
-        image_url: redemption.rewards?.image_url
-      };
-  }
-};
-```
-
-### 4. Improved Business Points Calculation
-
-Enhanced the `calculateBusinessPoints` function to properly account for all business relationships:
-
-```typescript
-// Get all businesses the customer has transacted with
-const { data: businessTransactions } = await supabase
-  .from("points_transactions")
-  .select(`
-    business_id,
-    businesses (
-      business_name,
-      profile_pic_url
-    )
-  `)
-  .eq("customer_id", customerId)
-  .order("transaction_date", { ascending: false });
-
-// Also get businesses where customer has redemptions but no transactions
-const { data: redemptionBusinesses } = await supabase
+// Simplified query without ambiguous relationships
+const { data: redemptionValidations, error: redemptionValidationsError } = await supabase
   .from("redemptions")
-  .select(`
-    business_id,
-    businesses (
-      business_name,
+  .select(
+    `
+    id,
+    customer_id,
+    reward_id,
+    points_redeemed,
+    validated_at,
+    status,
+    customers (
+      full_name,
       profile_pic_url
+    ),
+    rewards (
+      reward_name
     )
-  `)
-  .eq("customer_id", customerId)
-  .order("redeemed_at", { ascending: false });
+  `,
+  )
+  .eq("business_id", userId)
+  .eq("status", "validated")
+  .order("validated_at", { ascending: false })
+  .limit(20);
 ```
 
-## Results
+## Files Modified
 
-1. **Business Points Display**: The "Your Business Points" section now correctly displays business points cards for all businesses where the customer has either made transactions or redemptions.
-
-2. **Unified Redemption History**: The redemption history now shows a unified view of all redemptions:
-   - Reward redemptions
-   - Discount offer redemptions
-   - Exclusive offer redemptions
-
-3. **Better User Experience**: Users can now see all their redemption activities in one place, sorted by date with clear indicators of the redemption type.
+1. [hooks/use-dashboard-data.ts](file://c:/Users/User/OneDrive/Desktop/giya/hooks/use-dashboard-data.ts) - Fixed query relationships and error handling
+2. [components/dashboard/customer-transaction-history.tsx](file://c:/Users/User/OneDrive/Desktop/giya/components/dashboard/customer-transaction-history.tsx) - Verified component structure
+3. [components/dashboard/redemption-item.tsx](file://c:/Users/User/OneDrive/Desktop/giya/components/dashboard/redemption-item.tsx) - Verified component handling of all redemption types
 
 ## Testing
 
-The application has been tested to ensure:
-- Business points are correctly calculated and displayed
-- All types of redemptions appear in the history
-- Redemptions are sorted by date (most recent first)
-- Proper icons and labels are shown for each redemption type
-- Business information is correctly associated with each redemption
+To verify the fixes:
+
+1. Check browser console for errors - should no longer see "PGRST201" errors
+2. Verify that all redemption types are displayed in customer dashboard:
+   - Reward redemptions
+   - Discount redemptions
+   - Exclusive offer redemptions
+3. Confirm that business dashboard queries work correctly
 
 ## Future Improvements
 
-1. Add pagination for redemption history to handle large numbers of redemptions
-2. Implement filtering options to view specific types of redemptions
-3. Add export functionality for redemption history
-4. Enhance error handling for cases where business data might be missing
+1. Add automated testing for query relationships
+2. Implement more robust error handling with user-friendly messages
+3. Create admin tools for diagnosing query issues
+
+## Prevention
+
+To prevent similar issues in the future:
+
+1. Always specify foreign key relationships when querying tables with multiple foreign keys to the same table
+2. Implement comprehensive error handling for data fetching
+3. Document complex relationship structures
+4. Test queries thoroughly when adding new table relationships

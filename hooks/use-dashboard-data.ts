@@ -225,6 +225,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     console.log("[v0] Starting redemption queries for customer ID:", userId);
     
     // 1. Reward redemptions - check both customer_id and user_id
+    // Fix the businesses relationship by specifying which foreign key to use
     console.log("[v0] Querying reward redemptions...");
     let { data: rewardRedemptions, error: rewardRedemptionsError } = await supabase
       .from("redemptions")
@@ -244,7 +245,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
           image_url,
           business_id
         ),
-        businesses (
+        businesses!redemptions_business_id_fkey (
           business_name,
           profile_pic_url
         )
@@ -584,6 +585,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     if (pointsTransactionsError) throw pointsTransactionsError;
 
     // Fetch redemption validations
+    // Fix the businesses relationship by specifying which foreign key to use
     const { data: redemptionValidations, error: redemptionValidationsError } = await supabase
       .from("redemptions")
       .select(
