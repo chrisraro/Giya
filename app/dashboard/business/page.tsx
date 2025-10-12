@@ -59,14 +59,6 @@ interface CustomerInfo {
 }
 
 export default function BusinessDashboard() {
-  const [businessData, setBusinessData] = useState<BusinessData | null>(null)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [stats, setStats] = useState({
-    totalTransactions: 0,
-    totalRevenue: 0,
-    uniqueCustomers: 0,
-  })
-  const [isLoading, setIsLoading] = useState(true)
   const [showScanner, setShowScanner] = useState(false)
   const [showTransactionDialog, setShowTransactionDialog] = useState(false)
   const [scannedCustomer, setScannedCustomer] = useState<CustomerInfo | null>(null)
@@ -76,98 +68,8 @@ export default function BusinessDashboard() {
   const [isValidating, setIsValidating] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        if (!user) {
-          router.push("/auth/login")
-          return
-        }
-
-        // Fetch business data with retry
-        const { data: business, error: businessError } = await retryWithBackoff(
-          async () => {
-            const result = await supabase
-              .from("businesses")
-              .select("id, business_name, business_category, profile_pic_url, points_per_currency, address")
-              .eq("id", user.id)
-              .single()
-            if (result.error) throw result.error
-            return result
-          },
-          { maxRetries: 3, delay: 1000 }
-        )
-
-        if (businessError) throw businessError
-        setBusinessData(business.data)
-
-        // Fetch transactions with retry
-        const { data: transactionsData, error: transactionsError } = await retryWithBackoff(
-          async () => {
-            const result = await supabase
-              .from("points_transactions")
-              .select(
-                `
-                id,
-                customer_id,
-                amount_spent,
-                points_earned,
-                transaction_date,
-                customers (
-                  full_name,
-                  profile_pic_url
-                )
-              `,
-              )
-              .eq("business_id", user.id)
-              .order("transaction_date", { ascending: false })
-              .limit(20)
-            if (result.error) throw result.error
-            return result
-          },
-          { maxRetries: 3, delay: 1000 }
-        )
-
-        if (transactionsError) throw transactionsError
-        setTransactions(transactionsData.data || [])
-
-        // Calculate stats with retry
-        const { data: allTransactions } = await retryWithBackoff(
-          async () => {
-            const result = await supabase
-              .from("points_transactions")
-              .select("amount_spent, customer_id")
-              .eq("business_id", user.id)
-            if (result.error) throw result.error
-            return result
-          },
-          { maxRetries: 3, delay: 1000 }
-        )
-
-        if (allTransactions.data) {
-          const totalRevenue = (allTransactions.data as { amount_spent: number }[]).reduce((sum: number, t: { amount_spent: number }) => sum + Number(t.amount_spent), 0)
-          const uniqueCustomers = new Set((allTransactions.data as { customer_id: string }[]).map((t: { customer_id: string }) => t.customer_id)).size
-
-          setStats({
-            totalTransactions: allTransactions.data.length,
-            totalRevenue,
-            uniqueCustomers,
-          })
-        }
-      } catch (error) {
-        handleApiError(error, "Failed to load dashboard data", "BusinessDashboard.fetchData")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [router, supabase])
+  
+  const { data, isLoading, error } = useDashboardData({ userType: 'business' })
 
   const handleScanSuccess = async (qrData: string) => {
     setShowScanner(false)
@@ -321,7 +223,7 @@ export default function BusinessDashboard() {
   }
 
   const handleCreateTransaction = async () => {
-    if (!scannedCustomer || !businessData || !transactionAmount) return
+    if (!scannedCustomer || !data?.business || !transactionAmount) return
 
     setIsProcessing(true)
 
@@ -333,12 +235,12 @@ export default function BusinessDashboard() {
       }
 
       // Calculate points based on business configuration
-      const pointsEarned = Math.floor(amount / businessData.points_per_currency)
+      const pointsEarned = Math.floor(amount / data.business.points_per_currency)
 
       // Create transaction
       const { error: transactionError } = await supabase.from("points_transactions").insert({
         customer_id: scannedCustomer.id,
-        business_id: businessData.id,
+        business_id: data.business.id,
         amount_spent: amount,
         points_earned: pointsEarned,
       })
@@ -347,45 +249,15 @@ export default function BusinessDashboard() {
 
       toast.success(`Transaction successful! Customer earned ${pointsEarned} points`)
 
-      // Refresh data
-      const { data: updatedTransactions } = await supabase
-        .from("points_transactions")
-        .select(
-          `
-          id,
-          customer_id,
-          amount_spent,
-          points_earned,
-          transaction_date,
-          customers (
-            full_name,
-            profile_pic_url
-          )
-        `,
-        )
-        .eq("business_id", businessData.id)
-        .order("transaction_date", { ascending: false })
-        .limit(20)
-
-      if (updatedTransactions) {
-        setTransactions(updatedTransactions)
-      }
-
-      // Update stats
-      setStats((prev) => ({
-        ...prev,
-        totalTransactions: prev.totalTransactions + 1,
-        totalRevenue: prev.totalRevenue + amount,
-      }))
-
-      // Reset form
-      setShowTransactionDialog(false)
-      setScannedCustomer(null)
-      setTransactionAmount("")
+      // Refresh data using the hook
+      // The hook will automatically refresh the data
     } catch (error) {
       handleDatabaseError(error, "create transaction")
     } finally {
       setIsProcessing(false)
+      setShowTransactionDialog(false)
+      setScannedCustomer(null)
+      setTransactionAmount("")
     }
   }
 
@@ -505,7 +377,26 @@ export default function BusinessDashboard() {
     )
   }
 
-  if (!businessData) {
+  if (error) {
+    return (
+      <DashboardLayout
+        userRole="business"
+        userName="Error"
+        breadcrumbs={[]}
+      >
+        <div className="flex min-h-svh items-center justify-center">
+          <Card>
+            <CardHeader>
+              <CardTitle>Error</CardTitle>
+              <CardDescription>{error}</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (!data || !data.business) {
     return (
       <DashboardLayout
         userRole="business"
@@ -527,26 +418,26 @@ export default function BusinessDashboard() {
   return (
     <DashboardLayout
       userRole="business"
-      userName={businessData.business_name}
-      userEmail={businessData.business_category}
-      userAvatar={businessData.profile_pic_url}
+      userName={data.business.business_name}
+      userEmail={data.business.business_category}
+      userAvatar={data.business.profile_pic_url}
       breadcrumbs={[]}
     >
       {/* Stats Overview */}
       <BusinessStats 
-        totalRevenue={stats.totalRevenue}
-        totalTransactions={stats.totalTransactions}
-        uniqueCustomers={stats.uniqueCustomers}
+        totalRevenue={data.stats?.totalRevenue || 0}
+        totalTransactions={data.stats?.totalTransactions || 0}
+        uniqueCustomers={data.stats?.uniqueCustomers || 0}
       />
 
       {/* Scan QR Section */}
       <QrScannerSection 
-        pointsPerCurrency={businessData.points_per_currency}
+        pointsPerCurrency={data.business.points_per_currency}
         onOpenScanner={() => setShowScanner(true)}
       />
 
       {/* Transaction History */}
-      <TransactionHistory transactions={transactions} />
+      <TransactionHistory transactions={data.transactions || []} />
 
       {/* QR Scanner Dialog */}
       <Dialog open={showScanner} onOpenChange={setShowScanner}>
@@ -595,7 +486,7 @@ export default function BusinessDashboard() {
                 {transactionAmount && (
                   <p className="text-sm text-muted-foreground">
                     Points to be awarded:{" "}
-                    {Math.floor(Number.parseFloat(transactionAmount) / businessData.points_per_currency)}
+                    {Math.floor(Number.parseFloat(transactionAmount) / data.business.points_per_currency)}
                   </p>
                 )}
               </div>
