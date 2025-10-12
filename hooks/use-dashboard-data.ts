@@ -180,6 +180,75 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
   }, [userType, supabase]);
 
   const fetchCustomerData = async (userId: string) => {
+    console.log("[v0] Fetching customer data for user ID:", userId);
+    
+    // Test queries to debug redemption data
+    console.log("[v0] Running test queries to debug redemption data...");
+    
+    // Test query to see what's in the redemptions table
+    console.log("[v0] Running test query on redemptions table...");
+    const { data: testRedemptions, error: testRedemptionsError } = await supabase
+      .from("redemptions")
+      .select("*")
+      .limit(5);
+      
+    console.log("[v0] Test redemptions query result:", { data: testRedemptions, error: testRedemptionsError });
+    
+    // Test queries for discount_usage and exclusive_offer_usage tables
+    console.log("[v0] Running test query on discount_usage table...");
+    const { data: testDiscountUsage, error: testDiscountUsageError } = await supabase
+      .from("discount_usage")
+      .select("*")
+      .limit(5);
+      
+    console.log("[v0] Test discount_usage query result:", { data: testDiscountUsage, error: testDiscountUsageError });
+    
+    console.log("[v0] Running test query on exclusive_offer_usage table...");
+    const { data: testExclusiveOfferUsage, error: testExclusiveOfferUsageError } = await supabase
+      .from("exclusive_offer_usage")
+      .select("*")
+      .limit(5);
+      
+    console.log("[v0] Test exclusive_offer_usage query result:", { data: testExclusiveOfferUsage, error: testExclusiveOfferUsageError });
+    
+    // Test queries with customer_id filter
+    console.log("[v0] Running test query with customer_id filter...");
+    const { data: testCustomerRedemptions, error: testCustomerRedemptionsError } = await supabase
+      .from("redemptions")
+      .select("*")
+      .eq("customer_id", userId)
+      .limit(5);
+      
+    console.log("[v0] Test customer redemptions query result:", { data: testCustomerRedemptions, error: testCustomerRedemptionsError });
+    
+    console.log("[v0] Running test query on discount_usage table with customer_id filter...");
+    const { data: testCustomerDiscountUsage, error: testCustomerDiscountUsageError } = await supabase
+      .from("discount_usage")
+      .select("*")
+      .eq("customer_id", userId)
+      .limit(5);
+      
+    console.log("[v0] Test customer discount_usage query result:", { data: testCustomerDiscountUsage, error: testCustomerDiscountUsageError });
+    
+    console.log("[v0] Running test query on exclusive_offer_usage table with customer_id filter...");
+    const { data: testCustomerExclusiveOfferUsage, error: testCustomerExclusiveOfferUsageError } = await supabase
+      .from("exclusive_offer_usage")
+      .select("*")
+      .eq("customer_id", userId)
+      .limit(5);
+      
+    console.log("[v0] Test customer exclusive_offer_usage query result:", { data: testCustomerExclusiveOfferUsage, error: testCustomerExclusiveOfferUsageError });
+    
+    // Test query with user_id filter
+    console.log("[v0] Running test query with user_id filter...");
+    const { data: testUserRedemptions, error: testUserRedemptionsError } = await supabase
+      .from("redemptions")
+      .select("*")
+      .eq("user_id", userId)
+      .limit(5);
+      
+    console.log("[v0] Test user redemptions query result:", { data: testUserRedemptions, error: testUserRedemptionsError });
+    
     // Fetch customer data
     const { data: customer, error: customerError } = await supabase
       .from("customers")
@@ -187,7 +256,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       .eq("id", userId)
       .single();
 
-    if (customerError) throw customerError;
+    if (customerError) {
+      console.error("[v0] Customer data query error:", customerError);
+      throw customerError;
+    }
+    
+    console.log("[v0] Customer data result:", customer);
 
     // Fetch transactions
     const { data: transactions, error: transactionsError } = await supabase
@@ -209,11 +283,19 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       .order("transaction_date", { ascending: false })
       .limit(10);
 
-    if (transactionsError) throw transactionsError;
+    if (transactionsError) {
+      console.error("[v0] Transactions query error:", transactionsError);
+      throw transactionsError;
+    }
+    
+    console.log("[v0] Transactions result:", transactions);
 
     // Fetch all types of redemptions
-    // 1. Reward redemptions
-    const { data: rewardRedemptions, error: rewardRedemptionsError } = await supabase
+    console.log("[v0] Starting redemption queries for customer ID:", userId);
+    
+    // 1. Reward redemptions - try both customer_id and user_id
+    console.log("[v0] Querying reward redemptions with customer_id...");
+    let { data: rewardRedemptions, error: rewardRedemptionsError } = await supabase
       .from("redemptions")
       .select(
         `
@@ -221,6 +303,8 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         redeemed_at,
         status,
         business_id,
+        customer_id,
+        user_id,
         reward_id,
         rewards (
           reward_name,
@@ -235,15 +319,51 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       )
       .eq("customer_id", userId)
       .order("redeemed_at", { ascending: false });
+      
+    // If no results with customer_id, try user_id
+    if ((!rewardRedemptions || rewardRedemptions.length === 0) && !rewardRedemptionsError) {
+      console.log("[v0] No reward redemptions found with customer_id, trying user_id...");
+      const userResult = await supabase
+        .from("redemptions")
+        .select(
+          `
+          id,
+          redeemed_at,
+          status,
+          business_id,
+          customer_id,
+          user_id,
+          reward_id,
+          rewards (
+            reward_name,
+            points_required,
+            image_url
+          ),
+          businesses (
+            business_name,
+            profile_pic_url
+          )
+        `,
+        )
+        .eq("user_id", userId)
+        .order("redeemed_at", { ascending: false });
+        
+      rewardRedemptions = userResult.data;
+      rewardRedemptionsError = userResult.error;
+    }
+      
+    console.log("[v0] Reward redemptions query result:", { data: rewardRedemptions, error: rewardRedemptionsError });
 
     // 2. Discount redemptions
-    const { data: discountRedemptions, error: discountRedemptionsError } = await supabase
+    console.log("[v0] Querying discount redemptions...");
+    let { data: discountRedemptions, error: discountRedemptionsError } = await supabase
       .from("discount_usage")
       .select(
         `
         id,
         used_at,
         business_id,
+        customer_id,
         discount_offer_id,
         discount_offers (
           offer_title,
@@ -258,15 +378,19 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       )
       .eq("customer_id", userId)
       .order("used_at", { ascending: false });
+      
+    console.log("[v0] Discount redemptions query result:", { data: discountRedemptions, error: discountRedemptionsError });
 
     // 3. Exclusive offer redemptions
-    const { data: exclusiveOfferRedemptions, error: exclusiveOfferRedemptionsError } = await supabase
+    console.log("[v0] Querying exclusive offer redemptions...");
+    let { data: exclusiveOfferRedemptions, error: exclusiveOfferRedemptionsError } = await supabase
       .from("exclusive_offer_usage")
       .select(
         `
         id,
         used_at,
         business_id,
+        customer_id,
         exclusive_offer_id,
         exclusive_offers (
           offer_title,
@@ -281,22 +405,24 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       )
       .eq("customer_id", userId)
       .order("used_at", { ascending: false });
+      
+    console.log("[v0] Exclusive offer redemptions query result:", { data: exclusiveOfferRedemptions, error: exclusiveOfferRedemptionsError });
 
     // Handle errors properly
     if (rewardRedemptionsError) {
-      console.error("Reward redemptions query error:", rewardRedemptionsError);
+      console.error("[v0] Reward redemptions query error:", rewardRedemptionsError);
     }
     
     if (discountRedemptionsError) {
-      console.error("Discount redemptions query error:", discountRedemptionsError);
+      console.error("[v0] Discount redemptions query error:", discountRedemptionsError);
     }
     
     if (exclusiveOfferRedemptionsError) {
-      console.error("Exclusive offer redemptions query error:", exclusiveOfferRedemptionsError);
+      console.error("[v0] Exclusive offer redemptions query error:", exclusiveOfferRedemptionsError);
     }
 
     // Debug logging
-    console.log("[v0] Fetching redemptions for customer:", userId);
+    console.log("[v0] Raw redemption data:");
     console.log("[v0] Reward redemptions:", rewardRedemptions);
     console.log("[v0] Discount redemptions:", discountRedemptions);
     console.log("[v0] Exclusive offer redemptions:", exclusiveOfferRedemptions);
@@ -310,7 +436,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       allRedemptions = rewardRedemptions.map((redemption: any) => ({
         ...redemption,
         redemption_type: 'reward'
-      }));
+      })).filter((redemption: any) => redemption.redeemed_at); // Filter out invalid entries
       console.log("[v0] Processed reward redemptions:", allRedemptions);
     }
 
@@ -322,11 +448,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         redeemed_at: redemption.used_at,
         status: 'completed', // Discount redemptions are typically immediate
         business_id: redemption.business_id,
+        customer_id: redemption.customer_id,
         discount_offer_id: redemption.discount_offer_id,
         discount_offers: redemption.discount_offers,
         businesses: redemption.businesses,
         redemption_type: 'discount'
-      }));
+      })).filter((redemption: any) => redemption.redeemed_at); // Filter out invalid entries
       allRedemptions = [...allRedemptions, ...processedDiscountRedemptions];
       console.log("[v0] Processed discount redemptions:", processedDiscountRedemptions);
     }
@@ -339,11 +466,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         redeemed_at: redemption.used_at,
         status: 'completed', // Exclusive offer redemptions are typically immediate
         business_id: redemption.business_id,
+        customer_id: redemption.customer_id,
         exclusive_offer_id: redemption.exclusive_offer_id,
         exclusive_offers: redemption.exclusive_offers,
         businesses: redemption.businesses,
         redemption_type: 'exclusive'
-      }));
+      })).filter((redemption: any) => redemption.redeemed_at); // Filter out invalid entries
       allRedemptions = [...allRedemptions, ...processedExclusiveOfferRedemptions];
       console.log("[v0] Processed exclusive offer redemptions:", processedExclusiveOfferRedemptions);
     }
