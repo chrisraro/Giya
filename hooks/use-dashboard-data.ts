@@ -65,14 +65,12 @@ export interface Redemption {
   discount_offer_id?: string;
   discount_offers?: {
     title: string;
-    points_required?: number;
     image_url: string | null;
   };
   // For exclusive offer redemptions
   exclusive_offer_id?: string;
   exclusive_offers?: {
     title: string;
-    points_required?: number;
     image_url: string | null;
   };
   // For businesses relationship
@@ -356,7 +354,6 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         discount_offer_id,
         discount_offers (
           title,
-          points_required,
           image_url
         )
       `,
@@ -379,7 +376,6 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         exclusive_offer_id,
         exclusive_offers (
           title,
-          points_required,
           image_url
         )
       `,

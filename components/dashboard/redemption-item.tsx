@@ -18,14 +18,12 @@ interface Redemption {
   discount_offer_id?: string;
   discount_offers?: {
     title: string;
-    points_required?: number;
     image_url: string | null;
   };
   // For exclusive offer redemptions
   exclusive_offer_id?: string;
   exclusive_offers?: {
     title: string;
-    points_required?: number;
     image_url: string | null;
   };
   businesses?: {
@@ -50,14 +48,14 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
       case 'discount':
         return {
           name: redemption.discount_offers?.title || 'Discount Offer',
-          points: redemption.discount_offers?.points_required,
+          points: undefined,
           icon: Tag,
           image_url: redemption.discount_offers?.image_url
         };
       case 'exclusive':
         return {
           name: redemption.exclusive_offers?.title || 'Exclusive Offer',
-          points: redemption.exclusive_offers?.points_required,
+          points: undefined,
           icon: Star,
           image_url: redemption.exclusive_offers?.image_url
         };

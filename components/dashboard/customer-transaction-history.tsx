@@ -26,25 +26,23 @@ interface Redemption {
   rewards?: {
     reward_name: string;
     points_required: number;
-    image_url: string | null
+    image_url: string | null;
   }
   // For discount redemptions
   discount_offer_id?: string;
   discount_offers?: {
     title: string;
-    points_required?: number;
-    image_url: string | null
+    image_url: string | null;
   }
   // For exclusive offer redemptions
   exclusive_offer_id?: string;
   exclusive_offers?: {
     title: string;
-    points_required?: number;
-    image_url: string | null
+    image_url: string | null;
   }
   businesses?: {
     business_name: string;
-    profile_pic_url: string | null
+    profile_pic_url: string | null;
   }
   // Type field to distinguish between redemption types
   redemption_type?: 'reward' | 'discount' | 'exclusive'
