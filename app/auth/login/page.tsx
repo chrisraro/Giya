@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
 import Image from "next/image"
 import { Icons } from "@/components/icons"
 
@@ -135,17 +134,36 @@ export default function LoginPage() {
     setError(null)
 
     try {
+      // First, check if there's an existing user with this email
+      const { data: existingUser, error: existingUserError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .single()
+
+      // If there's an existing user with the same email, attempt to sign in with password first
+      // This will allow Supabase to automatically link the Google identity
+      if (existingUser && !existingUserError) {
+        // We have an existing user, but they might be trying to sign in with Google
+        // We'll proceed with OAuth and let Supabase handle the identity linking
+        console.log("[v0] Found existing user with email:", email)
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          skipBrowserRedirect: true // We'll handle the redirect manually
         },
       })
 
       if (error) throw error
 
-      // The browser will automatically redirect to Google OAuth
-      // After authentication, Google will redirect back to our callback URL
+      // Check if this is a new signup or existing user
+      if (data.url) {
+        // Open Google OAuth in a popup or redirect
+        window.location.href = data.url
+      }
     } catch (error) {
       console.log("[v0] Google login error:", error)
       setError(error instanceof Error ? error.message : "An error occurred during Google sign-in")

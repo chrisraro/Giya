@@ -1,14 +1,13 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { Building2, Megaphone, User, ArrowRight, LogIn } from "lucide-react"
+import { Building2, Megaphone, User, ArrowRight } from "lucide-react"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
 import { Icons } from "@/components/icons"
 
 export default function SignupPage() {
@@ -22,16 +21,10 @@ export default function SignupPage() {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        // Fetch user profile to determine role
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single()
-
-        if (!profileError && profile) {
+        // Check if user already has a role
+        if (user.user_metadata?.role) {
           // Redirect based on role
-          switch (profile.role) {
+          switch (user.user_metadata.role) {
             case "customer":
               router.push("/dashboard/customer")
               break
@@ -45,11 +38,8 @@ export default function SignupPage() {
               router.push("/")
           }
         } else {
-          // If no profile, check user metadata
-          const userRole = user.user_metadata?.role
-          if (userRole) {
-            router.push(`/auth/setup/${userRole}`)
-          }
+          // User doesn't have a role yet, redirect to role selection
+          router.push("/auth/role-selection")
         }
       }
     }

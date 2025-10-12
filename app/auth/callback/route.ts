@@ -18,17 +18,11 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        // Check if user profile exists
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single()
-
-        if (!profileError && profile) {
-          // Redirect based on role
+        // Check if user already has a role
+        if (user.user_metadata?.role) {
+          // User already has a role, redirect to appropriate dashboard
           let redirectPath = "/"
-          switch (profile.role) {
+          switch (user.user_metadata.role) {
             case "customer":
               redirectPath = "/dashboard/customer"
               break
@@ -43,15 +37,8 @@ export async function GET(request: Request) {
           }
           return NextResponse.redirect(new URL(redirectPath, request.url))
         } else {
-          // If no profile, check user metadata for role
-          const userRole = user.user_metadata?.role
-          if (userRole) {
-            const redirectPath = `/auth/setup/${userRole}`
-            return NextResponse.redirect(new URL(redirectPath, request.url))
-          } else {
-            // Default redirect if no role found
-            return NextResponse.redirect(new URL("/dashboard/customer", request.url))
-          }
+          // User doesn't have a role yet, redirect to role selection
+          return NextResponse.redirect(new URL("/auth/role-selection", request.url))
         }
       }
     }

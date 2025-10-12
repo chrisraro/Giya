@@ -2,8 +2,9 @@ import { updateSession } from "@/lib/supabase/middleware"
 import { type NextRequest } from "next/server"
 
 export async function middleware(request: NextRequest) {
-  // Skip middleware for auth callback routes
-  if (request.nextUrl.pathname.startsWith("/auth/callback")) {
+  // Skip middleware for auth callback and role selection routes
+  if (request.nextUrl.pathname.startsWith("/auth/callback") || 
+      request.nextUrl.pathname.startsWith("/auth/role-selection")) {
     return
   }
   
@@ -19,7 +20,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - auth/callback (OAuth callback)
+     * - auth/role-selection (Role selection wizard)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|auth/callback).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|auth/callback|auth/role-selection).*)",
   ],
 }

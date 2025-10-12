@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowLeft } from "lucide-react"
 import { Icons } from "@/components/icons"
 
@@ -25,6 +25,38 @@ export default function CustomerSignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
+  const supabase = createClient()
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Check if user already has a role
+        if (user.user_metadata?.role) {
+          // Redirect based on role
+          switch (user.user_metadata.role) {
+            case "customer":
+              router.push("/dashboard/customer")
+              break
+            case "business":
+              router.push("/dashboard/business")
+              break
+            case "influencer":
+              router.push("/dashboard/influencer")
+              break
+            default:
+              router.push("/")
+          }
+        } else {
+          // User doesn't have a role yet, redirect to role selection
+          router.push("/auth/role-selection")
+        }
+      }
+    }
+
+    checkUser()
+  }, [router, supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,8 +68,6 @@ export default function CustomerSignupPage() {
       setIsLoading(false)
       return
     }
-
-    const supabase = createClient()
 
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
@@ -69,7 +99,6 @@ export default function CustomerSignupPage() {
     setError(null)
 
     try {
-      const supabase = createClient()
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
