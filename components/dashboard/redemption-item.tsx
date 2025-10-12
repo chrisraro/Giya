@@ -50,14 +50,14 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
       case 'discount':
         return {
           name: redemption.discount_offers?.title || 'Discount Offer',
-          points: redemption.discount_offers?.points_required || 0,
+          points: redemption.discount_offers?.points_required,
           icon: Tag,
           image_url: redemption.discount_offers?.image_url
         };
       case 'exclusive':
         return {
           name: redemption.exclusive_offers?.title || 'Exclusive Offer',
-          points: redemption.exclusive_offers?.points_required || 0,
+          points: redemption.exclusive_offers?.points_required,
           icon: Star,
           image_url: redemption.exclusive_offers?.image_url
         };
@@ -117,6 +117,19 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
     }
   };
 
+  // Get business name
+  const getBusinessName = () => {
+    return redemption.businesses?.business_name || 'Business';
+  };
+
+  // Format points display
+  const formatPoints = () => {
+    if (displayInfo.points === undefined || displayInfo.points === null) {
+      return 'N/A pts';
+    }
+    return `${displayInfo.points} pts`;
+  };
+
   return (
     <div className="flex items-center justify-between border-b pb-4 last:border-0">
       <div className="flex items-center gap-3">
@@ -141,9 +154,9 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
             <p className="text-sm text-muted-foreground">
               {formatDate(redemption.redeemed_at)}
             </p>
-            {redemption.businesses?.business_name && (
+            {getBusinessName() && (
               <span className="text-xs text-muted-foreground">
-                at {redemption.businesses.business_name}
+                at {getBusinessName()}
               </span>
             )}
           </div>
@@ -151,7 +164,7 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
       </div>
       <div className="text-right">
         <div className="font-semibold text-primary">
-          {displayInfo.points} pts
+          {formatPoints()}
         </div>
         <div className="text-xs text-muted-foreground capitalize">
           {getStatusText()}
