@@ -8,6 +8,7 @@ import { Loader2, Check, Star } from "lucide-react"
 import { toast } from "sonner"
 import { QRCodeSVG } from "qrcode.react"
 import Link from "next/link"
+import Image from "next/image"
 
 interface ExclusiveOffer {
   id: string
@@ -85,6 +86,16 @@ export function ExclusiveOfferCard({
   return (
     <>
       <Card className="overflow-hidden">
+        {offer.image_url && (
+          <div className="relative h-48 w-full">
+            <Image
+              src={offer.image_url}
+              alt={offer.title}
+              fill
+              className="object-cover"
+            />
+          </div>
+        )}
         <CardHeader className="bg-gradient-to-br from-primary/10 to-primary/5">
           <CardTitle className="text-lg">{offer.title}</CardTitle>
           <CardDescription>{offer.product_name}</CardDescription>

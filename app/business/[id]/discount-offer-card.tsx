@@ -8,6 +8,7 @@ import { Loader2, Check, Tag } from "lucide-react"
 import { toast } from "sonner"
 import { QRCodeSVG } from "qrcode.react"
 import Link from "next/link"
+import Image from "next/image"
 
 interface DiscountOffer {
   id: string
@@ -23,6 +24,7 @@ interface DiscountOffer {
   valid_from: string | null
   valid_until: string | null
   is_first_visit_only: boolean
+  image_url: string | null
 }
 
 interface Business {
@@ -85,6 +87,16 @@ export function DiscountOfferCard({
   return (
     <>
       <Card className="overflow-hidden">
+        {offer.image_url && (
+          <div className="relative h-48 w-full">
+            <Image
+              src={offer.image_url}
+              alt={offer.title}
+              fill
+              className="object-cover"
+            />
+          </div>
+        )}
         <CardHeader className="bg-gradient-to-br from-primary/10 to-primary/5">
           <CardTitle className="text-lg">{offer.title}</CardTitle>
           <CardDescription>{offer.description || "Special discount offer"}</CardDescription>

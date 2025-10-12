@@ -10,6 +10,7 @@ import { Loader2, Check, Gift } from "lucide-react"
 import { toast } from "sonner"
 import { QRCodeSVG } from "qrcode.react"
 import Link from "next/link"
+import Image from "next/image"
 
 interface Reward {
   id: string
@@ -18,6 +19,7 @@ interface Reward {
   description: string
   points_required: number
   is_active: boolean
+  image_url: string | null
 }
 
 interface Business {
@@ -136,6 +138,16 @@ export function RewardCard({ reward, business, user, businessId }: {
   return (
     <>
       <Card className="overflow-hidden">
+        {reward.image_url && (
+          <div className="relative h-48 w-full">
+            <Image
+              src={reward.image_url}
+              alt={reward.name}
+              fill
+              className="object-cover"
+            />
+          </div>
+        )}
         <CardHeader className="bg-gradient-to-br from-primary/10 to-primary/5">
           <CardTitle className="text-lg">{reward.name}</CardTitle>
           <CardDescription>{reward.description}</CardDescription>
