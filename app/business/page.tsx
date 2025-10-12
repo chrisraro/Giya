@@ -225,33 +225,31 @@ export default function BusinessDirectoryPage() {
                       </div>
                     )}
                   </div>
-                  <div className="p-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={business.profile_pic_url || undefined} />
-                        <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-semibold text-lg">{business.business_name}</h3>
-                        <p className="text-sm text-muted-foreground">{business.business_category}</p>
-                      </div>
+                  <div className="flex items-center gap-3 p-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={business.profile_pic_url || undefined} />
+                      <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="font-semibold text-lg">{business.business_name}</h3>
+                      <p className="text-sm text-muted-foreground">{business.business_category}</p>
                     </div>
-                    <div className="space-y-3 mt-4">
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="truncate">{business.address}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Points per ₱</span>
-                        <span className="text-xl font-bold text-primary">{business.points_per_currency || 100}</span>
-                      </div>
-                      <Button variant="outline" className="w-full" onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/business/${business.id}`)
-                      }}>
-                        View Details
-                      </Button>
+                  </div>
+                  <div className="space-y-3 px-4 pb-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span className="truncate">{business.address}</span>
                     </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Points per ₱</span>
+                      <span className="text-xl font-bold text-primary">{business.points_per_currency || 100}</span>
+                    </div>
+                    <Button variant="outline" className="w-full" onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/business/${business.id}`)
+                    }}>
+                      View Details
+                    </Button>
                   </div>
                 </Card>
               ))}
