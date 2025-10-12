@@ -83,10 +83,6 @@ export function DashboardLayout({
                 <BreadcrumbItem>
                   <BreadcrumbLink href="/">Home</BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink href={`/dashboard/${userRole}`}>Dashboard</BreadcrumbLink>
-                </BreadcrumbItem>
                 {breadcrumbs.map((crumb, index) => (
                   <>
                     <BreadcrumbSeparator />

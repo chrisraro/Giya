@@ -227,7 +227,7 @@ export default function InfluencerDashboard() {
         userRole="influencer"
         userName="Loading..."
         userEmail=""
-        breadcrumbs={[{ label: "Dashboard" }]}
+        breadcrumbs={[]}
       >
         <div className="flex min-h-svh items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -242,7 +242,7 @@ export default function InfluencerDashboard() {
         userRole="influencer"
         userName="Error"
         userEmail=""
-        breadcrumbs={[{ label: "Dashboard" }]}
+        breadcrumbs={[]}
       >
         <div className="flex min-h-svh items-center justify-center">
           <Card>
@@ -265,7 +265,7 @@ export default function InfluencerDashboard() {
       userName={influencerData.full_name}
       userEmail="Influencer"
       userAvatar={influencerData.profile_pic_url}
-      breadcrumbs={[{ label: "Dashboard" }]}
+      breadcrumbs={[]}
     >
       {/* Stats Overview */}
       <InfluencerStats

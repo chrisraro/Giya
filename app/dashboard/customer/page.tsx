@@ -66,7 +66,7 @@ export default function CustomerDashboard() {
       <DashboardLayout
         userRole="customer"
         userName="Loading..."
-        breadcrumbs={[{ label: "Dashboard" }]}
+        breadcrumbs={[]}
       >
         {/* Main Content with skeleton loading */}
         <div className="flex flex-col gap-6">
@@ -145,7 +145,7 @@ export default function CustomerDashboard() {
       <DashboardLayout
         userRole="customer"
         userName="Error"
-        breadcrumbs={[{ label: "Dashboard" }]}
+        breadcrumbs={[]}
       >
         <div className="flex min-h-svh items-center justify-center">
           <Card>
@@ -164,7 +164,7 @@ export default function CustomerDashboard() {
       <DashboardLayout
         userRole="customer"
         userName="Error"
-        breadcrumbs={[{ label: "Dashboard" }]}
+        breadcrumbs={[]}
       >
         <div className="flex min-h-svh items-center justify-center">
           <Card>
@@ -189,7 +189,7 @@ export default function CustomerDashboard() {
       userName={customer.full_name}
       userEmail={customer.nickname ? `@${customer.nickname}` : undefined}
       userAvatar={customer.profile_pic_url}
-      breadcrumbs={[{ label: "Dashboard" }]}
+      breadcrumbs={[]}
     >
       {/* Points Overview */}
       <CustomerStats 
