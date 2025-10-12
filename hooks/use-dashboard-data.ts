@@ -227,7 +227,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
           points_required,
           image_url
         ),
-        businesses!inner (
+        businesses (
           business_name,
           profile_pic_url
         )
