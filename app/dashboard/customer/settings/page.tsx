@@ -18,6 +18,7 @@ import {
   BreadcrumbList, 
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb"
+import { ProfileImageUpload } from "@/components/profile-image-upload"
 
 interface CustomerData {
   id: string
@@ -117,6 +118,15 @@ export default function CustomerProfileSettings() {
     }
   }
 
+  const handleImageUpdate = (newImageUrl: string | null) => {
+    if (customerData) {
+      setCustomerData({
+        ...customerData,
+        profile_pic_url: newImageUrl
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-svh items-center justify-center">
@@ -189,6 +199,16 @@ export default function CustomerProfileSettings() {
                 <CardDescription>Update your personal details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex justify-center mb-6">
+                  <ProfileImageUpload
+                    currentImageUrl={customerData.profile_pic_url}
+                    userId={customerData.id}
+                    userType="customer"
+                    onImageUpdate={handleImageUpdate}
+                    size="lg"
+                  />
+                </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="full_name">Full Name</Label>
                   <Input
