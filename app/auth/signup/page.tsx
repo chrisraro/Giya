@@ -64,7 +64,7 @@ export default function SignupPage() {
           <p className="text-muted-foreground">Choose your account type to get started</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
-          <Card className="p-6 hover:border-primary transition-colors">
+          <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Create Customer Account</CardTitle>
               <CardDescription>Join Giya to start earning rewards</CardDescription>
@@ -80,7 +80,7 @@ export default function SignupPage() {
             </CardContent>
           </Card>
 
-          <Card className="p-6 hover:border-primary transition-colors">
+          <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Create Business Account</CardTitle>
               <CardDescription>Join Giya to offer rewards to customers</CardDescription>
@@ -96,7 +96,7 @@ export default function SignupPage() {
             </CardContent>
           </Card>
 
-          <Card className="p-6 hover:border-primary transition-colors">
+          <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">Create Influencer Account</CardTitle>
               <CardDescription>Join Giya to promote businesses</CardDescription>

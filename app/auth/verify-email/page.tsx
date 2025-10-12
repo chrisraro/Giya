@@ -22,7 +22,7 @@ export default function VerifyEmailPage() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-md">
-        <Card className="p-6">
+        <Card>
           <CardHeader className="text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <Mail className="h-8 w-8 text-primary" />

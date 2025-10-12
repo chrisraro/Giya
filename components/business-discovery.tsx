@@ -47,45 +47,62 @@ export async function BusinessDiscovery() {
 function BusinessCard({ business }: { business: Business }) {
   return (
     <Link href={`/business/${business.id}`}>
-      <Card className="group overflow-hidden transition-all hover:shadow-lg">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-t-lg bg-muted">
-          {business.profile_pic_url ? (
-            <Image
-              src={business.profile_pic_url || "/placeholder.svg"}
-              alt={business.business_name}
-              fill
-              className="object-cover transition-transform group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-              <div className="text-center">
-                <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <span className="text-2xl font-bold text-primary">{business.business_name.charAt(0)}</span>
+      <Card className={`group transition-all hover:shadow-lg ${business.profile_pic_url ? 'p-0' : 'p-4'}`}>
+        {business.profile_pic_url ? (
+          <>
+            <div className="relative aspect-[4/3] overflow-hidden rounded-t-lg bg-muted">
+              <Image
+                src={business.profile_pic_url || "/placeholder.svg"}
+                alt={business.business_name}
+                fill
+                className="object-cover transition-transform group-hover:scale-105"
+              />
+            </div>
+            <CardContent className="p-4">
+              <div className="mb-2">
+                <h3 className="font-semibold text-lg line-clamp-1 mb-1">{business.business_name}</h3>
+                <Badge variant="secondary" className="text-xs">
+                  {business.business_category}
+                </Badge>
+              </div>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span className="line-clamp-2">{business.address}</span>
                 </div>
+                {business.business_hours && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-xs">Open today</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </>
+        ) : (
+          <CardContent className="p-0">
+            <div className="p-4">
+              <div className="mb-2">
+                <h3 className="font-semibold text-lg line-clamp-1 mb-1">{business.business_name}</h3>
+                <Badge variant="secondary" className="text-xs">
+                  {business.business_category}
+                </Badge>
+              </div>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span className="line-clamp-2">{business.address}</span>
+                </div>
+                {business.business_hours && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-xs">Open today</span>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </div>
-        <CardContent className="p-4">
-          <div className="mb-2">
-            <h3 className="font-semibold text-lg line-clamp-1 mb-1">{business.business_name}</h3>
-            <Badge variant="secondary" className="text-xs">
-              {business.business_category}
-            </Badge>
-          </div>
-          <div className="space-y-1 text-sm text-muted-foreground">
-            <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <span className="line-clamp-2">{business.address}</span>
-            </div>
-            {business.business_hours && (
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 flex-shrink-0" />
-                <span className="text-xs">Open today</span>
-              </div>
-            )}
-          </div>
-        </CardContent>
+          </CardContent>
+        )}
       </Card>
     </Link>
   )

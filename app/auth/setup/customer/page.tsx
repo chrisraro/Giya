@@ -123,7 +123,7 @@ export default function CustomerSetupPage() {
         <div className="flex justify-center mb-8">
           <Image src="/giya-logo.png" alt="Giya Logo" width={80} height={80} className="object-contain" />
         </div>
-        <Card className="p-6">
+        <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Complete Your Profile</CardTitle>
             <CardDescription>Add a profile picture to personalize your account</CardDescription>
