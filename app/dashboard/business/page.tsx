@@ -4,25 +4,29 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, QrCode, TrendingUp, Users, LogOut, DollarSign, Scan, Gift, Settings, Tag, Check } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Loader2, Settings, Check } from "lucide-react"
 import { toast } from "sonner"
-import { QrScanner } from "@/components/qr-scanner"
-import Link from "next/link"
-import { handleApiError } from "@/lib/error-handler"
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbSeparator 
-} from "@/components/ui/breadcrumb"
+import { handleApiError, handleDatabaseError } from "@/lib/error-handler"
 import { Skeleton } from "@/components/ui/skeleton"
+import { DashboardLayout } from "@/components/layouts/dashboard-layout"
+import { useDashboardData } from "@/hooks/use-dashboard-data"
+import { retryWithBackoff } from "@/lib/retry-utils"
+import dynamic from 'next/dynamic'
+import { BusinessStats } from "@/components/dashboard/business-stats"
+import { QrScannerSection } from "@/components/dashboard/qr-scanner-section"
+import { TransactionHistory } from "@/components/dashboard/transaction-history"
+
+// Dynamically import the QR scanner component
+const QrScanner = dynamic(() => import('@/components/qr-scanner').then(mod => mod.QrScanner), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>
+})
 
 interface BusinessData {
   id: string
@@ -85,51 +89,72 @@ export default function BusinessDashboard() {
           return
         }
 
-        // Fetch business data - only select necessary fields
-        const { data: business, error: businessError } = await supabase
-          .from("businesses")
-          .select("id, business_name, business_category, profile_pic_url, points_per_currency, address")
-          .eq("id", user.id)
-          .single()
+        // Fetch business data with retry
+        const { data: business, error: businessError } = await retryWithBackoff(
+          async () => {
+            const result = await supabase
+              .from("businesses")
+              .select("id, business_name, business_category, profile_pic_url, points_per_currency, address")
+              .eq("id", user.id)
+              .single()
+            if (result.error) throw result.error
+            return result
+          },
+          { maxRetries: 3, delay: 1000 }
+        )
 
         if (businessError) throw businessError
-        setBusinessData(business)
+        setBusinessData(business.data)
 
-        // Fetch transactions - optimized query with covering index
-        const { data: transactionsData, error: transactionsError } = await supabase
-          .from("points_transactions")
-          .select(
-            `
-            id,
-            customer_id,
-            amount_spent,
-            points_earned,
-            transaction_date,
-            customers (
-              full_name,
-              profile_pic_url
-            )
-          `,
-          )
-          .eq("business_id", user.id)
-          .order("transaction_date", { ascending: false })
-          .limit(20)
+        // Fetch transactions with retry
+        const { data: transactionsData, error: transactionsError } = await retryWithBackoff(
+          async () => {
+            const result = await supabase
+              .from("points_transactions")
+              .select(
+                `
+                id,
+                customer_id,
+                amount_spent,
+                points_earned,
+                transaction_date,
+                customers (
+                  full_name,
+                  profile_pic_url
+                )
+              `,
+              )
+              .eq("business_id", user.id)
+              .order("transaction_date", { ascending: false })
+              .limit(20)
+            if (result.error) throw result.error
+            return result
+          },
+          { maxRetries: 3, delay: 1000 }
+        )
 
         if (transactionsError) throw transactionsError
-        setTransactions(transactionsData || [])
+        setTransactions(transactionsData.data || [])
 
-        // Calculate stats - optimized query with only necessary fields
-        const { data: allTransactions } = await supabase
-          .from("points_transactions")
-          .select("amount_spent, customer_id")
-          .eq("business_id", user.id)
+        // Calculate stats with retry
+        const { data: allTransactions } = await retryWithBackoff(
+          async () => {
+            const result = await supabase
+              .from("points_transactions")
+              .select("amount_spent, customer_id")
+              .eq("business_id", user.id)
+            if (result.error) throw result.error
+            return result
+          },
+          { maxRetries: 3, delay: 1000 }
+        )
 
-        if (allTransactions) {
-          const totalRevenue = (allTransactions as { amount_spent: number }[]).reduce((sum: number, t: { amount_spent: number }) => sum + Number(t.amount_spent), 0)
-          const uniqueCustomers = new Set((allTransactions as { customer_id: string }[]).map((t: { customer_id: string }) => t.customer_id)).size
+        if (allTransactions.data) {
+          const totalRevenue = (allTransactions.data as { amount_spent: number }[]).reduce((sum: number, t: { amount_spent: number }) => sum + Number(t.amount_spent), 0)
+          const uniqueCustomers = new Set((allTransactions.data as { customer_id: string }[]).map((t: { customer_id: string }) => t.customer_id)).size
 
           setStats({
-            totalTransactions: allTransactions.length,
+            totalTransactions: allTransactions.data.length,
             totalRevenue,
             uniqueCustomers,
           })
@@ -270,7 +295,7 @@ export default function BusinessDashboard() {
       if (error) throw error
       // We don't need to set state here since this is just for refreshing data
     } catch (error) {
-      console.error("Error fetching discounts:", error)
+      handleDatabaseError(error, "fetch discounts")
     }
   }
 
@@ -291,7 +316,7 @@ export default function BusinessDashboard() {
       if (error) throw error
       // We don't need to set state here since this is just for refreshing data
     } catch (error) {
-      console.error("Error fetching exclusive offers:", error)
+      handleDatabaseError(error, "fetch exclusive offers")
     }
   }
 
@@ -358,7 +383,7 @@ export default function BusinessDashboard() {
       setScannedCustomer(null)
       setTransactionAmount("")
     } catch (error) {
-      handleApiError(error, "Failed to create transaction", "BusinessDashboard.handleCreateTransaction")
+      handleDatabaseError(error, "create transaction")
     } finally {
       setIsProcessing(false)
     }
@@ -402,7 +427,7 @@ export default function BusinessDashboard() {
       
       setRedemptionData(null)
     } catch (error) {
-      handleApiError(error, "Failed to validate redemption", "BusinessDashboard.handleValidateRedemption")
+      handleDatabaseError(error, "validate redemption")
     } finally {
       setIsValidating(false)
     }
@@ -410,273 +435,118 @@ export default function BusinessDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-svh bg-secondary">
-        {/* Header with skeleton loading */}
-        <header className="border-b bg-background">
-          <div className="container-padding-x container mx-auto flex items-center justify-between py-4">
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-24" />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-8 w-8 rounded" />
-              <Skeleton className="h-8 w-16 rounded" />
-            </div>
-          </div>
-        </header>
-
+      <DashboardLayout
+        userRole="business"
+        userName="Loading..."
+        breadcrumbs={[{ label: "Dashboard" }]}
+      >
         {/* Main Content with skeleton loading */}
-        <main className="container-padding-x container mx-auto py-8">
-          <div className="flex flex-col gap-6">
-            {/* Breadcrumb skeleton */}
-            <Skeleton className="h-4 w-48" />
-            
-            {/* Stats Overview skeleton */}
-            <div className="grid gap-4 md:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <Card key={i}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-4 w-4 rounded-full" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-6 w-16" />
-                    <Skeleton className="mt-1 h-3 w-24" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+        <div className="flex flex-col gap-6">
+          {/* Breadcrumb skeleton */}
+          <Skeleton className="h-4 w-48" />
+          
+          {/* Stats Overview skeleton */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-6 w-16" />
+                  <Skeleton className="mt-1 h-3 w-24" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-            {/* Scan QR Card skeleton */}
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="mt-1 h-4 w-64" />
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Skeleton className="h-10 w-full rounded" />
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-10 w-full rounded" />
-              </CardContent>
-            </Card>
+          {/* Scan QR Card skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="mt-1 h-4 w-64" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-10 w-full rounded" />
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-10 w-full rounded" />
+            </CardContent>
+          </Card>
 
-            {/* Transaction History skeleton */}
-            <Card>
-              <CardHeader>
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="mt-1 h-4 w-64" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="space-y-1">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-3 w-20" />
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="mt-1 h-3 w-12" />
+          {/* Transaction History skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="mt-1 h-4 w-64" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-20" />
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </main>
-      </div>
+                    <div className="text-right">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="mt-1 h-3 w-12" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
     )
   }
 
   if (!businessData) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <Card>
-          <CardHeader>
-            <CardTitle>Error</CardTitle>
-            <CardDescription>Unable to load business data</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
+      <DashboardLayout
+        userRole="business"
+        userName="Error"
+        breadcrumbs={[{ label: "Dashboard" }]}
+      >
+        <div className="flex min-h-svh items-center justify-center">
+          <Card>
+            <CardHeader>
+              <CardTitle>Error</CardTitle>
+              <CardDescription>Unable to load business data</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </DashboardLayout>
     )
   }
 
   return (
-    <div className="min-h-svh bg-secondary">
-      {/* Header */}
-      <header className="border-b bg-background">
-        <div className="container-padding-x container mx-auto flex items-center justify-between py-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={businessData.profile_pic_url || undefined} />
-              <AvatarFallback>{businessData.business_name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="font-semibold text-foreground">{businessData.business_name}</h2>
-              <p className="text-sm text-muted-foreground">{businessData.business_category}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard/business/settings">
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4" />
-                <span className="sr-only">Settings</span>
-              </Button>
-            </Link>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+    <DashboardLayout
+      userRole="business"
+      userName={businessData.business_name}
+      userEmail={businessData.business_category}
+      userAvatar={businessData.profile_pic_url}
+      breadcrumbs={[{ label: "Dashboard" }]}
+    >
+      {/* Stats Overview */}
+      <BusinessStats 
+        totalRevenue={stats.totalRevenue}
+        totalTransactions={stats.totalTransactions}
+        uniqueCustomers={stats.uniqueCustomers}
+      />
 
-      {/* Main Content */}
-      <main className="container-padding-x container mx-auto py-8">
-        <div className="flex flex-col gap-6">
-          {/* Breadcrumbs */}
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/">Home</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem isCurrent>
-                Dashboard
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+      {/* Scan QR Section */}
+      <QrScannerSection 
+        pointsPerCurrency={businessData.points_per_currency}
+        onOpenScanner={() => setShowScanner(true)}
+      />
 
-          {/* Stats Overview */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-primary">₱{stats.totalRevenue.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">Lifetime earnings</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalTransactions}</div>
-                <p className="text-xs text-muted-foreground">All time</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Unique Customers</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.uniqueCustomers}</div>
-                <p className="text-xs text-muted-foreground">Active users</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Scan QR Button - Updated to remove Validate Redemptions button */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <QrCode className="h-5 w-5" />
-                Scan Customer QR Code
-              </CardTitle>
-              <CardDescription>Scan a customer's QR code to award points or validate redemptions</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button onClick={() => setShowScanner(true)} size="lg" className="w-full md:w-auto">
-                <Scan className="mr-2 h-5 w-5" />
-                Open QR Scanner
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Points configuration: 1 point per ₱{businessData.points_per_currency}
-              </p>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Link href="/dashboard/business/rewards">
-                  <Button variant="outline" size="lg" className="w-full md:w-auto bg-transparent">
-                    <Gift className="mr-2 h-5 w-5" />
-                    Manage Rewards
-                  </Button>
-                </Link>
-                <Link href="/dashboard/business/discounts">
-                  <Button variant="outline" size="lg" className="w-full md:w-auto bg-transparent">
-                    <Tag className="mr-2 h-5 w-5" />
-                    Manage Discounts
-                  </Button>
-                </Link>
-                <Link href="/dashboard/business/exclusive-offers">
-                  <Button variant="outline" size="lg" className="w-full md:w-auto bg-transparent">
-                    <Gift className="mr-2 h-5 w-5" />
-                    Manage Exclusive Offers
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Transaction History */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Transactions</CardTitle>
-              <CardDescription>Latest customer purchases</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {transactions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <TrendingUp className="mb-2 h-12 w-12 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">No transactions yet</p>
-                  <p className="text-xs text-muted-foreground">Start scanning customer QR codes!</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {transactions.map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between border-b pb-4 last:border-0">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={transaction.customers.profile_pic_url || undefined} />
-                          <AvatarFallback>{transaction.customers.full_name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-foreground">{transaction.customers.full_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(transaction.transaction_date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground">₱{transaction.amount_spent.toFixed(2)}</p>
-                        <p className="text-sm text-primary">{transaction.points_earned} pts awarded</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+      {/* Transaction History */}
+      <TransactionHistory transactions={transactions} />
 
       {/* QR Scanner Dialog */}
       <Dialog open={showScanner} onOpenChange={setShowScanner}>
@@ -685,7 +555,9 @@ export default function BusinessDashboard() {
             <DialogTitle>Scan Customer QR Code</DialogTitle>
             <DialogDescription>Position the QR code within the camera frame</DialogDescription>
           </DialogHeader>
-          <QrScanner onScanSuccess={handleScanSuccess} onClose={() => setShowScanner(false)} />
+          {showScanner && (
+            <QrScanner onScanSuccess={handleScanSuccess} onClose={() => setShowScanner(false)} />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -808,6 +680,6 @@ export default function BusinessDashboard() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardLayout>
   )
 }

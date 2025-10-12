@@ -8,6 +8,8 @@ import { Html5Qrcode, Html5QrcodeScannerState } from "html5-qrcode"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { handleQrScanError } from "@/lib/error-handler"
+import { retryWithBackoff } from "@/lib/retry-utils"
 
 interface QrScannerProps {
   onScanSuccess: (data: string) => void
@@ -43,7 +45,7 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
         }
       }
 
-      // Create new scanner instance
+      // Create new scanner instance with retry mechanism
       html5QrCodeRef.current = new Html5Qrcode("qr-scanner-container")
       
       // Configure camera
@@ -57,27 +59,32 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
         }
       }
 
-      // Start scanning
-      await html5QrCodeRef.current.start(
-        { facingMode: "environment" },
-        config,
-        (decodedText, decodedResult) => {
-          // QR code detected
-          console.log("QR Code detected:", decodedText)
-          stopCamera()
-          onScanSuccess(decodedText)
+      // Start scanning with retry
+      await retryWithBackoff(
+        async () => {
+          await html5QrCodeRef.current!.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText, decodedResult) => {
+              // QR code detected
+              console.log("QR Code detected:", decodedText)
+              stopCamera()
+              onScanSuccess(decodedText)
+            },
+            (errorMessage) => {
+              // QR code parsing error - this is normal during scanning
+              // console.log("QR Code parse error:", errorMessage)
+            }
+          )
         },
-        (errorMessage) => {
-          // QR code parsing error - this is normal during scanning
-          // console.log("QR Code parse error:", errorMessage)
-        }
+        { maxRetries: 3, delay: 1000, exponentialBackoff: true }
       )
 
       setIsScanning(true)
     } catch (error) {
       console.error("Camera start error:", error)
-      setCameraError("Failed to access camera. Please check permissions.")
-      toast.error("Failed to access camera. Please check permissions or try manual input.")
+      const errorMessage = handleQrScanError(error)
+      setCameraError(errorMessage)
     }
   }
 
@@ -90,6 +97,7 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
       }
     } catch (error) {
       console.error("Error stopping camera:", error)
+      // We don't show this error to the user as it's not critical
     } finally {
       setIsScanning(false)
     }
