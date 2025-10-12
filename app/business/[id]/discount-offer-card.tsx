@@ -88,7 +88,7 @@ export function DiscountOfferCard({
     <>
       <Card className="overflow-hidden">
         {offer.image_url && (
-          <div className="relative h-48 w-full">
+          <div className="relative h-40 w-full">
             <Image
               src={offer.image_url}
               alt={offer.title}
@@ -97,11 +97,11 @@ export function DiscountOfferCard({
             />
           </div>
         )}
-        <CardHeader className="bg-gradient-to-br from-primary/10 to-primary/5">
-          <CardTitle className="text-lg">{offer.title}</CardTitle>
-          <CardDescription>{offer.description || "Special discount offer"}</CardDescription>
+        <CardHeader className="p-4 bg-transparent">
+          <CardTitle className="text-xl font-bold">{offer.title}</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">{offer.description || "Special discount offer"}</CardDescription>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="p-4 pt-0">
           <div className="mb-4">
             <p className="text-2xl font-bold text-primary">
               {offer.discount_type === "percentage" 
@@ -111,7 +111,7 @@ export function DiscountOfferCard({
                   : `${offer.discount_value} POINTS`}
             </p>
             {offer.minimum_purchase && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mt-1">
                 Min. purchase: ₱{offer.minimum_purchase?.toFixed(2)}
               </p>
             )}
@@ -152,7 +152,7 @@ export function DiscountOfferCard({
               
               <div className="mt-3 pt-3 border-t">
                 <p className="text-sm font-medium">Discount Value:</p>
-                <p className="text-xl font-bold text-primary">
+                <p className="text-lg font-bold text-primary">
                   {offer.discount_type === "percentage" 
                     ? `${offer.discount_value}% OFF` 
                     : offer.discount_type === "fixed_amount" 
@@ -160,14 +160,14 @@ export function DiscountOfferCard({
                       : `${offer.discount_value} POINTS`}
                 </p>
                 {offer.minimum_purchase && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Min. purchase: ₱{offer.minimum_purchase?.toFixed(2)}
                   </p>
                 )}
               </div>
             </div>
 
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               When you redeem this discount, you'll receive a QR code to show to the business during checkout. 
               The discount will be automatically applied to your purchase.
             </p>

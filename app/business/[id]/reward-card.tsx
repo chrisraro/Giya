@@ -75,8 +75,8 @@ export function RewardCard({ reward, business, user, businessId }: {
       if (redemptionsError) throw redemptionsError
 
       // Calculate total points
-      const totalEarned = transactions?.reduce((sum, t) => sum + t.points_earned, 0) || 0
-      const totalRedeemed = redemptions?.reduce((sum, r) => sum + r.points_redeemed, 0) || 0
+      const totalEarned = transactions?.reduce((sum: number, t: { points_earned: number }) => sum + t.points_earned, 0) || 0
+      const totalRedeemed = redemptions?.reduce((sum: number, r: { points_redeemed: number }) => sum + r.points_redeemed, 0) || 0
       setCustomerPoints(totalEarned - totalRedeemed)
     } catch (error) {
       console.error("Failed to fetch customer points:", error)
@@ -139,7 +139,7 @@ export function RewardCard({ reward, business, user, businessId }: {
     <>
       <Card className="overflow-hidden">
         {reward.image_url && (
-          <div className="relative h-48 w-full">
+          <div className="relative h-40 w-full">
             <Image
               src={reward.image_url}
               alt={reward.name}
@@ -148,11 +148,11 @@ export function RewardCard({ reward, business, user, businessId }: {
             />
           </div>
         )}
-        <CardHeader className="bg-gradient-to-br from-primary/10 to-primary/5">
-          <CardTitle className="text-lg">{reward.name}</CardTitle>
-          <CardDescription>{reward.description}</CardDescription>
+        <CardHeader className="p-4 bg-transparent">
+          <CardTitle className="text-xl font-bold">{reward.name}</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">{reward.description}</CardDescription>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="p-4 pt-0">
           <div className="mb-4">
             <p className="text-3xl font-bold text-primary">{reward.points_required}</p>
             <p className="text-sm text-muted-foreground">points required</p>

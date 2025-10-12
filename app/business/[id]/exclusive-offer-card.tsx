@@ -87,7 +87,7 @@ export function ExclusiveOfferCard({
     <>
       <Card className="overflow-hidden">
         {offer.image_url && (
-          <div className="relative h-48 w-full">
+          <div className="relative h-40 w-full">
             <Image
               src={offer.image_url}
               alt={offer.title}
@@ -96,11 +96,11 @@ export function ExclusiveOfferCard({
             />
           </div>
         )}
-        <CardHeader className="bg-gradient-to-br from-primary/10 to-primary/5">
-          <CardTitle className="text-lg">{offer.title}</CardTitle>
-          <CardDescription>{offer.product_name}</CardDescription>
+        <CardHeader className="p-4 bg-transparent">
+          <CardTitle className="text-xl font-bold">{offer.title}</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">{offer.product_name}</CardDescription>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="p-4 pt-0">
           <div className="mb-4">
             {offer.original_price && (
               <p className="text-sm text-muted-foreground line-through">
@@ -111,7 +111,7 @@ export function ExclusiveOfferCard({
               {offer.discounted_price ? `₱${offer.discounted_price?.toFixed(2)}` : "Special Offer"}
             </p>
             {offer.discount_percentage && (
-              <p className="text-sm text-green-600 font-medium">
+              <p className="text-sm text-green-600 font-medium mt-1">
                 Save {offer.discount_percentage?.toFixed(0)}%
               </p>
             )}
@@ -154,22 +154,22 @@ export function ExclusiveOfferCard({
               <div className="mt-3 pt-3 border-t">
                 <p className="text-sm font-medium">Offer Details:</p>
                 {offer.original_price && (
-                  <p className="text-sm text-muted-foreground line-through">
+                  <p className="text-xs text-muted-foreground line-through">
                     Original Price: ₱{offer.original_price?.toFixed(2)}
                   </p>
                 )}
-                <p className="text-xl font-bold text-primary">
+                <p className="text-lg font-bold text-primary">
                   {offer.discounted_price ? `₱${offer.discounted_price?.toFixed(2)}` : "Special Offer"}
                 </p>
                 {offer.discount_percentage && (
-                  <p className="text-sm text-green-600 font-medium">
+                  <p className="text-xs text-green-600 font-medium mt-1">
                     Save {offer.discount_percentage?.toFixed(0)}%
                   </p>
                 )}
               </div>
             </div>
 
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               When you redeem this exclusive offer, you'll receive a QR code to show to the business. 
               Present this QR code to claim your exclusive offer.
             </p>
