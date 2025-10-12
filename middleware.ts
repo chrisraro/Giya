@@ -1,7 +1,22 @@
 import { updateSession } from "@/lib/supabase/middleware"
 import { type NextRequest } from "next/server"
+import { NextResponse } from "next/server"
 
 export async function middleware(request: NextRequest) {
+  // Capture referral code from URL parameters
+  const refCode = request.nextUrl.searchParams.get('ref')
+  
+  // If there's a referral code, store it in a cookie
+  if (refCode) {
+    const response = NextResponse.next()
+    response.cookies.set('affiliate_referral_code', refCode, {
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      httpOnly: true,
+      path: '/',
+    })
+    return response
+  }
+
   // Skip middleware for auth callback and role selection routes
   if (request.nextUrl.pathname.startsWith("/auth/callback") || 
       request.nextUrl.pathname.startsWith("/auth/role-selection")) {

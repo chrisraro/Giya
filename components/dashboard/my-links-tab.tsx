@@ -62,7 +62,7 @@ export function MyLinksTab({
                   
                   <div className="bg-muted rounded-md p-3 mb-3">
                     <p className="text-sm font-mono break-all">
-                      {window.location.origin}/signup?ref={link.unique_code}
+                      {window.location.origin}/auth/signup?ref={link.unique_code}
                     </p>
                   </div>
                   

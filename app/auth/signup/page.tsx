@@ -51,6 +51,15 @@ export default function SignupPage() {
     setIsGoogleLoading(true)
     setError(null)
 
+    // Save referral code if present
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const refCode = urlParams.get('ref')
+      if (refCode) {
+        localStorage.setItem('affiliate_referral_code', refCode)
+      }
+    }
+
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

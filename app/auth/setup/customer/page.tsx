@@ -11,12 +11,14 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import Image from "next/image"
+import { toast } from "sonner"
 
 export default function CustomerSetupPage() {
   const [profilePic, setProfilePic] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userData, setUserData] = useState<any>(null)
+  const [referralInfluencer, setReferralInfluencer] = useState<any>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -42,6 +44,32 @@ export default function CustomerSetupPage() {
         // Customer profile already exists, redirect to dashboard
         router.push("/dashboard/customer")
         return
+      }
+
+      // Check for referral code and fetch influencer info
+      const referralCode = user.user_metadata?.referral_code || 
+        (typeof window !== 'undefined' ? localStorage.getItem('affiliate_referral_code') : null)
+      
+      if (referralCode) {
+        // Fetch influencer information for the referral code
+        const { data: affiliateLink, error: linkError } = await supabase
+          .from("affiliate_links")
+          .select(`
+            unique_code,
+            influencers (
+              full_name
+            )
+          `)
+          .eq("unique_code", referralCode)
+          .single()
+
+        if (affiliateLink && !linkError) {
+          setReferralInfluencer(affiliateLink.influencers)
+          toast.success(`You were referred by ${affiliateLink.influencers.full_name}!`, {
+            description: "You'll earn points and they'll get credit for referring you.",
+            duration: 5000
+          })
+        }
       }
 
       setUserData(user)
@@ -115,8 +143,9 @@ export default function CustomerSetupPage() {
       // Generate QR code data
       const qrCodeData = `GIYA-${user.id.substring(0, 12).toUpperCase()}`
 
-      // Get referral code from user metadata
-      const referralCode = user.user_metadata?.referral_code || localStorage.getItem('affiliate_referral_code') || null
+      // Get referral code from user metadata or localStorage
+      const referralCode = user.user_metadata?.referral_code || 
+        (typeof window !== 'undefined' ? localStorage.getItem('affiliate_referral_code') : null)
 
       // Create customer record with referral code if present
       const { error: customerError } = await supabase.from("customers").insert({
@@ -164,6 +193,16 @@ export default function CustomerSetupPage() {
             <CardDescription>Add a profile picture to personalize your account</CardDescription>
           </CardHeader>
           <CardContent>
+            {referralInfluencer && (
+              <div className="mb-4 rounded-lg bg-primary/10 p-3">
+                <p className="text-sm font-medium">
+                  Referred by: <span className="text-primary">{referralInfluencer.full_name}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  You and {referralInfluencer.full_name} will both earn points for your activity!
+                </p>
+              </div>
+            )}
             <form onSubmit={handleSetup}>
               <div className="flex flex-col gap-4">
                 <div className="grid gap-2">

@@ -101,6 +101,13 @@ export default function CustomerSignupPage() {
     // Save preferred role to localStorage
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferred_role', 'customer')
+      
+      // Also save referral code if present
+      const urlParams = new URLSearchParams(window.location.search)
+      const refCode = urlParams.get('ref')
+      if (refCode) {
+        localStorage.setItem('affiliate_referral_code', refCode)
+      }
     }
 
     try {

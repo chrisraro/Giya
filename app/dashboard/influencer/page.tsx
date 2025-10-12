@@ -201,7 +201,7 @@ export default function InfluencerDashboard() {
   }
 
   const copyToClipboard = (code: string) => {
-    const fullUrl = `${window.location.origin}/signup?ref=${code}`
+    const fullUrl = `${window.location.origin}/auth/signup?ref=${code}`
     navigator.clipboard.writeText(fullUrl)
     setCopiedCode(code)
     toast.success("Link copied to clipboard!")
@@ -209,7 +209,7 @@ export default function InfluencerDashboard() {
   }
 
   const copyFullLinkToClipboard = (code: string) => {
-    const fullUrl = `${window.location.origin}/signup?ref=${code}`
+    const fullUrl = `${window.location.origin}/auth/signup?ref=${code}`
     navigator.clipboard.writeText(fullUrl)
     setCopiedCode(code)
     toast.success("Full link copied to clipboard!")
@@ -256,8 +256,11 @@ export default function InfluencerDashboard() {
     )
   }
 
-  // Calculate total points earned from conversions
-  const totalPointsFromConversions = conversions.reduce((sum, conversion) => sum + conversion.points_earned, 0);
+  // Calculate total points from conversions
+  const totalPointsFromConversions = conversions.reduce(
+    (sum, conversion) => sum + (conversion.points_earned || 0),
+    0
+  )
 
   return (
     <DashboardLayout

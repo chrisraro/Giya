@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const next = searchParams.get("next") ?? "/"
 
   if (code) {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = await createClient()
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -18,6 +18,18 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
+        // Check if there's a referral code in cookies
+        const referralCode = cookieStore.get('affiliate_referral_code')?.value
+        
+        // If there's a referral code, update user metadata
+        if (referralCode) {
+          await supabase.auth.updateUser({
+            data: {
+              referral_code: referralCode
+            }
+          })
+        }
+        
         // Check if user already has a role in user_metadata (from signup)
         if (user.user_metadata?.role) {
           // User already has a role, redirect to appropriate dashboard
