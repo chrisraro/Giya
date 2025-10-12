@@ -26,8 +26,8 @@ export async function BusinessDiscovery() {
     <section id="businesses" className="section-padding-y bg-background">
       <div className="container-padding-x container mx-auto">
         <div className="mb-8 md:mb-12">
-          <h2 className="heading-lg mb-2">Discover Local Businesses in <span className="text-primary">Naga City</span></h2>
-          <p className="text-muted-foreground">Explore amazing local spots and earn rewards with every visit in Naga City</p>
+          <h2 className="heading-lg mb-2">Discover Local Businesses</h2>
+          <p className="text-muted-foreground">Explore amazing local spots and earn rewards with every visit</p>
         </div>
 
         {!businesses || businesses.length === 0 ? (
@@ -121,9 +121,9 @@ function EmptyState() {
           />
         </svg>
       </div>
-      <h3 className="mb-2 text-xl font-semibold">No businesses yet in Naga City</h3>
+      <h3 className="mb-2 text-xl font-semibold">No businesses yet</h3>
       <p className="text-center text-muted-foreground max-w-md">
-        Be the first to discover amazing local businesses in Naga City. Check back soon as new spots join Giya!
+        Be the first to discover amazing local businesses. Check back soon as new spots join Giya!
       </p>
     </div>
   )

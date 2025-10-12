@@ -2,7 +2,7 @@
 
 import { Logo } from "@/components/pro-blocks/logo"
 import { Button } from "@/components/ui/button"
-import { Menu, X, MapPin } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
 
@@ -37,12 +37,8 @@ export function LpNavbar1() {
     <nav className="bg-background sticky top-0 isolate z-50 border-b py-3.5 md:py-4">
       <div className="relative container m-auto flex flex-col justify-between gap-4 px-6 md:flex-row md:items-center md:gap-6">
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/">
             <Logo />
-            <div className="hidden items-center gap-1 text-sm text-muted-foreground md:flex">
-              <MapPin className="h-4 w-4" />
-              <span>Naga City</span>
-            </div>
           </Link>
           <Button
             variant="ghost"
@@ -57,10 +53,6 @@ export function LpNavbar1() {
         {/* Desktop Navigation */}
         <div className="hidden w-full flex-row justify-end gap-5 md:flex">
           <NavMenuItems />
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            <span>Naga City</span>
-          </div>
           <Link href="/auth/login">
             <Button>Sign In</Button>
           </Link>
@@ -70,10 +62,6 @@ export function LpNavbar1() {
         {isMenuOpen && (
           <div className="flex w-full flex-col justify-end gap-5 pb-2.5 md:hidden">
             <NavMenuItems />
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              <span>Naga City</span>
-            </div>
             <Link href="/auth/login">
               <Button className="w-full">Sign In</Button>
             </Link>
