@@ -205,47 +205,46 @@ export default function BusinessDirectoryPage() {
               {filteredBusinesses.map((business) => (
                 <Card 
                   key={business.id} 
-                  className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
+                  className="relative flex flex-col bg-white shadow-sm border border-slate-200 rounded-lg w-full cursor-pointer transition-all hover:shadow-md overflow-hidden"
                   onClick={() => router.push(`/business/${business.id}`)}
                 >
-                  {business.profile_pic_url ? (
-                    <AvatarImage 
-                      src={business.profile_pic_url} 
-                      alt={business.business_name}
-                      className="object-cover w-full h-40 rounded-t-lg"
-                    />
-                  ) : (
-                    <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 rounded-t-lg">
-                      <div className="text-center">
-                        <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                          <span className="text-2xl font-bold text-primary">{business.business_name.charAt(0)}</span>
+                  <div className="relative h-48 overflow-hidden rounded-t-lg">
+                    {business.profile_pic_url ? (
+                      <AvatarImage 
+                        src={business.profile_pic_url} 
+                        alt={business.business_name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                        <div className="text-center">
+                          <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                            <span className="text-2xl font-bold text-primary">{business.business_name.charAt(0)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 p-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={business.profile_pic_url || undefined} />
-                      <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-semibold text-lg">{business.business_name}</h3>
-                      <p className="text-sm text-muted-foreground">{business.business_category}</p>
-                    </div>
+                    )}
                   </div>
-                  <div className="space-y-3 px-4 pb-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="truncate">{business.address}</span>
+                  <div className="p-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="text-slate-800 text-xl font-semibold truncate">
+                        {business.business_name}
+                      </h3>
+                      <span className="text-primary text-xl font-semibold">
+                        {business.points_per_currency || 100} pts/₱
+                      </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Points per ₱</span>
-                      <span className="text-xl font-bold text-primary">{business.points_per_currency || 100}</span>
-                    </div>
-                    <Button variant="outline" className="w-full" onClick={(e) => {
-                      e.stopPropagation()
-                      router.push(`/business/${business.id}`)
-                    }}>
+                    <p className="text-slate-600 leading-normal font-light line-clamp-2">
+                      {business.business_category} • {business.address}
+                    </p>
+                    <Button 
+                      variant="default" 
+                      className="rounded-md w-full mt-6 bg-primary py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-primary/90 focus:shadow-none active:bg-primary/90 hover:bg-primary/90 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/business/${business.id}`)
+                      }}
+                    >
                       View Details
                     </Button>
                   </div>
