@@ -35,6 +35,7 @@ import { Plus, Edit, Trash2, Calendar, Users } from "lucide-react"
 import { handleApiError } from "@/lib/error-handler"
 import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
+import { OfferImageUpload } from "@/components/offer-image-upload"
 
 interface DiscountOffer {
   id: string
@@ -49,6 +50,7 @@ interface DiscountOffer {
   valid_from: string | null
   valid_until: string | null
   is_first_visit_only: boolean
+  image_url: string | null
   created_at: string
   qr_code_data?: string
 }
@@ -58,6 +60,7 @@ export default function BusinessDiscountsPage() {
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [editingDiscount, setEditingDiscount] = useState<DiscountOffer | null>(null)
+  const [businessId, setBusinessId] = useState<string>("")
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -68,16 +71,23 @@ export default function BusinessDiscountsPage() {
     usage_limit: "",
     valid_from: "",
     valid_until: "",
-    is_first_visit_only: false
+    is_first_visit_only: false,
+    image_url: ""
   })
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    fetchDiscounts()
+    fetchBusinessId()
   }, [])
 
-  const fetchDiscounts = async () => {
+  useEffect(() => {
+    if (businessId) {
+      fetchDiscounts()
+    }
+  }, [businessId])
+
+  const fetchBusinessId = async () => {
     try {
       const {
         data: { user },
@@ -88,10 +98,23 @@ export default function BusinessDiscountsPage() {
         return
       }
 
+      setBusinessId(user.id)
+    } catch (error) {
+      handleApiError(error, "Failed to load business data", "BusinessDiscounts.fetchBusinessId")
+    }
+  }
+
+  const fetchDiscounts = async () => {
+    try {
+      if (!businessId) {
+        // Wait for businessId to be set
+        return
+      }
+
       const { data, error } = await supabase
         .from("discount_offers")
         .select("*")
-        .eq("business_id", user.id)
+        .eq("business_id", businessId)
         .order("created_at", { ascending: false })
 
       if (error) throw error
@@ -127,26 +150,24 @@ export default function BusinessDiscountsPage() {
       usage_limit: "",
       valid_from: "",
       valid_until: "",
-      is_first_visit_only: false
+      is_first_visit_only: false,
+      image_url: ""
     })
     setEditingDiscount(null)
+  }
+
+  const handleImageUpdate = (newImageUrl: string | null) => {
+    setFormData(prev => ({ ...prev, image_url: newImageUrl || "" }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        router.push("/auth/login")
-        return
-      }
+      if (!businessId) throw new Error("Business ID not available")
 
       const discountData = {
-        business_id: user.id,
+        business_id: businessId,
         title: formData.title,
         description: formData.description || null,
         discount_type: formData.discount_type,
@@ -156,7 +177,8 @@ export default function BusinessDiscountsPage() {
         usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : null,
         is_first_visit_only: formData.is_first_visit_only,
         valid_from: formData.valid_from || null,
-        valid_until: formData.valid_until || null
+        valid_until: formData.valid_until || null,
+        image_url: formData.image_url || null
       }
 
       if (editingDiscount) {
@@ -198,7 +220,8 @@ export default function BusinessDiscountsPage() {
       usage_limit: discount.usage_limit?.toString() || "",
       valid_from: discount.valid_from || "",
       valid_until: discount.valid_until || "",
-      is_first_visit_only: discount.is_first_visit_only
+      is_first_visit_only: discount.is_first_visit_only,
+      image_url: discount.image_url || ""
     })
     setOpenDialog(true)
   }
@@ -346,6 +369,17 @@ export default function BusinessDiscountsPage() {
                           required
                         />
                       </div>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label>Discount Image</Label>
+                      <OfferImageUpload
+                        currentImageUrl={formData.image_url || null}
+                        businessId={businessId}
+                        offerId={editingDiscount?.id || "new"}
+                        offerType="discount"
+                        onImageUpdate={handleImageUpdate}
+                      />
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">

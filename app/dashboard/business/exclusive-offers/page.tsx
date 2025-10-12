@@ -28,6 +28,7 @@ import { Plus, Edit, Trash2, Calendar, Users, Tag } from "lucide-react"
 import { handleApiError } from "@/lib/error-handler"
 import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
+import { OfferImageUpload } from "@/components/offer-image-upload"
 
 interface ExclusiveOffer {
   id: string
@@ -52,6 +53,7 @@ export default function BusinessExclusiveOffersPage() {
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [editingOffer, setEditingOffer] = useState<ExclusiveOffer | null>(null)
+  const [businessId, setBusinessId] = useState<string>("")
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -68,10 +70,16 @@ export default function BusinessExclusiveOffersPage() {
   const supabase = createClient()
 
   useEffect(() => {
-    fetchOffers()
+    fetchBusinessId()
   }, [])
 
-  const fetchOffers = async () => {
+  useEffect(() => {
+    if (businessId) {
+      fetchOffers()
+    }
+  }, [businessId])
+
+  const fetchBusinessId = async () => {
     try {
       const {
         data: { user },
@@ -82,10 +90,23 @@ export default function BusinessExclusiveOffersPage() {
         return
       }
 
+      setBusinessId(user.id)
+    } catch (error) {
+      handleApiError(error, "Failed to load business data", "BusinessExclusiveOffers.fetchBusinessId")
+    }
+  }
+
+  const fetchOffers = async () => {
+    try {
+      if (!businessId) {
+        // Wait for businessId to be set
+        return
+      }
+
       const { data, error } = await supabase
         .from("exclusive_offers")
         .select("*")
-        .eq("business_id", user.id)
+        .eq("business_id", businessId)
         .order("created_at", { ascending: false })
 
       if (error) throw error
@@ -132,21 +153,18 @@ export default function BusinessExclusiveOffersPage() {
     return percentage.toFixed(2)
   }
 
+  const handleImageUpdate = (newImageUrl: string | null) => {
+    setFormData(prev => ({ ...prev, image_url: newImageUrl || "" }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        router.push("/auth/login")
-        return
-      }
+      if (!businessId) throw new Error("Business ID not available")
 
       const offerData = {
-        business_id: user.id,
+        business_id: businessId,
         title: formData.title,
         description: formData.description || null,
         product_name: formData.product_name,
@@ -361,13 +379,13 @@ export default function BusinessExclusiveOffersPage() {
                     )}
                     
                     <div className="grid gap-2">
-                      <Label htmlFor="image_url">Product Image URL (Optional)</Label>
-                      <Input
-                        id="image_url"
-                        name="image_url"
-                        value={formData.image_url}
-                        onChange={handleInputChange}
-                        placeholder="https://example.com/image.jpg"
+                      <Label>Product Image</Label>
+                      <OfferImageUpload
+                        currentImageUrl={formData.image_url || null}
+                        businessId={businessId}
+                        offerId={editingOffer?.id || "new"}
+                        offerType="exclusive"
+                        onImageUpdate={handleImageUpdate}
                       />
                     </div>
                     

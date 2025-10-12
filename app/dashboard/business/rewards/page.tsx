@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Plus, Edit, Trash2, Gift, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
+import { OfferImageUpload } from "@/components/offer-image-upload"
 
 interface Reward {
   id: string
@@ -19,6 +20,7 @@ interface Reward {
   reward_name: string
   description: string
   points_required: number
+  image_url: string | null
   is_active: boolean
   created_at: string
 }
@@ -29,19 +31,27 @@ export default function BusinessRewardsPage() {
   const [showDialog, setShowDialog] = useState(false)
   const [editingReward, setEditingReward] = useState<Reward | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [businessId, setBusinessId] = useState<string>("")
   const [formData, setFormData] = useState({
     reward_name: "",
     description: "",
     points_required: "",
+    image_url: ""
   })
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    fetchRewards()
+    fetchBusinessId()
   }, [])
 
-  const fetchRewards = async () => {
+  useEffect(() => {
+    if (businessId) {
+      fetchRewards()
+    }
+  }, [businessId])
+
+  const fetchBusinessId = async () => {
     try {
       const {
         data: { user },
@@ -52,10 +62,24 @@ export default function BusinessRewardsPage() {
         return
       }
 
+      setBusinessId(user.id)
+    } catch (error) {
+      console.error("[v0] Error fetching business ID:", error)
+      toast.error("Failed to load business data")
+    }
+  }
+
+  const fetchRewards = async () => {
+    try {
+      if (!businessId) {
+        // Wait for businessId to be set
+        return
+      }
+
       const { data, error } = await supabase
         .from("rewards")
         .select("*")
-        .eq("business_id", user.id)
+        .eq("business_id", businessId)
         .order("points_required", { ascending: true })
 
       if (error) throw error
@@ -75,6 +99,7 @@ export default function BusinessRewardsPage() {
         reward_name: reward.reward_name,
         description: reward.description,
         points_required: reward.points_required.toString(),
+        image_url: reward.image_url || ""
       })
     } else {
       setEditingReward(null)
@@ -82,9 +107,14 @@ export default function BusinessRewardsPage() {
         reward_name: "",
         description: "",
         points_required: "",
+        image_url: ""
       })
     }
     setShowDialog(true)
+  }
+
+  const handleImageUpdate = (newImageUrl: string | null) => {
+    setFormData(prev => ({ ...prev, image_url: newImageUrl || "" }))
   }
 
   const handleSaveReward = async () => {
@@ -102,11 +132,7 @@ export default function BusinessRewardsPage() {
     setIsProcessing(true)
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) throw new Error("Not authenticated")
+      if (!businessId) throw new Error("Business ID not available")
 
       if (editingReward) {
         // Update existing reward
@@ -116,6 +142,7 @@ export default function BusinessRewardsPage() {
             reward_name: formData.reward_name,
             description: formData.description,
             points_required: pointsRequired,
+            image_url: formData.image_url || null
           })
           .eq("id", editingReward.id)
 
@@ -124,10 +151,11 @@ export default function BusinessRewardsPage() {
       } else {
         // Create new reward
         const { error } = await supabase.from("rewards").insert({
-          business_id: user.id,
+          business_id: businessId,
           reward_name: formData.reward_name,
           description: formData.description,
           points_required: pointsRequired,
+          image_url: formData.image_url || null,
           is_active: true,
         })
 
@@ -297,6 +325,17 @@ export default function BusinessRewardsPage() {
                 placeholder="e.g., 100"
                 value={formData.points_required}
                 onChange={(e) => setFormData({ ...formData, points_required: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Reward Image</Label>
+              <OfferImageUpload
+                currentImageUrl={formData.image_url || null}
+                businessId={businessId}
+                offerId={editingReward?.id || "new"}
+                offerType="reward"
+                onImageUpdate={handleImageUpdate}
               />
             </div>
 
