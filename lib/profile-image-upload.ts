@@ -1,7 +1,8 @@
+import { upload } from '@vercel/blob/client';
 import { createClient } from '@/lib/supabase/client';
 
 /**
- * Uploads a profile image to Vercel Blob storage via API routes
+ * Uploads a profile image to Vercel Blob storage via client upload
  * @param file - The image file to upload
  * @param userId - The user ID for folder organization
  * @param userType - The type of user (customer, business, influencer)
@@ -9,44 +10,18 @@ import { createClient } from '@/lib/supabase/client';
  */
 export async function uploadProfileImage(file: File, userId: string, userType: 'customer' | 'business' | 'influencer'): Promise<string> {
   try {
-    // Create a folder structure: profile-images/{userType}/{userId}
+    // Create a folder structure: profile-images/{userType}/{userId}/{filename}
     const folderPath = `profile-images/${userType}/${userId}`;
     const fileName = `${Date.now()}-${file.name}`;
     const filePath = `${folderPath}/${fileName}`;
     
-    // First, get a signed URL from our API
-    const response = await fetch('/api/blob/upload', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        path: filePath,
-        contentType: file.type,
-      }),
+    // Upload directly from the client to Vercel Blob
+    const blob = await upload(filePath, file, {
+      access: 'public',
+      handleUploadUrl: '/api/blob/upload',
     });
     
-    if (!response.ok) {
-      throw new Error('Failed to get upload URL');
-    }
-    
-    const { url } = await response.json();
-    
-    // Upload the file content
-    const uploadResponse = await fetch(url, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
-    });
-    
-    if (!uploadResponse.ok) {
-      throw new Error('Failed to upload file');
-    }
-    
-    // Return the public URL (remove query parameters)
-    return url.split('?')[0];
+    return blob.url;
   } catch (error) {
     console.error('Error uploading profile image:', error);
     throw new Error('Failed to upload profile image');

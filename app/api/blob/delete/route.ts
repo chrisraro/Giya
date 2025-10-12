@@ -12,6 +12,12 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Path is required' }, { status: 400 });
     }
     
+    // Check if BLOB_READ_WRITE_TOKEN is set
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('BLOB_READ_WRITE_TOKEN is not set');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+    
     await del(path, {
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
