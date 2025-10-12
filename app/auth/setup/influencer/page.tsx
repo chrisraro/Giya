@@ -114,7 +114,7 @@ export default function InfluencerSetupPage() {
         <div className="flex justify-center mb-8">
           <Image src="/giya-logo.jpg" alt="Giya Logo" width={80} height={80} className="object-contain" />
         </div>
-        <Card>
+        <Card className="p-6">
           <CardHeader>
             <CardTitle className="text-2xl">Complete Your Profile</CardTitle>
             <CardDescription>Add a profile picture to get started</CardDescription>

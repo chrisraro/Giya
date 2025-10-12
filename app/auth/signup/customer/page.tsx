@@ -124,7 +124,7 @@ export default function CustomerSignupPage({ searchParams }: { searchParams: { r
             Back
           </Link>
         </Button>
-        <Card>
+        <Card className="p-6">
           <CardHeader>
             <CardTitle className="text-2xl">Create Customer Account</CardTitle>
             <CardDescription>Join Giya and start earning rewards</CardDescription>

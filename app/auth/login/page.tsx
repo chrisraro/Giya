@@ -134,7 +134,7 @@ export default function LoginPage() {
         <div className="flex justify-center mb-8">
           <Image src="/giya-logo.png" alt="Giya Logo" width={80} height={80} className="object-contain" />
         </div>
-        <Card>
+        <Card className="p-6">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Welcome back to Giya</CardTitle>
             <CardDescription>Sign in to your account to continue</CardDescription>

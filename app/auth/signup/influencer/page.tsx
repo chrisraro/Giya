@@ -79,7 +79,7 @@ export default function InfluencerSignupPage() {
             Back
           </Link>
         </Button>
-        <Card>
+        <Card className="p-6">
           <CardHeader>
             <CardTitle className="text-2xl">Create Influencer Account</CardTitle>
             <CardDescription>Promote businesses and earn rewards</CardDescription>

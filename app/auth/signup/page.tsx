@@ -64,47 +64,50 @@ export default function SignupPage() {
           <p className="text-muted-foreground">Choose your account type to get started</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
-          <Card className="hover:border-primary transition-colors">
+          <Card className="p-6 hover:border-primary transition-colors">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="w-6 h-6 text-primary" />
-              </div>
-              <CardTitle>Customer</CardTitle>
-              <CardDescription>Earn points and redeem rewards at local businesses</CardDescription>
+              <CardTitle className="text-2xl">Create Customer Account</CardTitle>
+              <CardDescription>Join Giya to start earning rewards</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button asChild className="w-full">
-                <Link href="/auth/signup/customer">Sign up as Customer</Link>
+              <Button 
+                onClick={() => router.push("/auth/signup/customer")} 
+                className="w-full"
+                variant="default"
+              >
+                Sign Up as Customer
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:border-primary transition-colors">
+          <Card className="p-6 hover:border-primary transition-colors">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-primary" />
-              </div>
-              <CardTitle>Business</CardTitle>
-              <CardDescription>Create loyalty programs and engage with customers</CardDescription>
+              <CardTitle className="text-2xl">Create Business Account</CardTitle>
+              <CardDescription>Join Giya to offer rewards to customers</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button asChild className="w-full">
-                <Link href="/auth/signup/business">Sign up as Business</Link>
+              <Button 
+                onClick={() => router.push("/auth/signup/business")} 
+                className="w-full"
+                variant="default"
+              >
+                Sign Up as Business
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:border-primary transition-colors">
+          <Card className="p-6 hover:border-primary transition-colors">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Megaphone className="w-6 h-6 text-primary" />
-              </div>
-              <CardTitle>Influencer</CardTitle>
-              <CardDescription>Promote businesses and earn rewards through referrals</CardDescription>
+              <CardTitle className="text-2xl">Create Influencer Account</CardTitle>
+              <CardDescription>Join Giya to promote businesses</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button asChild className="w-full">
-                <Link href="/auth/signup/influencer">Sign up as Influencer</Link>
+              <Button 
+                onClick={() => router.push("/auth/signup/influencer")} 
+                className="w-full"
+                variant="default"
+              >
+                Sign Up as Influencer
               </Button>
             </CardContent>
           </Card>
