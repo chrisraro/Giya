@@ -58,26 +58,27 @@ export interface Redemption {
     points_required: number;
     image_url: string | null;
   };
-  businesses?: {
-    business_name: string;
-    profile_pic_url: string | null;
-  };
   customers?: {
     full_name: string;
   };
   // For discount redemptions
   discount_offer_id?: string;
   discount_offers?: {
-    offer_title: string;
-    points_required: number;
+    title: string;
+    points_required?: number;
     image_url: string | null;
   };
   // For exclusive offer redemptions
   exclusive_offer_id?: string;
   exclusive_offers?: {
-    offer_title: string;
-    points_required: number;
+    title: string;
+    points_required?: number;
     image_url: string | null;
+  };
+  // For businesses relationship
+  businesses?: {
+    business_name: string;
+    profile_pic_url: string | null;
   };
   // Type field to distinguish between redemption types
   redemption_type?: 'reward' | 'discount' | 'exclusive';
@@ -302,55 +303,21 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         id,
         redeemed_at,
         status,
-        business_id,
-        customer_id,
-        user_id,
         reward_id,
         rewards (
           reward_name,
           points_required,
-          image_url
-        ),
-        businesses (
-          business_name,
-          profile_pic_url
-        )
-      `,
-      )
-      .eq("customer_id", userId)
-      .order("redeemed_at", { ascending: false });
-      
-    // If no results with customer_id, try user_id
-    if ((!rewardRedemptions || rewardRedemptions.length === 0) && !rewardRedemptionsError) {
-      console.log("[v0] No reward redemptions found with customer_id, trying user_id...");
-      const userResult = await supabase
-        .from("redemptions")
-        .select(
-          `
-          id,
-          redeemed_at,
-          status,
+          image_url,
           business_id,
-          customer_id,
-          user_id,
-          reward_id,
-          rewards (
-            reward_name,
-            points_required,
-            image_url
-          ),
-          businesses (
+          businesses!rewards_business_id (
             business_name,
             profile_pic_url
           )
-        `,
         )
-        .eq("user_id", userId)
-        .order("redeemed_at", { ascending: false });
-        
-      rewardRedemptions = userResult.data;
-      rewardRedemptionsError = userResult.error;
-    }
+      `,
+      )
+      .or(`customer_id.eq.${userId},user_id.eq.${userId}`)
+      .order("redeemed_at", { ascending: false });
       
     console.log("[v0] Reward redemptions query result:", { data: rewardRedemptions, error: rewardRedemptionsError });
 
@@ -366,11 +333,11 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         customer_id,
         discount_offer_id,
         discount_offers (
-          offer_title,
+          title,
           points_required,
           image_url
         ),
-        businesses (
+        businesses!discount_usage_business_id (
           business_name,
           profile_pic_url
         )
@@ -393,11 +360,11 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         customer_id,
         exclusive_offer_id,
         exclusive_offers (
-          offer_title,
+          title,
           points_required,
           image_url
         ),
-        businesses (
+        businesses!exclusive_offer_usage_business_id (
           business_name,
           profile_pic_url
         )
@@ -435,6 +402,8 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       console.log("[v0] Processing reward redemptions:", rewardRedemptions);
       allRedemptions = rewardRedemptions.map((redemption: any) => ({
         ...redemption,
+        business_id: redemption.rewards?.business_id,
+        businesses: redemption.rewards?.businesses,
         redemption_type: 'reward'
       })).filter((redemption: any) => redemption.redeemed_at); // Filter out invalid entries
       console.log("[v0] Processed reward redemptions:", allRedemptions);

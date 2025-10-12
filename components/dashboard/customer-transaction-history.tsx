@@ -18,32 +18,32 @@ interface Transaction {
 }
 
 interface Redemption {
-  id: string
-  redeemed_at: string
-  status: string
-  business_id: string | null
-  reward_id?: string
+  id: string;
+  redeemed_at: string;
+  status: string;
+  business_id: string | null;
+  reward_id?: string;
   rewards?: {
-    reward_name: string
-    points_required: number
+    reward_name: string;
+    points_required: number;
     image_url: string | null
   }
   // For discount redemptions
-  discount_offer_id?: string
+  discount_offer_id?: string;
   discount_offers?: {
-    offer_title: string
-    points_required: number
+    title: string;
+    points_required?: number;
     image_url: string | null
   }
   // For exclusive offer redemptions
-  exclusive_offer_id?: string
+  exclusive_offer_id?: string;
   exclusive_offers?: {
-    offer_title: string
-    points_required: number
+    title: string;
+    points_required?: number;
     image_url: string | null
   }
   businesses?: {
-    business_name: string
+    business_name: string;
     profile_pic_url: string | null
   }
   // Type field to distinguish between redemption types
