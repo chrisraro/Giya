@@ -180,73 +180,6 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
   const fetchCustomerData = async (userId: string) => {
     console.log("[v0] Fetching customer data for user ID:", userId);
     
-    // Test queries to debug redemption data
-    console.log("[v0] Running test queries to debug redemption data...");
-    
-    // Test query to see what's in the redemptions table
-    console.log("[v0] Running test query on redemptions table...");
-    const { data: testRedemptions, error: testRedemptionsError } = await supabase
-      .from("redemptions")
-      .select("*")
-      .limit(5);
-      
-    console.log("[v0] Test redemptions query result:", { data: testRedemptions, error: testRedemptionsError });
-    
-    // Test queries for discount_usage and exclusive_offer_usage tables
-    console.log("[v0] Running test query on discount_usage table...");
-    const { data: testDiscountUsage, error: testDiscountUsageError } = await supabase
-      .from("discount_usage")
-      .select("*")
-      .limit(5);
-      
-    console.log("[v0] Test discount_usage query result:", { data: testDiscountUsage, error: testDiscountUsageError });
-    
-    console.log("[v0] Running test query on exclusive_offer_usage table...");
-    const { data: testExclusiveOfferUsage, error: testExclusiveOfferUsageError } = await supabase
-      .from("exclusive_offer_usage")
-      .select("*")
-      .limit(5);
-      
-    console.log("[v0] Test exclusive_offer_usage query result:", { data: testExclusiveOfferUsage, error: testExclusiveOfferUsageError });
-    
-    // Test queries with customer_id filter
-    console.log("[v0] Running test query with customer_id filter...");
-    const { data: testCustomerRedemptions, error: testCustomerRedemptionsError } = await supabase
-      .from("redemptions")
-      .select("*")
-      .eq("customer_id", userId)
-      .limit(5);
-      
-    console.log("[v0] Test customer redemptions query result:", { data: testCustomerRedemptions, error: testCustomerRedemptionsError });
-    
-    console.log("[v0] Running test query on discount_usage table with customer_id filter...");
-    const { data: testCustomerDiscountUsage, error: testCustomerDiscountUsageError } = await supabase
-      .from("discount_usage")
-      .select("*")
-      .eq("customer_id", userId)
-      .limit(5);
-      
-    console.log("[v0] Test customer discount_usage query result:", { data: testCustomerDiscountUsage, error: testCustomerDiscountUsageError });
-    
-    console.log("[v0] Running test query on exclusive_offer_usage table with customer_id filter...");
-    const { data: testCustomerExclusiveOfferUsage, error: testCustomerExclusiveOfferUsageError } = await supabase
-      .from("exclusive_offer_usage")
-      .select("*")
-      .eq("customer_id", userId)
-      .limit(5);
-      
-    console.log("[v0] Test customer exclusive_offer_usage query result:", { data: testCustomerExclusiveOfferUsage, error: testCustomerExclusiveOfferUsageError });
-    
-    // Test query with user_id filter
-    console.log("[v0] Running test query with user_id filter...");
-    const { data: testUserRedemptions, error: testUserRedemptionsError } = await supabase
-      .from("redemptions")
-      .select("*")
-      .eq("user_id", userId)
-      .limit(5);
-      
-    console.log("[v0] Test user redemptions query result:", { data: testUserRedemptions, error: testUserRedemptionsError });
-    
     // Fetch customer data
     const { data: customer, error: customerError } = await supabase
       .from("customers")
@@ -291,8 +224,8 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     // Fetch all types of redemptions
     console.log("[v0] Starting redemption queries for customer ID:", userId);
     
-    // 1. Reward redemptions - try both customer_id and user_id
-    console.log("[v0] Querying reward redemptions with customer_id...");
+    // 1. Reward redemptions - check both customer_id and user_id
+    console.log("[v0] Querying reward redemptions...");
     let { data: rewardRedemptions, error: rewardRedemptionsError } = await supabase
       .from("redemptions")
       .select(
@@ -300,43 +233,25 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         id,
         redeemed_at,
         status,
+        customer_id,
+        user_id,
+        business_id,
+        points_redeemed,
         reward_id,
         rewards (
           reward_name,
           points_required,
           image_url,
           business_id
+        ),
+        businesses (
+          business_name,
+          profile_pic_url
         )
       `,
       )
       .or(`customer_id.eq.${userId},user_id.eq.${userId}`)
       .order("redeemed_at", { ascending: false });
-      
-    // If no results with customer_id, try user_id
-    if ((!rewardRedemptions || rewardRedemptions.length === 0) && !rewardRedemptionsError) {
-      console.log("[v0] No reward redemptions found with customer_id, trying user_id...");
-      const userResult = await supabase
-        .from("redemptions")
-        .select(
-          `
-          id,
-          redeemed_at,
-          status,
-          reward_id,
-          rewards (
-            reward_name,
-            points_required,
-            image_url,
-            business_id
-          )
-        `,
-        )
-        .eq("user_id", userId)
-        .order("redeemed_at", { ascending: false });
-        
-      rewardRedemptions = userResult.data;
-      rewardRedemptionsError = userResult.error;
-    }
       
     console.log("[v0] Reward redemptions query result:", { data: rewardRedemptions, error: rewardRedemptionsError });
 
@@ -352,7 +267,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         customer_id,
         discount_offer_id,
         discount_offers (
-          title
+          title,
+          business_id
+        ),
+        businesses (
+          business_name,
+          profile_pic_url
         )
       `,
       )
@@ -374,7 +294,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         exclusive_offer_id,
         exclusive_offers (
           title,
-          image_url
+          image_url,
+          business_id
+        ),
+        businesses (
+          business_name,
+          profile_pic_url
         )
       `,
       )
@@ -409,70 +334,40 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     if (rewardRedemptions && !rewardRedemptionsError) {
       console.log("[v0] Processing reward redemptions:", rewardRedemptions);
       
-      // Get unique business IDs from rewards
-      const businessIds = Array.from(new Set(rewardRedemptions
-        .map((r: any) => r.rewards?.business_id)
-        .filter(Boolean))) as string[];
-      
-      // Fetch business information for these IDs
-      let businessesMap: Record<string, any> = {};
-      if (businessIds.length > 0) {
-        const { data: businessesData, error: businessesError } = await supabase
-          .from("businesses")
-          .select("id, business_name, profile_pic_url")
-          .in("id", businessIds);
-          
-        if (!businessesError && businessesData) {
-          businessesMap = businessesData.reduce((acc: any, business: any) => {
-            acc[business.id] = business;
-            return acc;
-          }, {});
-        }
-      }
-      
-      allRedemptions = rewardRedemptions.map((redemption: any) => ({
-        ...redemption,
-        business_id: redemption.rewards?.business_id,
-        businesses: businessesMap[redemption.rewards?.business_id] || null,
+      const processedRewardRedemptions = rewardRedemptions.map((redemption: any) => ({
+        id: redemption.id,
+        redeemed_at: redemption.redeemed_at,
+        status: redemption.status,
+        business_id: redemption.business_id || redemption.rewards?.business_id,
+        customer_id: redemption.customer_id || redemption.user_id,
+        reward_id: redemption.reward_id,
+        rewards: redemption.rewards,
+        businesses: redemption.businesses || (redemption.rewards?.business_id ? {
+          business_name: redemption.rewards.business_name,
+          profile_pic_url: redemption.rewards.profile_pic_url
+        } : null),
         redemption_type: 'reward'
       })).filter((redemption: any) => redemption.redeemed_at); // Filter out invalid entries
-      console.log("[v0] Processed reward redemptions:", allRedemptions);
+      allRedemptions = [...processedRewardRedemptions];
+      console.log("[v0] Processed reward redemptions:", processedRewardRedemptions);
     }
 
     // Process discount redemptions
     if (discountRedemptions && !discountRedemptionsError) {
       console.log("[v0] Processing discount redemptions:", discountRedemptions);
       
-      // Get unique business IDs
-      const businessIds = Array.from(new Set(discountRedemptions
-        .map((r: any) => r.business_id)
-        .filter(Boolean))) as string[];
-      
-      // Fetch business information for these IDs
-      let businessesMap: Record<string, any> = {};
-      if (businessIds.length > 0) {
-        const { data: businessesData, error: businessesError } = await supabase
-          .from("businesses")
-          .select("id, business_name, profile_pic_url")
-          .in("id", businessIds);
-          
-        if (!businessesError && businessesData) {
-          businessesMap = businessesData.reduce((acc: any, business: any) => {
-            acc[business.id] = business;
-            return acc;
-          }, {});
-        }
-      }
-      
       const processedDiscountRedemptions = discountRedemptions.map((redemption: any) => ({
         id: redemption.id,
         redeemed_at: redemption.used_at,
         status: 'completed', // Discount redemptions are typically immediate
-        business_id: redemption.business_id,
+        business_id: redemption.business_id || redemption.discount_offers?.business_id,
         customer_id: redemption.customer_id,
         discount_offer_id: redemption.discount_offer_id,
         discount_offers: redemption.discount_offers,
-        businesses: businessesMap[redemption.business_id] || null,
+        businesses: redemption.businesses || (redemption.discount_offers?.business_id ? {
+          business_name: redemption.discount_offers.business_name,
+          profile_pic_url: redemption.discount_offers.profile_pic_url
+        } : null),
         redemption_type: 'discount'
       })).filter((redemption: any) => redemption.redeemed_at); // Filter out invalid entries
       allRedemptions = [...allRedemptions, ...processedDiscountRedemptions];
@@ -483,36 +378,18 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     if (exclusiveOfferRedemptions && !exclusiveOfferRedemptionsError) {
       console.log("[v0] Processing exclusive offer redemptions:", exclusiveOfferRedemptions);
       
-      // Get unique business IDs
-      const businessIds = Array.from(new Set(exclusiveOfferRedemptions
-        .map((r: any) => r.business_id)
-        .filter(Boolean))) as string[];
-      
-      // Fetch business information for these IDs
-      let businessesMap: Record<string, any> = {};
-      if (businessIds.length > 0) {
-        const { data: businessesData, error: businessesError } = await supabase
-          .from("businesses")
-          .select("id, business_name, profile_pic_url")
-          .in("id", businessIds);
-          
-        if (!businessesError && businessesData) {
-          businessesMap = businessesData.reduce((acc: any, business: any) => {
-            acc[business.id] = business;
-            return acc;
-          }, {});
-        }
-      }
-      
       const processedExclusiveOfferRedemptions = exclusiveOfferRedemptions.map((redemption: any) => ({
         id: redemption.id,
         redeemed_at: redemption.used_at,
         status: 'completed', // Exclusive offer redemptions are typically immediate
-        business_id: redemption.business_id,
+        business_id: redemption.business_id || redemption.exclusive_offers?.business_id,
         customer_id: redemption.customer_id,
         exclusive_offer_id: redemption.exclusive_offer_id,
         exclusive_offers: redemption.exclusive_offers,
-        businesses: businessesMap[redemption.business_id] || null,
+        businesses: redemption.businesses || (redemption.exclusive_offers?.business_id ? {
+          business_name: redemption.exclusive_offers.business_name,
+          profile_pic_url: redemption.exclusive_offers.profile_pic_url
+        } : null),
         redemption_type: 'exclusive'
       })).filter((redemption: any) => redemption.redeemed_at); // Filter out invalid entries
       allRedemptions = [...allRedemptions, ...processedExclusiveOfferRedemptions];
