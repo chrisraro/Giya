@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Gift } from "lucide-react";
+import { Gift, Tag, Star } from "lucide-react";
 import { OptimizedImage } from "@/components/optimized-image";
 
 interface Redemption {
@@ -8,9 +8,23 @@ interface Redemption {
   redeemed_at: string;
   status: string;
   business_id: string | null;
-  reward_id: string;
-  rewards: {
+  reward_id?: string;
+  rewards?: {
     reward_name: string;
+    points_required: number;
+    image_url: string | null;
+  };
+  // For discount redemptions
+  discount_offer_id?: string;
+  discount_offers?: {
+    offer_title: string;
+    points_required: number;
+    image_url: string | null;
+  };
+  // For exclusive offer redemptions
+  exclusive_offer_id?: string;
+  exclusive_offers?: {
+    offer_title: string;
     points_required: number;
     image_url: string | null;
   };
@@ -18,6 +32,8 @@ interface Redemption {
     business_name: string;
     profile_pic_url: string | null;
   };
+  // Type field to distinguish between redemption types
+  redemption_type?: 'reward' | 'discount' | 'exclusive';
 }
 
 interface RedemptionItemProps {
@@ -25,26 +41,57 @@ interface RedemptionItemProps {
 }
 
 export const RedemptionItem = memo(function RedemptionItem({ redemption }: RedemptionItemProps) {
+  // Determine the display information based on redemption type
+  const getDisplayInfo = () => {
+    switch (redemption.redemption_type) {
+      case 'discount':
+        return {
+          name: redemption.discount_offers?.offer_title || 'Discount Offer',
+          points: redemption.discount_offers?.points_required || 0,
+          icon: Tag,
+          image_url: redemption.discount_offers?.image_url
+        };
+      case 'exclusive':
+        return {
+          name: redemption.exclusive_offers?.offer_title || 'Exclusive Offer',
+          points: redemption.exclusive_offers?.points_required || 0,
+          icon: Star,
+          image_url: redemption.exclusive_offers?.image_url
+        };
+      case 'reward':
+      default:
+        return {
+          name: redemption.rewards?.reward_name || 'Reward',
+          points: redemption.rewards?.points_required || 0,
+          icon: Gift,
+          image_url: redemption.rewards?.image_url
+        };
+    }
+  };
+
+  const displayInfo = getDisplayInfo();
+  const IconComponent = displayInfo.icon;
+
   return (
     <div className="flex items-center justify-between border-b pb-4 last:border-0">
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
-          {redemption.rewards?.image_url ? (
+          {displayInfo.image_url ? (
             <OptimizedImage 
-              src={redemption.rewards.image_url} 
-              alt={redemption.rewards.reward_name || 'Reward'} 
+              src={displayInfo.image_url} 
+              alt={displayInfo.name} 
               width={40} 
               height={40}
               className="rounded-full"
             />
           ) : (
             <AvatarFallback>
-              <Gift className="h-5 w-5" />
+              <IconComponent className="h-5 w-5" />
             </AvatarFallback>
           )}
         </Avatar>
         <div>
-          <p className="font-medium text-foreground">{redemption.rewards?.reward_name || 'Reward'}</p>
+          <p className="font-medium text-foreground">{displayInfo.name}</p>
           <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">
               {redemption.redeemed_at 
@@ -65,7 +112,10 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
       </div>
       <div className="text-right">
         <div className="font-semibold text-primary">
-          {redemption.rewards?.points_required || 0} pts
+          {displayInfo.points} pts
+        </div>
+        <div className="text-xs text-muted-foreground capitalize">
+          {redemption.redemption_type || 'reward'}
         </div>
       </div>
     </div>

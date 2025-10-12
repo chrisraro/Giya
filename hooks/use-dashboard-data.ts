@@ -52,8 +52,8 @@ export interface Redemption {
   redeemed_at: string;
   status: string;
   business_id: string | null;
-  reward_id: string;
-  rewards: {
+  reward_id?: string;
+  rewards?: {
     reward_name: string;
     points_required: number;
     image_url: string | null;
@@ -65,6 +65,22 @@ export interface Redemption {
   customers?: {
     full_name: string;
   };
+  // For discount redemptions
+  discount_offer_id?: string;
+  discount_offers?: {
+    offer_title: string;
+    points_required: number;
+    image_url: string | null;
+  };
+  // For exclusive offer redemptions
+  exclusive_offer_id?: string;
+  exclusive_offers?: {
+    offer_title: string;
+    points_required: number;
+    image_url: string | null;
+  };
+  // Type field to distinguish between redemption types
+  redemption_type?: 'reward' | 'discount' | 'exclusive';
 }
 
 export interface BusinessPoints {
@@ -195,8 +211,9 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
 
     if (transactionsError) throw transactionsError;
 
-    // Fetch redemptions
-    const { data: redemptions, error: redemptionsError } = await supabase
+    // Fetch all types of redemptions
+    // 1. Reward redemptions
+    const { data: rewardRedemptions, error: rewardRedemptionsError } = await supabase
       .from("redemptions")
       .select(
         `
@@ -217,60 +234,104 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       `,
       )
       .eq("customer_id", userId)
-      .order("redeemed_at", { ascending: false })
-      .limit(10);
+      .order("redeemed_at", { ascending: false });
 
-    if (redemptionsError) {
-      // Try fallback query
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from("redemptions")
-        .select(
-          `
-          id,
-          redeemed_at,
-          status,
-          business_id,
-          reward_id,
-          rewards (
-            reward_name,
-            points_required,
-            image_url
-          )
-        `,
+    // 2. Discount redemptions
+    const { data: discountRedemptions, error: discountRedemptionsError } = await supabase
+      .from("discount_usage")
+      .select(
+        `
+        id,
+        used_at,
+        business_id,
+        discount_offer_id,
+        discount_offers (
+          offer_title,
+          points_required,
+          image_url
+        ),
+        businesses (
+          business_name,
+          profile_pic_url
         )
-        .eq("customer_id", userId)
-        .order("redeemed_at", { ascending: false })
-        .limit(10);
-        
-      if (fallbackError) throw fallbackError;
-      
-      // Manually fetch business information
-      const redemptionsWithBusiness = await Promise.all(
-        (fallbackData || []).map(async (redemption: any) => {
-          if (redemption.business_id) {
-            const { data: businessData, error: businessError } = await supabase
-              .from("businesses")
-              .select("business_name, profile_pic_url")
-              .eq("id", redemption.business_id)
-              .single();
-              
-            if (!businessError && businessData) {
-              return {
-                ...redemption,
-                businesses: businessData
-              };
-            }
-          }
-          return redemption;
-        })
-      );
-      
-      return {
-        customer,
-        transactions: transactions || [],
-        redemptions: redemptionsWithBusiness
-      };
+      `,
+      )
+      .eq("customer_id", userId)
+      .order("used_at", { ascending: false });
+
+    // 3. Exclusive offer redemptions
+    const { data: exclusiveOfferRedemptions, error: exclusiveOfferRedemptionsError } = await supabase
+      .from("exclusive_offer_usage")
+      .select(
+        `
+        id,
+        used_at,
+        business_id,
+        exclusive_offer_id,
+        exclusive_offers (
+          offer_title,
+          points_required,
+          image_url
+        ),
+        businesses (
+          business_name,
+          profile_pic_url
+        )
+      `,
+      )
+      .eq("customer_id", userId)
+      .order("used_at", { ascending: false });
+
+    // Combine all redemptions
+    let allRedemptions: Redemption[] = [];
+
+    // Process reward redemptions
+    if (rewardRedemptions) {
+      allRedemptions = rewardRedemptions.map((redemption: any) => ({
+        ...redemption,
+        redemption_type: 'reward'
+      }));
     }
+
+    // Process discount redemptions
+    if (discountRedemptions) {
+      const processedDiscountRedemptions = discountRedemptions.map((redemption: any) => ({
+        id: redemption.id,
+        redeemed_at: redemption.used_at,
+        status: 'completed', // Discount redemptions are typically immediate
+        business_id: redemption.business_id,
+        discount_offer_id: redemption.discount_offer_id,
+        discount_offers: redemption.discount_offers,
+        businesses: redemption.businesses,
+        redemption_type: 'discount'
+      }));
+      allRedemptions = [...allRedemptions, ...processedDiscountRedemptions];
+    }
+
+    // Process exclusive offer redemptions
+    if (exclusiveOfferRedemptions) {
+      const processedExclusiveOfferRedemptions = exclusiveOfferRedemptions.map((redemption: any) => ({
+        id: redemption.id,
+        redeemed_at: redemption.used_at,
+        status: 'completed', // Exclusive offer redemptions are typically immediate
+        business_id: redemption.business_id,
+        exclusive_offer_id: redemption.exclusive_offer_id,
+        exclusive_offers: redemption.exclusive_offers,
+        businesses: redemption.businesses,
+        redemption_type: 'exclusive'
+      }));
+      allRedemptions = [...allRedemptions, ...processedExclusiveOfferRedemptions];
+    }
+
+    // Sort all redemptions by date (most recent first)
+    allRedemptions.sort((a, b) => {
+      const dateA = new Date(a.redeemed_at).getTime();
+      const dateB = new Date(b.redeemed_at).getTime();
+      return dateB - dateA;
+    });
+
+    // Limit to 10 most recent redemptions
+    allRedemptions = allRedemptions.slice(0, 10);
 
     // Calculate business points
     const businessPoints = await calculateBusinessPoints(userId);
@@ -278,7 +339,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     return {
       customer,
       transactions: transactions || [],
-      redemptions: redemptions || [],
+      redemptions: allRedemptions,
       businessPoints
     };
   };
