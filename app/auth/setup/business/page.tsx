@@ -36,6 +36,19 @@ export default function BusinessSetupPage() {
         return
       }
 
+      // Check if business profile already exists
+      const { data: businessProfile, error: businessError } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("id", user.id)
+        .single()
+
+      if (businessProfile && !businessError) {
+        // Business profile already exists, redirect to dashboard
+        router.push("/dashboard/business")
+        return
+      }
+
       setUserData(user)
     }
 
@@ -54,6 +67,19 @@ export default function BusinessSetupPage() {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) throw new Error("No user found")
+
+      // Check if business profile already exists
+      const { data: existingBusiness, error: businessCheckError } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("id", user.id)
+        .single()
+
+      if (existingBusiness && !businessCheckError) {
+        // Business profile already exists, redirect to dashboard
+        router.push("/dashboard/business")
+        return
+      }
 
       let profilePicUrl = null
 
@@ -81,22 +107,31 @@ export default function BusinessSetupPage() {
         businessHoursJson = { hours: formData.businessHours }
       }
 
-      // Create profile record
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: user.id,
-        role: "business",
-        email: user.email!,
-      })
+      // Check if profile record already exists
+      const { data: existingProfile, error: profileCheckError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single()
 
-      if (profileError) throw profileError
+      if (!existingProfile && profileCheckError?.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: user.id,
+          role: "business",
+          email: user.email!,
+        })
+
+        if (profileError) throw profileError
+      }
 
       // Create business record
       const { error: businessError } = await supabase.from("businesses").insert({
         id: user.id,
-        business_name: user.user_metadata.business_name,
-        business_category: user.user_metadata.business_category,
-        address: user.user_metadata.address,
-        gmaps_link: user.user_metadata.gmaps_link || null,
+        business_name: user.user_metadata?.business_name || "Business Name",
+        business_category: user.user_metadata?.business_category || "Other",
+        address: user.user_metadata?.address || "Address",
+        gmaps_link: user.user_metadata?.gmaps_link || null,
         business_hours: businessHoursJson,
         profile_pic_url: profilePicUrl,
         points_per_currency: Number.parseInt(formData.pointsPerCurrency) || 100,

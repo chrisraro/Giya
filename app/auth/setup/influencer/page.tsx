@@ -31,6 +31,19 @@ export default function InfluencerSetupPage() {
         return
       }
 
+      // Check if influencer profile already exists
+      const { data: influencerProfile, error: influencerError } = await supabase
+        .from("influencers")
+        .select("id")
+        .eq("id", user.id)
+        .single()
+
+      if (influencerProfile && !influencerError) {
+        // Influencer profile already exists, redirect to dashboard
+        router.push("/dashboard/influencer")
+        return
+      }
+
       setUserData(user)
     }
 
@@ -50,6 +63,19 @@ export default function InfluencerSetupPage() {
       } = await supabase.auth.getUser()
       if (!user) throw new Error("No user found")
 
+      // Check if influencer profile already exists
+      const { data: existingInfluencer, error: influencerCheckError } = await supabase
+        .from("influencers")
+        .select("id")
+        .eq("id", user.id)
+        .single()
+
+      if (existingInfluencer && !influencerCheckError) {
+        // Influencer profile already exists, redirect to dashboard
+        router.push("/dashboard/influencer")
+        return
+      }
+
       let profilePicUrl = null
 
       // Upload profile picture if provided
@@ -68,25 +94,34 @@ export default function InfluencerSetupPage() {
         profilePicUrl = publicUrl
       }
 
-      // Create profile record
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: user.id,
-        role: "influencer",
-        email: user.email!,
-      })
+      // Check if profile record already exists
+      const { data: existingProfile, error: profileCheckError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single()
 
-      if (profileError) throw profileError
+      if (!existingProfile && profileCheckError?.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: user.id,
+          role: "influencer",
+          email: user.email!,
+        })
+
+        if (profileError) throw profileError
+      }
 
       // Create influencer record
       const { error: influencerError } = await supabase.from("influencers").insert({
         id: user.id,
-        full_name: user.user_metadata.full_name,
+        full_name: user.user_metadata?.full_name || "Influencer Name",
         profile_pic_url: profilePicUrl,
-        address: user.user_metadata.address,
-        facebook_link: user.user_metadata.facebook_link || null,
-        tiktok_link: user.user_metadata.tiktok_link || null,
-        twitter_link: user.user_metadata.twitter_link || null,
-        youtube_link: user.user_metadata.youtube_link || null,
+        address: user.user_metadata?.address || "Address",
+        facebook_link: user.user_metadata?.facebook_link || null,
+        tiktok_link: user.user_metadata?.tiktok_link || null,
+        twitter_link: user.user_metadata?.twitter_link || null,
+        youtube_link: user.user_metadata?.youtube_link || null,
       })
 
       if (influencerError) throw influencerError
@@ -112,12 +147,12 @@ export default function InfluencerSetupPage() {
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <Image src="/giya-logo.jpg" alt="Giya Logo" width={80} height={80} className="object-contain" />
+          <Image src="/giya-logo.png" alt="Giya Logo" width={80} height={80} className="object-contain" />
         </div>
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Complete Your Profile</CardTitle>
-            <CardDescription>Add a profile picture to get started</CardDescription>
+            <CardDescription>Add a profile picture to personalize your account</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSetup}>
@@ -130,8 +165,9 @@ export default function InfluencerSetupPage() {
                     accept="image/*"
                     onChange={(e) => setProfilePic(e.target.files?.[0] || null)}
                   />
+                  <p className="text-xs text-muted-foreground">Upload a profile picture to personalize your account</p>
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>

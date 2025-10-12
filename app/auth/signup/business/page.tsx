@@ -113,11 +113,20 @@ export default function BusinessSignupPage() {
     setIsGoogleLoading(true)
     setError(null)
 
+    // Save preferred role to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('preferred_role', 'business')
+    }
+
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
 

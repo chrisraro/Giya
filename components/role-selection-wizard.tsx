@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, User, Megaphone } from "lucide-react"
@@ -14,17 +14,43 @@ interface RoleSelectionWizardProps {
 export function RoleSelectionWizard({ onRoleSelected }: RoleSelectionWizardProps) {
   const [selectedRole, setSelectedRole] = useState<"customer" | "business" | "influencer" | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
+  // Check if there's a preferred role from the signup process
+  useEffect(() => {
+    const checkPreferredRole = async () => {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (userError) throw userError
+        if (!user) throw new Error("No authenticated user found")
+        
+        // Check if user has a preferred role from signup
+        const preferredRole = localStorage.getItem('preferred_role')
+        if (preferredRole && (preferredRole === "customer" || preferredRole === "business" || preferredRole === "influencer")) {
+          setSelectedRole(preferredRole)
+        }
+      } catch (error) {
+        console.error("Error checking preferred role:", error)
+      }
+    }
+
+    checkPreferredRole()
+  }, [supabase])
+
   const handleRoleSelect = (role: "customer" | "business" | "influencer") => {
     setSelectedRole(role)
+    // Save the selection to localStorage
+    localStorage.setItem('preferred_role', role)
   }
 
   const handleContinue = async () => {
     if (!selectedRole) return
 
     setIsLoading(true)
+    setError(null)
     
     try {
       // Update the user's metadata with the selected role
@@ -42,6 +68,9 @@ export function RoleSelectionWizard({ onRoleSelected }: RoleSelectionWizardProps
       
       if (updateError) throw updateError
       
+      // Clean up localStorage
+      localStorage.removeItem('preferred_role')
+      
       // Redirect to the appropriate setup page
       if (onRoleSelected) {
         onRoleSelected(selectedRole)
@@ -50,6 +79,7 @@ export function RoleSelectionWizard({ onRoleSelected }: RoleSelectionWizardProps
       }
     } catch (error) {
       console.error("Error setting user role:", error)
+      setError(error instanceof Error ? error.message : "An error occurred while setting your role")
     } finally {
       setIsLoading(false)
     }
@@ -118,12 +148,23 @@ export function RoleSelectionWizard({ onRoleSelected }: RoleSelectionWizardProps
               </div>
             </Button>
 
+            {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+
             <Button
               className="w-full mt-4"
               disabled={!selectedRole || isLoading}
               onClick={handleContinue}
             >
-              {isLoading ? "Setting up..." : "Continue"}
+              {isLoading ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin">
+                    <div className="h-full w-full rounded-full border-2 border-current border-t-transparent"></div>
+                  </div>
+                  Setting up...
+                </>
+              ) : (
+                "Continue"
+              )}
             </Button>
           </div>
         </CardContent>

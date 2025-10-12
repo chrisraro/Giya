@@ -106,11 +106,20 @@ export default function InfluencerSignupPage() {
     setIsGoogleLoading(true)
     setError(null)
 
+    // Save preferred role to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('preferred_role', 'influencer')
+    }
+
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
 
@@ -194,50 +203,45 @@ export default function InfluencerSignupPage() {
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     />
                   </div>
-                  <div className="border-t pt-4">
-                    <h3 className="text-sm font-medium mb-3">Social Media Links (Optional)</h3>
-                    <div className="flex flex-col gap-3">
-                      <div className="grid gap-2">
-                        <Label htmlFor="facebookLink">Facebook</Label>
-                        <Input
-                          id="facebookLink"
-                          type="url"
-                          placeholder="https://facebook.com/..."
-                          value={formData.facebookLink}
-                          onChange={(e) => setFormData({ ...formData, facebookLink: e.target.value })}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="tiktokLink">TikTok</Label>
-                        <Input
-                          id="tiktokLink"
-                          type="url"
-                          placeholder="https://tiktok.com/@..."
-                          value={formData.tiktokLink}
-                          onChange={(e) => setFormData({ ...formData, tiktokLink: e.target.value })}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="twitterLink">X (Twitter)</Label>
-                        <Input
-                          id="twitterLink"
-                          type="url"
-                          placeholder="https://x.com/..."
-                          value={formData.twitterLink}
-                          onChange={(e) => setFormData({ ...formData, twitterLink: e.target.value })}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="youtubeLink">YouTube</Label>
-                        <Input
-                          id="youtubeLink"
-                          type="url"
-                          placeholder="https://youtube.com/@..."
-                          value={formData.youtubeLink}
-                          onChange={(e) => setFormData({ ...formData, youtubeLink: e.target.value })}
-                        />
-                      </div>
-                    </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="facebookLink">Facebook Link (Optional)</Label>
+                    <Input
+                      id="facebookLink"
+                      type="url"
+                      placeholder="https://facebook.com/..."
+                      value={formData.facebookLink}
+                      onChange={(e) => setFormData({ ...formData, facebookLink: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="tiktokLink">TikTok Link (Optional)</Label>
+                    <Input
+                      id="tiktokLink"
+                      type="url"
+                      placeholder="https://tiktok.com/..."
+                      value={formData.tiktokLink}
+                      onChange={(e) => setFormData({ ...formData, tiktokLink: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="twitterLink">Twitter Link (Optional)</Label>
+                    <Input
+                      id="twitterLink"
+                      type="url"
+                      placeholder="https://twitter.com/..."
+                      value={formData.twitterLink}
+                      onChange={(e) => setFormData({ ...formData, twitterLink: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="youtubeLink">YouTube Link (Optional)</Label>
+                    <Input
+                      id="youtubeLink"
+                      type="url"
+                      placeholder="https://youtube.com/..."
+                      value={formData.youtubeLink}
+                      onChange={(e) => setFormData({ ...formData, youtubeLink: e.target.value })}
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>

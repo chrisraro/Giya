@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        // Check if user already has a role
+        // Check if user already has a role in user_metadata (from signup)
         if (user.user_metadata?.role) {
           // User already has a role, redirect to appropriate dashboard
           let redirectPath = "/"
@@ -37,8 +37,34 @@ export async function GET(request: Request) {
           }
           return NextResponse.redirect(new URL(redirectPath, request.url))
         } else {
-          // User doesn't have a role yet, redirect to role selection
-          return NextResponse.redirect(new URL("/auth/role-selection", request.url))
+          // Check if user already has a profile in the database (for existing users)
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single()
+
+          if (!profileError && profile) {
+            // User has a profile, redirect to appropriate dashboard
+            let redirectPath = "/"
+            switch (profile.role) {
+              case "customer":
+                redirectPath = "/dashboard/customer"
+                break
+              case "business":
+                redirectPath = "/dashboard/business"
+                break
+              case "influencer":
+                redirectPath = "/dashboard/influencer"
+                break
+              default:
+                redirectPath = "/"
+            }
+            return NextResponse.redirect(new URL(redirectPath, request.url))
+          } else {
+            // User doesn't have a role yet, redirect to role selection
+            return NextResponse.redirect(new URL("/auth/role-selection", request.url))
+          }
         }
       }
     }

@@ -31,6 +31,19 @@ export default function CustomerSetupPage() {
         return
       }
 
+      // Check if customer profile already exists
+      const { data: customerProfile, error: customerError } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("id", user.id)
+        .single()
+
+      if (customerProfile && !customerError) {
+        // Customer profile already exists, redirect to dashboard
+        router.push("/dashboard/customer")
+        return
+      }
+
       setUserData(user)
     }
 
@@ -50,6 +63,19 @@ export default function CustomerSetupPage() {
       } = await supabase.auth.getUser()
       if (!user) throw new Error("No user found")
 
+      // Check if customer profile already exists
+      const { data: existingCustomer, error: customerCheckError } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("id", user.id)
+        .single()
+
+      if (existingCustomer && !customerCheckError) {
+        // Customer profile already exists, redirect to dashboard
+        router.push("/dashboard/customer")
+        return
+      }
+
       let profilePicUrl = null
 
       // Upload profile picture if provided
@@ -68,14 +94,23 @@ export default function CustomerSetupPage() {
         profilePicUrl = publicUrl
       }
 
-      // Create profile record
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: user.id,
-        role: "customer",
-        email: user.email!,
-      })
+      // Check if profile record already exists
+      const { data: existingProfile, error: profileCheckError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single()
 
-      if (profileError) throw profileError
+      if (!existingProfile && profileCheckError?.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: user.id,
+          role: "customer",
+          email: user.email!,
+        })
+
+        if (profileError) throw profileError
+      }
 
       // Generate QR code data
       const qrCodeData = `GIYA-${user.id.substring(0, 12).toUpperCase()}`
@@ -86,8 +121,8 @@ export default function CustomerSetupPage() {
       // Create customer record with referral code if present
       const { error: customerError } = await supabase.from("customers").insert({
         id: user.id,
-        full_name: user.user_metadata.full_name,
-        nickname: user.user_metadata.nickname || null,
+        full_name: user.user_metadata?.full_name || "Customer Name",
+        nickname: user.user_metadata?.nickname || null,
         profile_pic_url: profilePicUrl,
         qr_code_data: qrCodeData,
         referral_code: referralCode // Store the referral code
@@ -139,8 +174,9 @@ export default function CustomerSetupPage() {
                     accept="image/*"
                     onChange={(e) => setProfilePic(e.target.files?.[0] || null)}
                   />
+                  <p className="text-xs text-muted-foreground">Upload a profile picture to personalize your account</p>
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>

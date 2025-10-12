@@ -56,6 +56,10 @@ export default function SignupPage() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
 
@@ -113,18 +117,27 @@ export default function SignupPage() {
             </div>
           </div>
         </div>
-        
-        {error && <p className="text-sm text-destructive text-center mb-4">{error}</p>}
-        
-        <div className="grid md:grid-cols-3 gap-6">
+
+        <div className="grid gap-6 md:grid-cols-3">
           <Card>
             <CardHeader className="text-center">
+              <div className="flex justify-center mb-3">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <User className="h-6 w-6 text-primary" />
+                </div>
+              </div>
               <CardTitle className="text-2xl">Create Customer Account</CardTitle>
-              <CardDescription>Join Giya to start earning rewards</CardDescription>
+              <CardDescription>Join Giya and start earning rewards</CardDescription>
             </CardHeader>
             <CardContent>
               <Button 
-                onClick={() => router.push("/auth/signup/customer")} 
+                onClick={() => {
+                  // Save preferred role to localStorage
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('preferred_role', 'customer')
+                  }
+                  router.push("/auth/signup/customer")
+                }} 
                 className="w-full"
                 variant="default"
               >
@@ -136,12 +149,23 @@ export default function SignupPage() {
 
           <Card>
             <CardHeader className="text-center">
+              <div className="flex justify-center mb-3">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <Building2 className="h-6 w-6 text-primary" />
+                </div>
+              </div>
               <CardTitle className="text-2xl">Create Business Account</CardTitle>
-              <CardDescription>Join Giya to offer rewards to customers</CardDescription>
+              <CardDescription>Set up your loyalty program on Giya</CardDescription>
             </CardHeader>
             <CardContent>
               <Button 
-                onClick={() => router.push("/auth/signup/business")} 
+                onClick={() => {
+                  // Save preferred role to localStorage
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('preferred_role', 'business')
+                  }
+                  router.push("/auth/signup/business")
+                }} 
                 className="w-full"
                 variant="default"
               >
@@ -153,12 +177,23 @@ export default function SignupPage() {
 
           <Card>
             <CardHeader className="text-center">
+              <div className="flex justify-center mb-3">
+                <div className="bg-primary/10 p-3 rounded-full">
+                  <Megaphone className="h-6 w-6 text-primary" />
+                </div>
+              </div>
               <CardTitle className="text-2xl">Create Influencer Account</CardTitle>
               <CardDescription>Join Giya to promote businesses</CardDescription>
             </CardHeader>
             <CardContent>
               <Button 
-                onClick={() => router.push("/auth/signup/influencer")} 
+                onClick={() => {
+                  // Save preferred role to localStorage
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('preferred_role', 'influencer')
+                  }
+                  router.push("/auth/signup/influencer")
+                }} 
                 className="w-full"
                 variant="default"
               >
