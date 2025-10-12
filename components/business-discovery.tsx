@@ -26,7 +26,7 @@ export async function BusinessDiscovery() {
     <section id="businesses" className="section-padding-y bg-background">
       <div className="container-padding-x container mx-auto">
         <div className="mb-8 md:mb-12">
-          <h2 className="heading-lg mb-2">Discover Local Businesses</h2>
+          <h2 className="heading-lg mb-2">Discover Local Businesses in <span className="text-primary">Naga City</span></h2>
           <p className="text-muted-foreground">Explore amazing local spots and earn rewards with every visit</p>
         </div>
 

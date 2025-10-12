@@ -17,7 +17,7 @@ export function HeroSection2() {
           <div className="section-title-gap-xl flex flex-col">
             <Tagline>Giya - Hyperlocal Discovery</Tagline>
             <h1 id="hero-heading" className="heading-xl">
-              Unlock new experiences and perks in your neighborhood
+               Unlock new experiences and perks in <span className="text-primary">Naga City</span>
             </h1>
             <p className="text-muted-foreground text-base lg:text-lg">
               Discover local businesses, earn rewards, and enjoy exclusive privileges with Giya's QR-based loyalty
