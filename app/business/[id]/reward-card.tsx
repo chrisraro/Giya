@@ -137,45 +137,78 @@ export function RewardCard({ reward, business, user, businessId }: {
 
   return (
     <>
-      <Card className="overflow-hidden">
-        {reward.image_url && (
-          <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
-            <Image
-              src={reward.image_url}
-              alt={reward.name}
-              fill
-              className="object-cover"
-            />
+      <Card className={`overflow-hidden ${reward.image_url ? 'p-0' : 'p-6'}`}>
+        {reward.image_url ? (
+          <>
+            <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+              <Image
+                src={reward.image_url}
+                alt={reward.name}
+                fill
+                className="object-cover"
+              />
+            </div>
+            <CardHeader className="p-4 bg-transparent">
+              <CardTitle className="text-xl font-bold">{reward.name}</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">{reward.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="mb-4">
+                <p className="text-3xl font-bold text-primary">{reward.points_required}</p>
+                <p className="text-sm text-muted-foreground">points required</p>
+              </div>
+              {user ? (
+                <Button 
+                  className="w-full" 
+                  onClick={handleRedeemClick}
+                  disabled={!canRedeem}
+                  variant={canRedeem ? "default" : "outline"}
+                >
+                  <Gift className="mr-2 h-4 w-4" />
+                  {canRedeem ? "Claim Reward" : `Need ${reward.points_required - customerPoints} more points`}
+                </Button>
+              ) : (
+                <Link href="/auth/signup">
+                  <Button className="w-full">
+                    <Gift className="mr-2 h-4 w-4" />
+                    Sign Up to Claim
+                  </Button>
+                </Link>
+              )}
+            </CardContent>
+          </>
+        ) : (
+          <div className="p-0">
+            <CardHeader className="p-4 bg-transparent">
+              <CardTitle className="text-xl font-bold">{reward.name}</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">{reward.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="mb-4">
+                <p className="text-3xl font-bold text-primary">{reward.points_required}</p>
+                <p className="text-sm text-muted-foreground">points required</p>
+              </div>
+              {user ? (
+                <Button 
+                  className="w-full" 
+                  onClick={handleRedeemClick}
+                  disabled={!canRedeem}
+                  variant={canRedeem ? "default" : "outline"}
+                >
+                  <Gift className="mr-2 h-4 w-4" />
+                  {canRedeem ? "Claim Reward" : `Need ${reward.points_required - customerPoints} more points`}
+                </Button>
+              ) : (
+                <Link href="/auth/signup">
+                  <Button className="w-full">
+                    <Gift className="mr-2 h-4 w-4" />
+                    Sign Up to Claim
+                  </Button>
+                </Link>
+              )}
+            </CardContent>
           </div>
         )}
-        <CardHeader className="p-4 bg-transparent">
-          <CardTitle className="text-xl font-bold">{reward.name}</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">{reward.description}</CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <div className="mb-4">
-            <p className="text-3xl font-bold text-primary">{reward.points_required}</p>
-            <p className="text-sm text-muted-foreground">points required</p>
-          </div>
-          {user ? (
-            <Button 
-              className="w-full" 
-              onClick={handleRedeemClick}
-              disabled={!canRedeem}
-              variant={canRedeem ? "default" : "outline"}
-            >
-              <Gift className="mr-2 h-4 w-4" />
-              {canRedeem ? "Claim Reward" : `Need ${reward.points_required - customerPoints} more points`}
-            </Button>
-          ) : (
-            <Link href="/auth/signup">
-              <Button className="w-full">
-                <Gift className="mr-2 h-4 w-4" />
-                Sign Up to Claim
-              </Button>
-            </Link>
-          )}
-        </CardContent>
       </Card>
 
       {/* Redeem Confirmation Dialog */}

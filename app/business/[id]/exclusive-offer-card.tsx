@@ -85,54 +85,96 @@ export function ExclusiveOfferCard({
 
   return (
     <>
-      <Card className="overflow-hidden">
-        {offer.image_url && (
-          <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
-            <Image
-              src={offer.image_url}
-              alt={offer.title}
-              fill
-              className="object-cover"
-            />
+      <Card className={`overflow-hidden ${offer.image_url ? 'p-0' : 'p-6'}`}>
+        {offer.image_url ? (
+          <>
+            <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+              <Image
+                src={offer.image_url}
+                alt={offer.title}
+                fill
+                className="object-cover"
+              />
+            </div>
+            <CardHeader className="p-4 bg-transparent">
+              <CardTitle className="text-xl font-bold">{offer.title}</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">{offer.product_name}</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="mb-4">
+                {offer.original_price && (
+                  <p className="text-sm text-muted-foreground line-through">
+                    ₱{offer.original_price?.toFixed(2)}
+                  </p>
+                )}
+                <p className="text-2xl font-bold text-primary">
+                  {offer.discounted_price ? `₱${offer.discounted_price?.toFixed(2)}` : "Special Offer"}
+                </p>
+                {offer.discount_percentage && (
+                  <p className="text-sm text-green-600 font-medium mt-1">
+                    Save {offer.discount_percentage?.toFixed(0)}%
+                  </p>
+                )}
+              </div>
+              {user ? (
+                <Button 
+                  className="w-full" 
+                  onClick={handleRedeemClick}
+                >
+                  <Star className="mr-2 h-4 w-4" />
+                  Redeem Now
+                </Button>
+              ) : (
+                <Link href="/auth/signup">
+                  <Button className="w-full">
+                    <Star className="mr-2 h-4 w-4" />
+                    Sign Up to Redeem
+                  </Button>
+                </Link>
+              )}
+            </CardContent>
+          </>
+        ) : (
+          <div className="p-0">
+            <CardHeader className="p-4 bg-transparent">
+              <CardTitle className="text-xl font-bold">{offer.title}</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">{offer.product_name}</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="mb-4">
+                {offer.original_price && (
+                  <p className="text-sm text-muted-foreground line-through">
+                    ₱{offer.original_price?.toFixed(2)}
+                  </p>
+                )}
+                <p className="text-2xl font-bold text-primary">
+                  {offer.discounted_price ? `₱${offer.discounted_price?.toFixed(2)}` : "Special Offer"}
+                </p>
+                {offer.discount_percentage && (
+                  <p className="text-sm text-green-600 font-medium mt-1">
+                    Save {offer.discount_percentage?.toFixed(0)}%
+                  </p>
+                )}
+              </div>
+              {user ? (
+                <Button 
+                  className="w-full" 
+                  onClick={handleRedeemClick}
+                >
+                  <Star className="mr-2 h-4 w-4" />
+                  Redeem Now
+                </Button>
+              ) : (
+                <Link href="/auth/signup">
+                  <Button className="w-full">
+                    <Star className="mr-2 h-4 w-4" />
+                    Sign Up to Redeem
+                  </Button>
+                </Link>
+              )}
+            </CardContent>
           </div>
         )}
-        <CardHeader className="p-4 bg-transparent">
-          <CardTitle className="text-xl font-bold">{offer.title}</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">{offer.product_name}</CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <div className="mb-4">
-            {offer.original_price && (
-              <p className="text-sm text-muted-foreground line-through">
-                ₱{offer.original_price?.toFixed(2)}
-              </p>
-            )}
-            <p className="text-2xl font-bold text-primary">
-              {offer.discounted_price ? `₱${offer.discounted_price?.toFixed(2)}` : "Special Offer"}
-            </p>
-            {offer.discount_percentage && (
-              <p className="text-sm text-green-600 font-medium mt-1">
-                Save {offer.discount_percentage?.toFixed(0)}%
-              </p>
-            )}
-          </div>
-          {user ? (
-            <Button 
-              className="w-full" 
-              onClick={handleRedeemClick}
-            >
-              <Star className="mr-2 h-4 w-4" />
-              Redeem Now
-            </Button>
-          ) : (
-            <Link href="/auth/signup">
-              <Button className="w-full">
-                <Star className="mr-2 h-4 w-4" />
-                Sign Up to Redeem
-              </Button>
-            </Link>
-          )}
-        </CardContent>
       </Card>
 
       {/* Redeem Confirmation Dialog */}

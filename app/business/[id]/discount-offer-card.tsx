@@ -86,53 +86,94 @@ export function DiscountOfferCard({
 
   return (
     <>
-      <Card className="overflow-hidden">
-        {offer.image_url && (
-          <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
-            <Image
-              src={offer.image_url}
-              alt={offer.title}
-              fill
-              className="object-cover"
-            />
+      <Card className={`overflow-hidden ${offer.image_url ? 'p-0' : 'p-6'}`}>
+        {offer.image_url ? (
+          <>
+            <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+              <Image
+                src={offer.image_url}
+                alt={offer.title}
+                fill
+                className="object-cover"
+              />
+            </div>
+            <CardHeader className="p-4 bg-transparent">
+              <CardTitle className="text-xl font-bold">{offer.title}</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">{offer.description || "Special discount offer"}</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="mb-4">
+                <p className="text-2xl font-bold text-primary">
+                  {offer.discount_type === "percentage" 
+                    ? `${offer.discount_value}% OFF` 
+                    : offer.discount_type === "fixed_amount" 
+                      ? `₱${offer.discount_value?.toFixed(2)} OFF` 
+                      : `${offer.discount_value} POINTS`}
+                </p>
+                {offer.minimum_purchase && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Min. purchase: ₱{offer.minimum_purchase?.toFixed(2)}
+                  </p>
+                )}
+              </div>
+              {user ? (
+                <Button 
+                  className="w-full" 
+                  onClick={handleRedeemClick}
+                >
+                  <Tag className="mr-2 h-4 w-4" />
+                  Redeem Now
+                </Button>
+              ) : (
+                <Link href="/auth/signup">
+                  <Button className="w-full">
+                    <Tag className="mr-2 h-4 w-4" />
+                    Sign Up to Redeem
+                  </Button>
+                </Link>
+              )}
+            </CardContent>
+          </>
+        ) : (
+          <div className="p-0">
+            <CardHeader className="p-4 bg-transparent">
+              <CardTitle className="text-xl font-bold">{offer.title}</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">{offer.description || "Special discount offer"}</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="mb-4">
+                <p className="text-2xl font-bold text-primary">
+                  {offer.discount_type === "percentage" 
+                    ? `${offer.discount_value}% OFF` 
+                    : offer.discount_type === "fixed_amount" 
+                      ? `₱${offer.discount_value?.toFixed(2)} OFF` 
+                      : `${offer.discount_value} POINTS`}
+                </p>
+                {offer.minimum_purchase && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Min. purchase: ₱{offer.minimum_purchase?.toFixed(2)}
+                  </p>
+                )}
+              </div>
+              {user ? (
+                <Button 
+                  className="w-full" 
+                  onClick={handleRedeemClick}
+                >
+                  <Tag className="mr-2 h-4 w-4" />
+                  Redeem Now
+                </Button>
+              ) : (
+                <Link href="/auth/signup">
+                  <Button className="w-full">
+                    <Tag className="mr-2 h-4 w-4" />
+                    Sign Up to Redeem
+                  </Button>
+                </Link>
+              )}
+            </CardContent>
           </div>
         )}
-        <CardHeader className="p-4 bg-transparent">
-          <CardTitle className="text-xl font-bold">{offer.title}</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">{offer.description || "Special discount offer"}</CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <div className="mb-4">
-            <p className="text-2xl font-bold text-primary">
-              {offer.discount_type === "percentage" 
-                ? `${offer.discount_value}% OFF` 
-                : offer.discount_type === "fixed_amount" 
-                  ? `₱${offer.discount_value?.toFixed(2)} OFF` 
-                  : `${offer.discount_value} POINTS`}
-            </p>
-            {offer.minimum_purchase && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Min. purchase: ₱{offer.minimum_purchase?.toFixed(2)}
-              </p>
-            )}
-          </div>
-          {user ? (
-            <Button 
-              className="w-full" 
-              onClick={handleRedeemClick}
-            >
-              <Tag className="mr-2 h-4 w-4" />
-              Redeem Now
-            </Button>
-          ) : (
-            <Link href="/auth/signup">
-              <Button className="w-full">
-                <Tag className="mr-2 h-4 w-4" />
-                Sign Up to Redeem
-              </Button>
-            </Link>
-          )}
-        </CardContent>
       </Card>
 
       {/* Redeem Confirmation Dialog */}
