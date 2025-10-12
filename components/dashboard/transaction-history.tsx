@@ -8,7 +8,7 @@ interface Transaction {
   amount_spent: number
   points_earned: number
   transaction_date: string
-  customers: {
+  customers?: {
     full_name: string
     profile_pic_url: string | null
   }
@@ -38,11 +38,11 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
               <div key={transaction.id} className="flex items-center justify-between border-b pb-4 last:border-0">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={transaction.customers.profile_pic_url || undefined} />
-                    <AvatarFallback>{transaction.customers.full_name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={transaction.customers?.profile_pic_url || undefined} />
+                    <AvatarFallback>{transaction.customers?.full_name?.charAt(0) || 'C'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium text-foreground">{transaction.customers.full_name}</p>
+                    <p className="font-medium text-foreground">{transaction.customers?.full_name || 'Customer'}</p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(transaction.transaction_date).toLocaleDateString("en-US", {
                         month: "short",

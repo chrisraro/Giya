@@ -10,6 +10,9 @@ declare
   v_usage_count integer;
   v_result json;
 begin
+  -- Log the input parameters for debugging
+  raise log 'redeem_discount_offer called with p_qr_code: %, p_customer_id: %, p_business_id: %', p_qr_code, p_customer_id, p_business_id;
+
   -- Find the discount offer by QR code
   select id, business_id, title, discount_type, discount_value, usage_limit, used_count
   into v_discount_record
@@ -78,6 +81,9 @@ declare
   v_usage_count integer;
   v_result json;
 begin
+  -- Log the input parameters for debugging
+  raise log 'redeem_exclusive_offer called with p_qr_code: %, p_customer_id: %, p_business_id: %', p_qr_code, p_customer_id, p_business_id;
+
   -- Find the exclusive offer by QR code
   select id, business_id, title, product_name, original_price, discounted_price, usage_limit, used_count
   into v_offer_record

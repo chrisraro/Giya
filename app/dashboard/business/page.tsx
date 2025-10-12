@@ -37,18 +37,6 @@ interface BusinessData {
   points_per_currency: number
 }
 
-interface Transaction {
-  id: string
-  customer_id: string
-  amount_spent: number
-  points_earned: number
-  transaction_date: string
-  customers: {
-    full_name: string
-    profile_pic_url: string | null
-  }
-}
-
 interface CustomerInfo {
   id: string
   full_name: string
@@ -142,10 +130,13 @@ export default function BusinessDashboard() {
         return
       }
 
+      // If we have a scanned customer, use their ID for offer redemptions
+      const customerIdToUse = scannedCustomer?.id || redemption?.customer_id || null;
+
       // Try to find a discount offer redemption
       const discountResult = await supabase.rpc('redeem_discount_offer', {
         p_qr_code: qrData,
-        p_customer_id: redemption?.customer_id || null,
+        p_customer_id: customerIdToUse,
         p_business_id: user.id
       })
 
@@ -159,7 +150,7 @@ export default function BusinessDashboard() {
       // Try to find an exclusive offer redemption
       const exclusiveResult = await supabase.rpc('redeem_exclusive_offer', {
         p_qr_code: qrData,
-        p_customer_id: redemption?.customer_id || null,
+        p_customer_id: customerIdToUse,
         p_business_id: user.id
       })
 
@@ -256,7 +247,7 @@ export default function BusinessDashboard() {
     } finally {
       setIsProcessing(false)
       setShowTransactionDialog(false)
-      setScannedCustomer(null)
+      setScannedCustomer(null) // Clear the scanned customer after transaction
       setTransactionAmount("")
     }
   }

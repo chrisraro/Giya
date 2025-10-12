@@ -2,7 +2,7 @@
 create table if not exists public.exclusive_offer_usage (
   id uuid primary key default gen_random_uuid(),
   exclusive_offer_id uuid references public.exclusive_offers(id) on delete cascade,
-  customer_id uuid references public.customers(id) on delete cascade,
+  customer_id uuid references public.customers(id) on delete cascade not null,
   business_id uuid references public.businesses(id) on delete cascade,
   used_at timestamp with time zone default now(),
   created_at timestamp with time zone default now()
