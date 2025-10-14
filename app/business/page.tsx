@@ -211,11 +211,13 @@ export default function BusinessDirectoryPage() {
                   {business.profile_pic_url ? (
                     <>
                       <div className="relative h-48 overflow-hidden rounded-t-lg">
-                        <AvatarImage 
-                          src={business.profile_pic_url} 
-                          alt={business.business_name}
-                          className="h-full w-full object-cover"
-                        />
+                        <Avatar className="h-full w-full">
+                          <AvatarImage 
+                            src={business.profile_pic_url} 
+                            alt={business.business_name}
+                            className="h-full w-full object-cover"
+                          />
+                        </Avatar>
                       </div>
                       <div className="p-4">
                         <div className="mb-2 flex items-center justify-between">
