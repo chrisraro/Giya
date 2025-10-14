@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
+import { cookies as clientCookies } from "next/headers"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -32,23 +33,83 @@ export async function GET(request: Request) {
         
         // Check if user already has a role in user_metadata (from signup)
         if (user.user_metadata?.role) {
-          // User already has a role, redirect to appropriate dashboard
+          // User already has a role, redirect to appropriate setup page
           let redirectPath = "/"
           switch (user.user_metadata.role) {
             case "customer":
-              redirectPath = "/dashboard/customer"
+              redirectPath = "/auth/setup/customer"
               break
             case "business":
-              redirectPath = "/dashboard/business"
+              redirectPath = "/auth/setup/business"
               break
             case "influencer":
-              redirectPath = "/dashboard/influencer"
+              redirectPath = "/auth/setup/influencer"
               break
             default:
               redirectPath = "/"
           }
           return NextResponse.redirect(new URL(redirectPath, request.url))
         } else {
+          // Check if this is a Google signup with form data
+          // Try to get form data from localStorage (server-side we'll check cookies or URL params)
+          const googleSignupDataCookie = cookieStore.get('google_signup_data')?.value
+          
+          if (googleSignupDataCookie) {
+            try {
+              const googleSignupData = JSON.parse(googleSignupDataCookie)
+              const { role, formData } = googleSignupData
+              
+              // Update user metadata with role and form data
+              const updateData: any = {
+                data: {
+                  role: role,
+                }
+              }
+              
+              // Add role-specific data
+              if (role === "customer") {
+                updateData.data.full_name = formData.fullName
+                updateData.data.nickname = formData.nickname || null
+              } else if (role === "business") {
+                updateData.data.business_name = formData.businessName
+                updateData.data.business_category = formData.businessCategory
+                updateData.data.address = formData.address
+                updateData.data.gmaps_link = formData.gmapsLink || null
+              } else if (role === "influencer") {
+                updateData.data.full_name = formData.influencerFullName
+                updateData.data.address = formData.influencerAddress
+                updateData.data.facebook_link = formData.facebookLink || null
+                updateData.data.tiktok_link = formData.tiktokLink || null
+                updateData.data.twitter_link = formData.twitterLink || null
+                updateData.data.youtube_link = formData.youtubeLink || null
+              }
+              
+              await supabase.auth.updateUser(updateData)
+              
+              // Clean up the cookie
+              // Note: We can't delete cookies in a server action, but we can set it to expire
+              
+              // Redirect to appropriate setup page
+              let redirectPath = "/"
+              switch (role) {
+                case "customer":
+                  redirectPath = "/auth/setup/customer"
+                  break
+                case "business":
+                  redirectPath = "/auth/setup/business"
+                  break
+                case "influencer":
+                  redirectPath = "/auth/setup/influencer"
+                  break
+                default:
+                  redirectPath = "/"
+              }
+              return NextResponse.redirect(new URL(redirectPath, request.url))
+            } catch (parseError) {
+              console.error("Error parsing google signup data:", parseError)
+            }
+          }
+          
           // Check if user already has a profile in the database (for existing users)
           const { data: profile, error: profileError } = await supabase
             .from("profiles")

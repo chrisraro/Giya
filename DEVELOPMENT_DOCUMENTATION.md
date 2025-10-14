@@ -125,6 +125,35 @@ All tables implement RLS policies to ensure data isolation between users:
 
 ## Authentication System
 
+### Authentication Flow Updates
+
+### Consolidated Signup Process
+- All signup processes are now consolidated on a single page: `/auth/signup`
+- Users first choose their role (customer, business, or influencer)
+- After selecting a role, they can either:
+  1. Sign up with email and password
+  2. Continue with Google (after filling required fields)
+- Removed the separate role selection page
+
+### Google Authentication Improvements
+- Google signup now requires users to fill in required fields before proceeding
+- Form data is stored in localStorage and passed through the OAuth flow
+- Google sign-in on login page only works for existing users
+- New users are prompted to sign up instead
+
+### Removed Pages
+- `/auth/role-selection` - No longer needed with consolidated signup flow
+
+### Updated Flow
+1. User visits `/auth/signup`
+2. User selects their role
+3. User fills in required fields for their role
+4. User can either:
+   - Sign up with email/password
+   - Continue with Google (validates fields first)
+5. After authentication, user is redirected to role-specific setup wizard
+6. After setup, user is redirected to their dashboard
+
 ### Authentication Flow
 1. Users sign up or log in through Supabase Auth
 2. Middleware checks user authentication status

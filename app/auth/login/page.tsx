@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [showNoAccountMessage, setShowNoAccountMessage] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -66,6 +67,7 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+    setShowNoAccountMessage(false)
 
     console.log("[v0] Starting login process for:", email)
 
@@ -77,6 +79,10 @@ export default function LoginPage() {
 
       if (signInError) {
         console.log("[v0] Sign in error:", signInError)
+        // Check if this is a user not found error
+        if (signInError.message.includes("Invalid login credentials")) {
+          setShowNoAccountMessage(true)
+        }
         throw signInError
       }
 
@@ -132,6 +138,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true)
     setError(null)
+    setShowNoAccountMessage(false)
 
     try {
       // First, check if there's an existing user with this email
@@ -141,13 +148,15 @@ export default function LoginPage() {
         .eq('email', email)
         .single()
 
-      // If there's an existing user with the same email, attempt to sign in with password first
-      // This will allow Supabase to automatically link the Google identity
-      if (existingUser && !existingUserError) {
-        // We have an existing user, but they might be trying to sign in with Google
-        // We'll proceed with OAuth and let Supabase handle the identity linking
-        console.log("[v0] Found existing user with email:", email)
+      // If there's no existing user with the same email, show message
+      if (!existingUser || existingUserError) {
+        setShowNoAccountMessage(true)
+        setIsGoogleLoading(false)
+        return
       }
+
+      // We have an existing user, proceed with OAuth
+      console.log("[v0] Found existing user with email:", email)
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -185,16 +194,28 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="loginEmail">Email</Label>
+                <Input
+                  id="loginEmail"
+                  type="email"
+                  placeholder="you@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              
               <Button 
                 variant="outline" 
                 onClick={handleGoogleLogin}
-                disabled={isGoogleLoading}
+                disabled={isGoogleLoading || !email}
                 className="w-full"
               >
                 {isGoogleLoading ? (
                   <>
                     <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in with Google...
+                    Checking account...
                   </>
                 ) : (
                   <>
@@ -203,6 +224,20 @@ export default function LoginPage() {
                   </>
                 )}
               </Button>
+              
+              {showNoAccountMessage && (
+                <div className="rounded-lg bg-yellow-50 p-3 text-sm">
+                  <p className="font-medium text-yellow-800">No account found</p>
+                  <p className="text-yellow-700">It looks like you don't have an account yet.</p>
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto font-normal text-yellow-800 hover:text-yellow-900"
+                    onClick={() => router.push("/auth/signup")}
+                  >
+                    Create an account
+                  </Button>
+                </div>
+              )}
               
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -217,17 +252,6 @@ export default function LoginPage() {
               
               <form onSubmit={handleLogin}>
                 <div className="flex flex-col gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
                   <div className="grid gap-2">
                     <Label htmlFor="password">Password</Label>
                     <Input
