@@ -137,9 +137,14 @@ All tables implement RLS policies to ensure data isolation between users:
 
 ### Google Authentication Improvements
 - Google signup now requires users to fill in required fields before proceeding
-- Form data is stored in localStorage and passed through the OAuth flow
+- Form data is stored in both localStorage and cookies to ensure access in both client and server contexts
 - Google sign-in on login page only works for existing users
 - New users are prompted to sign up instead
+
+### Redirect Fixes
+- Fixed OAuth callback to redirect users to their role-specific setup wizard after Google signup
+- Removed references to deleted role-selection page
+- Proper cookie management for form data persistence
 
 ### Removed Pages
 - `/auth/role-selection` - No longer needed with consolidated signup flow

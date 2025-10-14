@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { cookies as clientCookies } from "next/headers"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -51,7 +50,7 @@ export async function GET(request: Request) {
           return NextResponse.redirect(new URL(redirectPath, request.url))
         } else {
           // Check if this is a Google signup with form data
-          // Try to get form data from localStorage (server-side we'll check cookies or URL params)
+          // Try to get form data from cookies
           const googleSignupDataCookie = cookieStore.get('google_signup_data')?.value
           
           if (googleSignupDataCookie) {
@@ -86,8 +85,8 @@ export async function GET(request: Request) {
               
               await supabase.auth.updateUser(updateData)
               
-              // Clean up the cookie
-              // Note: We can't delete cookies in a server action, but we can set it to expire
+              // Clean up the cookie by setting it to expire
+              const expiredCookie = `${googleSignupDataCookie}; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
               
               // Redirect to appropriate setup page
               let redirectPath = "/"
@@ -104,7 +103,11 @@ export async function GET(request: Request) {
                 default:
                   redirectPath = "/"
               }
-              return NextResponse.redirect(new URL(redirectPath, request.url))
+              
+              const response = NextResponse.redirect(new URL(redirectPath, request.url))
+              // Set the expired cookie to clean up
+              response.cookies.set('google_signup_data', expiredCookie)
+              return response
             } catch (parseError) {
               console.error("Error parsing google signup data:", parseError)
             }
@@ -135,8 +138,8 @@ export async function GET(request: Request) {
             }
             return NextResponse.redirect(new URL(redirectPath, request.url))
           } else {
-            // User doesn't have a role yet, redirect to role selection
-            return NextResponse.redirect(new URL("/auth/role-selection", request.url))
+            // User doesn't have a role yet and no form data, redirect to signup
+            return NextResponse.redirect(new URL("/auth/signup", request.url))
           }
         }
       }

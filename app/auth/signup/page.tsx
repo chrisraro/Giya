@@ -75,7 +75,7 @@ export default function SignupPage() {
           }
         } else {
           // User doesn't have a role yet, redirect to role selection
-          router.push("/auth/role-selection")
+          router.push("/auth/signup")
         }
       }
     }
@@ -129,6 +129,7 @@ export default function SignupPage() {
       }
       
       if (typeof window !== 'undefined') {
+        // Save to localStorage
         localStorage.setItem('google_signup_data', JSON.stringify(googleSignupData))
         
         // Save referral code if present
@@ -136,6 +137,12 @@ export default function SignupPage() {
         const refCode = urlParams.get('ref')
         if (refCode) {
           localStorage.setItem('affiliate_referral_code', refCode)
+        }
+        
+        // Also save to a cookie for server-side access
+        document.cookie = `google_signup_data=${JSON.stringify(googleSignupData)}; path=/`
+        if (refCode) {
+          document.cookie = `affiliate_referral_code=${refCode}; path=/`
         }
       }
 
