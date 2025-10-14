@@ -14,7 +14,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { Search, Building2, MapPin, Star } from "lucide-react"
+import { Search, Building2, MapPin, Star, Gift, Tag, Percent } from "lucide-react"
 import { handleApiError } from "@/lib/error-handler"
 import Link from "next/link"
 import { 
@@ -24,6 +24,7 @@ import {
   BreadcrumbList, 
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb"
+import Image from "next/image"
 
 interface Business {
   id: string
@@ -33,6 +34,9 @@ interface Business {
   points_per_currency: number
   address: string
   gmaps_link: string | null
+  rewards_count?: number
+  exclusive_offers_count?: number
+  max_discount?: number
 }
 
 export default function BusinessDirectoryPage() {
@@ -48,19 +52,44 @@ export default function BusinessDirectoryPage() {
   useEffect(() => {
     const fetchBusinesses = async () => {
       try {
-        // Fetch all businesses
+        // Fetch all businesses with additional data
         const { data: businessesData, error: businessesError } = await supabase
           .from("businesses")
-          .select("id, business_name, business_category, profile_pic_url, points_per_currency, address, gmaps_link")
+          .select(`
+            id, 
+            business_name, 
+            business_category, 
+            profile_pic_url, 
+            points_per_currency, 
+            address, 
+            gmaps_link,
+            rewards(count),
+            exclusive_offers(count),
+            discount_offers(max_discount_value)
+          `)
 
         if (businessesError) throw businessesError
 
-        setBusinesses(businessesData || [])
-        setFilteredBusinesses(businessesData || [])
+        // Process the data to extract counts and max discount
+        const processedBusinesses = businessesData?.map((business: any) => ({
+          id: business.id,
+          business_name: business.business_name,
+          business_category: business.business_category,
+          profile_pic_url: business.profile_pic_url,
+          points_per_currency: business.points_per_currency,
+          address: business.address,
+          gmaps_link: business.gmaps_link,
+          rewards_count: business.rewards?.count || 0,
+          exclusive_offers_count: business.exclusive_offers?.count || 0,
+          max_discount: business.discount_offers?.max_discount_value || 0
+        })) || []
+
+        setBusinesses(processedBusinesses)
+        setFilteredBusinesses(processedBusinesses)
 
         // Get unique categories
         const uniqueCategories = Array.from(
-          new Set(businessesData?.map((business: Business) => business.business_category))
+          new Set(processedBusinesses.map((business: Business) => business.business_category))
         ).filter(Boolean) as string[]
         
         setCategories(uniqueCategories)
@@ -205,77 +234,72 @@ export default function BusinessDirectoryPage() {
               {filteredBusinesses.map((business) => (
                 <Card 
                   key={business.id} 
-                  className={`relative flex flex-col bg-white shadow-sm border border-slate-200 rounded-lg w-full cursor-pointer transition-all hover:shadow-md overflow-hidden ${business.profile_pic_url ? 'p-0' : 'p-6'}`}
+                  className="relative flex flex-col bg-white shadow-sm border border-slate-200 rounded-lg w-full cursor-pointer transition-all hover:shadow-md overflow-hidden"
                   onClick={() => router.push(`/business/${business.id}`)}
                 >
                   {business.profile_pic_url ? (
-                    <>
-                      <div className="relative h-48 overflow-hidden rounded-t-lg">
-                        <Avatar className="h-full w-full">
-                          <AvatarImage 
-                            src={business.profile_pic_url} 
-                            alt={business.business_name}
-                            className="h-full w-full object-cover"
-                          />
-                        </Avatar>
-                      </div>
-                      <div className="p-4">
-                        <div className="mb-2 flex items-center justify-between">
-                          <h3 className="text-slate-800 text-xl font-semibold truncate">
-                            {business.business_name}
-                          </h3>
-                          <span className="text-primary text-xl font-semibold">
-                            {business.points_per_currency || 100} pts/₱
-                          </span>
-                        </div>
-                        <p className="text-slate-600 leading-normal font-light line-clamp-2">
-                          {business.business_category} • {business.address}
-                        </p>
-                        <Button 
-                          variant="default" 
-                          className="rounded-md w-full mt-6 bg-primary py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-primary/90 focus:shadow-none active:bg-primary/90 hover:bg-primary/90 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" 
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            router.push(`/business/${business.id}`)
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-                    </>
+                    <div className="relative h-48 overflow-hidden">
+                      <Image
+                        src={business.profile_pic_url}
+                        alt={business.business_name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-semibold text-lg">{business.business_name}</h3>
-                          <p className="text-sm text-muted-foreground">{business.business_category}</p>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span className="truncate">{business.address}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Points per ₱</span>
-                          <span className="text-xl font-bold text-primary">{business.points_per_currency || 100}</span>
-                        </div>
-                        <Button 
-                          variant="default" 
-                          className="rounded-md w-full mt-4 bg-primary py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-primary/90 focus:shadow-none active:bg-primary/90 hover:bg-primary/90 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" 
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            router.push(`/business/${business.id}`)
-                          }}
-                        >
-                          View Details
-                        </Button>
-                      </div>
+                    <div className="relative h-48 bg-gray-100 flex items-center justify-center">
+                      <Building2 className="h-12 w-12 text-gray-400" />
                     </div>
                   )}
+                  <div className="p-4">
+                    <div className="mb-2">
+                      <h3 className="text-slate-800 text-xl font-semibold truncate">
+                        {business.business_name}
+                      </h3>
+                      <p className="text-slate-600 text-sm">
+                        {business.business_category}
+                      </p>
+                    </div>
+                    
+                    <div className="mb-3 flex items-center text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      <span className="truncate">{business.address}</span>
+                    </div>
+                    
+                    <div className="mb-3 text-sm">
+                      <span className="font-medium text-primary">
+                        1 point per ₱{business.points_per_currency || 100}
+                      </span>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                        <Gift className="h-3 w-3 mr-1" />
+                        {business.rewards_count || 0} rewards
+                      </div>
+                      <div className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                        <Star className="h-3 w-3 mr-1" />
+                        {business.exclusive_offers_count || 0} offers
+                      </div>
+                      {business.max_discount && business.max_discount > 0 && (
+                        <div className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                          <Percent className="h-3 w-3 mr-1" />
+                          Up to {business.max_discount}% off
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Button 
+                      variant="default" 
+                      className="rounded-md w-full bg-primary py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-primary/90 focus:shadow-none active:bg-primary/90 hover:bg-primary/90 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none" 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/business/${business.id}`)
+                      }}
+                    >
+                      View Details
+                    </Button>
+                  </div>
                 </Card>
               ))}
             </div>

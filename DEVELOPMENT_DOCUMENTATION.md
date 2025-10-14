@@ -309,3 +309,13 @@ The affiliate system allows influencers to earn commissions by promoting busines
 - This was causing a runtime error in production: `Uncaught Error: AvatarImage must be used within Avatar`
 - The fix ensures all `AvatarImage` components are properly wrapped in `Avatar` components
 - Similar issues were checked across the codebase and no other instances were found
+
+### Business Card Layout Improvements
+- Updated business directory page to use Next.js Image component instead of AvatarImage for business images
+- Added chip components to display business statistics:
+  - Number of rewards with Gift icon
+  - Number of exclusive offers with Star icon
+  - Maximum discount percentage with Percent icon
+- Updated business detail page to fetch and display the same statistics
+- Changed points display to show "1 point per ₱(value)" format for better clarity
+- Improved overall card layout consistency across the application

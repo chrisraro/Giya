@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MapPin, Clock, Gift, Star, ExternalLink, ArrowLeft } from "lucide-react"
+import { MapPin, Clock, Gift, Star, ExternalLink, ArrowLeft, Tag, Percent } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { GoogleMap } from "@/components/google-map"
@@ -39,6 +39,9 @@ interface Business {
   profile_pic_url: string
   points_per_currency: number
   business_hours: any
+  rewards_count?: number
+  exclusive_offers_count?: number
+  max_discount?: number
 }
 
 interface Reward {
@@ -96,12 +99,25 @@ export default async function BusinessProfilePage({ params }: PageProps) {
   try {
     supabaseClient = await createServerClient()
 
-    // Fetch business details
-    const businessResult = await supabaseClient.from("businesses").select("*").eq("id", awaitedParams.id).single()
+    // Fetch business details with counts
+    const businessResult = await supabaseClient.from("businesses").select(`
+      *,
+      rewards(count),
+      exclusive_offers(count),
+      discount_offers(max_discount_value)
+    `).eq("id", awaitedParams.id).single()
+    
     if (businessResult.error || !businessResult.data) {
       notFound()
     }
-    business = businessResult.data
+    
+    // Process business data with counts
+    business = {
+      ...businessResult.data,
+      rewards_count: businessResult.data.rewards?.count || 0,
+      exclusive_offers_count: businessResult.data.exclusive_offers?.count || 0,
+      max_discount: businessResult.data.discount_offers?.max_discount_value || 0
+    }
 
     // Fetch business rewards
     const rewardsResult = await supabaseClient
@@ -201,6 +217,24 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                           <p className="font-medium text-foreground">Business Hours</p>
                           <p className="text-sm">{businessHours.hours || JSON.stringify(businessHours)}</p>
                         </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Chips for business stats */}
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <div className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                      <Gift className="h-3 w-3 mr-1" />
+                      {business?.rewards_count || 0} rewards
+                    </div>
+                    <div className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                      <Star className="h-3 w-3 mr-1" />
+                      {business?.exclusive_offers_count || 0} offers
+                    </div>
+                    {business?.max_discount && business?.max_discount > 0 && (
+                      <div className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                        <Percent className="h-3 w-3 mr-1" />
+                        Up to {business?.max_discount}% off
                       </div>
                     )}
                   </div>
