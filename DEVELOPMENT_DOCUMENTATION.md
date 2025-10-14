@@ -141,6 +141,13 @@ All tables implement RLS policies to ensure data isolation between users:
 - Google sign-in on login page only works for existing users
 - New users are prompted to sign up instead
 
+### Sign-in Page Updates
+- Google sign-in button no longer requires email input first
+- Users are redirected directly to Google OAuth
+- After Google authentication, the system checks if the user exists in our database
+- Existing users are redirected to their dashboard
+- New users are redirected to the signup page with a notification
+
 ### Redirect Fixes
 - Fixed OAuth callback to redirect users to their role-specific setup wizard after Google signup
 - Removed references to deleted role-selection page
@@ -150,14 +157,20 @@ All tables implement RLS policies to ensure data isolation between users:
 - `/auth/role-selection` - No longer needed with consolidated signup flow
 
 ### Updated Flow
-1. User visits `/auth/signup`
-2. User selects their role
-3. User fills in required fields for their role
-4. User can either:
+1. User visits `/auth/signup` or `/auth/login`
+2. On login page, user can either:
+   - Sign in with email/password
+   - Sign in with Google (redirects directly to Google OAuth)
+3. After Google authentication:
+   - If user exists in database, redirect to their dashboard
+   - If user doesn't exist, redirect to signup page
+4. On signup page, user selects their role
+5. User fills in required fields for their role
+6. User can either:
    - Sign up with email/password
    - Continue with Google (validates fields first)
-5. After authentication, user is redirected to role-specific setup wizard
-6. After setup, user is redirected to their dashboard
+7. After authentication, user is redirected to role-specific setup wizard
+8. After setup, user is redirected to their dashboard
 
 ### Authentication Flow
 1. Users sign up or log in through Supabase Auth
