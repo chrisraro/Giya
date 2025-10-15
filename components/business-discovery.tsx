@@ -21,56 +21,104 @@ interface Business {
 export async function BusinessDiscovery() {
   const supabase = await createServerClient()
 
-  const { data: businesses, error } = await supabase
-    .from("businesses")
-    .select(`
-      id, 
-      business_name, 
-      business_category, 
-      address, 
-      profile_pic_url, 
-      business_hours,
-      points_per_currency,
-      rewards(count),
-      exclusive_offers(count),
-      discount_offers(max_discount_value)
-    `)
-    .order("created_at", { ascending: false })
+  try {
+    // First, fetch all businesses with basic data
+    const { data: businesses, error: businessesError } = await supabase
+      .from("businesses")
+      .select("id, business_name, business_category, address, profile_pic_url, business_hours, points_per_currency")
+      .order("created_at", { ascending: false })
 
-  // Process the data to extract counts and max discount
-  const processedBusinesses = businesses?.map((business: any) => ({
-    id: business.id,
-    business_name: business.business_name,
-    business_category: business.business_category,
-    address: business.address,
-    profile_pic_url: business.profile_pic_url,
-    business_hours: business.business_hours,
-    points_per_currency: business.points_per_currency,
-    rewards_count: business.rewards?.count || 0,
-    exclusive_offers_count: business.exclusive_offers?.count || 0,
-    max_discount: business.discount_offers?.max_discount_value || 0
-  })) || []
+    if (businessesError) {
+      console.error("Error fetching businesses:", businessesError)
+      return <EmptyState />
+    }
 
-  return (
-    <section id="businesses" className="section-padding-y bg-background">
-      <div className="container-padding-x container mx-auto">
-        <div className="mb-8 md:mb-12">
-          <h2 className="heading-lg mb-2">Discover Local Businesses in <span className="text-primary">Naga City</span></h2>
-          <p className="text-muted-foreground">Explore amazing local spots and earn rewards with every visit</p>
-        </div>
+    // For now, let's fetch all related data and process it manually
+    // This avoids complex SQL queries that might not work in all environments
+    const businessIds = businesses?.map((business: any) => business.id) || []
+    
+    // Initialize arrays for related data
+    let allRewards: any[] = []
+    let allExclusiveOffers: any[] = []
+    let allDiscountOffers: any[] = []
+    
+    // Only fetch related data if we have business IDs
+    if (businessIds.length > 0) {
+      // Fetch all rewards
+      const { data: rewardsData, error: rewardsError } = await supabase
+        .from("rewards")
+        .select("business_id")
+        .in("business_id", businessIds)
+      
+      if (!rewardsError && rewardsData) {
+        allRewards = rewardsData
+      }
+      
+      // Fetch all exclusive offers
+      const { data: exclusiveOffersData, error: exclusiveOffersError } = await supabase
+        .from("exclusive_offers")
+        .select("business_id")
+      
+      if (!exclusiveOffersError && exclusiveOffersData) {
+        allExclusiveOffers = exclusiveOffersData
+      }
+      
+      // Fetch all discount offers
+      const { data: discountOffersData, error: discountOffersError } = await supabase
+        .from("discount_offers")
+        .select("business_id, discount_value")
 
-        {!processedBusinesses || processedBusinesses.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {processedBusinesses.map((business) => (
-              <BusinessCard key={business.id} business={business} />
-            ))}
+      if (!discountOffersError && discountOffersData) {
+        allDiscountOffers = discountOffersData
+      }
+    }
+
+    // Process the data to combine all information
+    const processedBusinesses = businesses?.map((business: any) => {
+      // Count rewards for this business
+      const rewardsCount = allRewards?.filter((r: any) => r.business_id === business.id).length || 0
+      
+      // Count exclusive offers for this business
+      const exclusiveOffersCount = allExclusiveOffers?.filter((e: any) => e.business_id === business.id).length || 0
+      
+      // Find max discount for this business
+      const businessDiscounts = allDiscountOffers?.filter((d: any) => d.business_id === business.id) || []
+      const maxDiscount = businessDiscounts.length > 0 
+        ? Math.max(...businessDiscounts.map((d: any) => d.discount_value || 0)) 
+        : 0
+
+      return {
+        ...business,
+        rewards_count: rewardsCount,
+        exclusive_offers_count: exclusiveOffersCount,
+        max_discount: maxDiscount
+      }
+    }) || []
+
+    return (
+      <section id="businesses" className="section-padding-y bg-background">
+        <div className="container-padding-x container mx-auto">
+          <div className="mb-8 md:mb-12">
+            <h2 className="heading-lg mb-2">Discover Local Businesses in <span className="text-primary">Naga City</span></h2>
+            <p className="text-muted-foreground">Explore amazing local spots and earn rewards with every visit</p>
           </div>
-        )}
-      </div>
-    </section>
-  )
+
+          {!processedBusinesses || processedBusinesses.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {processedBusinesses.map((business) => (
+                <BusinessCard key={business.id} business={business} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    )
+  } catch (error) {
+    console.error("Error in BusinessDiscovery:", error)
+    return <EmptyState />
+  }
 }
 
 function BusinessCard({ business }: { business: Business }) {

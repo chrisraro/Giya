@@ -46,43 +46,84 @@ export default function BusinessDirectoryPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
     const fetchBusinesses = async () => {
       try {
-        // Fetch all businesses with additional data
+        setIsLoading(true)
+        setError(null)
+        
+        // First, fetch all businesses with basic data
         const { data: businessesData, error: businessesError } = await supabase
           .from("businesses")
-          .select(`
-            id, 
-            business_name, 
-            business_category, 
-            profile_pic_url, 
-            points_per_currency, 
-            address, 
-            gmaps_link,
-            rewards(count),
-            exclusive_offers(count),
-            discount_offers(max_discount_value)
-          `)
+          .select("id, business_name, business_category, profile_pic_url, points_per_currency, address, gmaps_link")
 
         if (businessesError) throw businessesError
 
-        // Process the data to extract counts and max discount
-        const processedBusinesses = businessesData?.map((business: any) => ({
-          id: business.id,
-          business_name: business.business_name,
-          business_category: business.business_category,
-          profile_pic_url: business.profile_pic_url,
-          points_per_currency: business.points_per_currency,
-          address: business.address,
-          gmaps_link: business.gmaps_link,
-          rewards_count: business.rewards?.count || 0,
-          exclusive_offers_count: business.exclusive_offers?.count || 0,
-          max_discount: business.discount_offers?.max_discount_value || 0
-        })) || []
+        // For now, let's fetch all related data and process it manually
+        // This avoids complex SQL queries that might not work in all environments
+        const businessIds = businessesData?.map((business: { id: string }) => business.id) || []
+        
+        // Initialize arrays for related data
+        let allRewards: any[] = []
+        let allExclusiveOffers: any[] = []
+        let allDiscountOffers: any[] = []
+        
+        // Only fetch related data if we have business IDs
+        if (businessIds.length > 0) {
+          // Fetch all rewards
+          const { data: rewardsData, error: rewardsError } = await supabase
+            .from("rewards")
+            .select("business_id")
+            .in("business_id", businessIds)
+          
+          if (!rewardsError && rewardsData) {
+            allRewards = rewardsData
+          }
+          
+          // Fetch all exclusive offers
+          const { data: exclusiveOffersData, error: exclusiveOffersError } = await supabase
+            .from("exclusive_offers")
+            .select("business_id")
+          
+          if (!exclusiveOffersError && exclusiveOffersData) {
+            allExclusiveOffers = exclusiveOffersData
+          }
+          
+          // Fetch all discount offers
+          const { data: discountOffersData, error: discountOffersError } = await supabase
+            .from("discount_offers")
+            .select("business_id, discount_value")
+
+          if (!discountOffersError && discountOffersData) {
+            allDiscountOffers = discountOffersData
+          }
+        }
+
+        // Process the data to combine all information
+        const processedBusinesses = businessesData?.map((business: any) => {
+          // Count rewards for this business
+          const rewardsCount = allRewards?.filter((r: any) => r.business_id === business.id).length || 0
+          
+          // Count exclusive offers for this business
+          const exclusiveOffersCount = allExclusiveOffers?.filter((e: any) => e.business_id === business.id).length || 0
+          
+          // Find max discount for this business
+          const businessDiscounts = allDiscountOffers?.filter((d: any) => d.business_id === business.id) || []
+          const maxDiscount = businessDiscounts.length > 0 
+            ? Math.max(...businessDiscounts.map((d: any) => d.discount_value || 0)) 
+            : 0
+
+          return {
+            ...business,
+            rewards_count: rewardsCount,
+            exclusive_offers_count: exclusiveOffersCount,
+            max_discount: maxDiscount
+          }
+        }) || []
 
         setBusinesses(processedBusinesses)
         setFilteredBusinesses(processedBusinesses)
@@ -94,6 +135,8 @@ export default function BusinessDirectoryPage() {
         
         setCategories(uniqueCategories)
       } catch (error) {
+        console.error("Error fetching businesses:", error)
+        setError("Failed to load businesses. Please try again later.")
         handleApiError(error, "Failed to load businesses", "BusinessDirectory.fetchBusinesses")
       } finally {
         setIsLoading(false)
@@ -157,6 +200,32 @@ export default function BusinessDirectoryPage() {
               ))}
             </div>
           </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-svh bg-secondary">
+        <header className="border-b bg-background">
+          <div className="container-padding-x container mx-auto py-4">
+            <h1 className="text-2xl font-bold text-foreground">Business Directory</h1>
+          </div>
+        </header>
+        <main className="container-padding-x container mx-auto py-8">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <Building2 className="mb-4 h-16 w-16 text-muted-foreground" />
+              <h3 className="mb-2 text-lg font-semibold">Error Loading Businesses</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {error}
+              </p>
+              <Button onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
         </main>
       </div>
     )
