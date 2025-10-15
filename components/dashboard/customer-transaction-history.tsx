@@ -52,6 +52,10 @@ export function CustomerTransactionHistory({ transactions, redemptions }: Custom
   console.log("[v0] CustomerTransactionHistory - Redemptions:", redemptions);
   console.log("[v0] CustomerTransactionHistory - Redemptions length:", redemptions.length);
 
+  // Ensure redemptions is an array
+  const safeRedemptions = Array.isArray(redemptions) ? redemptions : [];
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
   return (
     <>
       {/* Transaction History */}
@@ -61,7 +65,7 @@ export function CustomerTransactionHistory({ transactions, redemptions }: Custom
           <CardDescription>Your latest points earning activities</CardDescription>
         </CardHeader>
         <CardContent>
-          {transactions.length === 0 ? (
+          {safeTransactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <TrendingUp className="mb-2 h-12 w-12 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">No transactions yet</p>
@@ -69,8 +73,8 @@ export function CustomerTransactionHistory({ transactions, redemptions }: Custom
             </div>
           ) : (
             <div className="space-y-4">
-              {transactions.map((transaction: any) => (
-                <TransactionItem key={transaction.id} transaction={transaction} />
+              {safeTransactions.map((transaction: any, index: number) => (
+                <TransactionItem key={transaction.id || `transaction-${index}-${transaction.transaction_date || Date.now()}`} transaction={transaction} />
               ))}
             </div>
           )}
@@ -84,7 +88,7 @@ export function CustomerTransactionHistory({ transactions, redemptions }: Custom
           <CardDescription>Your redeemed rewards</CardDescription>
         </CardHeader>
         <CardContent>
-          {redemptions.length === 0 ? (
+          {safeRedemptions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Gift className="mb-2 h-12 w-12 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">No redemptions yet</p>
@@ -92,8 +96,8 @@ export function CustomerTransactionHistory({ transactions, redemptions }: Custom
             </div>
           ) : (
             <div className="space-y-4">
-              {redemptions.map((redemption: any) => (
-                <RedemptionItem key={redemption.id} redemption={redemption} />
+              {safeRedemptions.map((redemption: any, index: number) => (
+                <RedemptionItem key={redemption.id || `redemption-${index}-${redemption.redeemed_at || Date.now()}`} redemption={redemption} />
               ))}
             </div>
           )}

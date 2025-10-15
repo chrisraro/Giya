@@ -23,6 +23,8 @@ interface Transaction {
     reward_name?: string;
   };
   type?: 'points_earned' | 'redemption_validated';
+  // Allow any other properties
+  [key: string]: any;
 }
 
 interface TransactionItemProps {
@@ -30,6 +32,11 @@ interface TransactionItemProps {
 }
 
 export const TransactionItem = memo(function TransactionItem({ transaction }: TransactionItemProps) {
+  // Safety check for transaction object
+  if (!transaction) {
+    return null;
+  }
+
   // Format date
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Unknown date';
@@ -108,8 +115,8 @@ export const TransactionItem = memo(function TransactionItem({ transaction }: Tr
         </div>
       </div>
       <div className="text-right">
-        <p className="font-semibold text-primary">+{transaction.points_earned} pts</p>
-        <p className="text-sm text-muted-foreground">₱{transaction.amount_spent?.toFixed(2) || '0.00'}</p>
+        <p className="font-semibold text-primary">{transaction.points_earned !== undefined ? `+${transaction.points_earned} pts` : 'N/A pts'}</p>
+        <p className="text-sm text-muted-foreground">₱{transaction.amount_spent !== undefined ? transaction.amount_spent.toFixed(2) : '0.00'}</p>
       </div>
     </div>
   );

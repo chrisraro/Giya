@@ -79,6 +79,8 @@ export interface Redemption {
   };
   // Type field to distinguish between redemption types
   redemption_type?: 'reward' | 'discount' | 'exclusive';
+  // Allow any other properties
+  [key: string]: any;
 }
 
 export interface BusinessPoints {
@@ -335,12 +337,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     if (rewardRedemptions && !rewardRedemptionsError) {
       console.log("[v0] Processing reward redemptions:", rewardRedemptions);
       
-      const processedRewardRedemptions = rewardRedemptions.map((redemption: any) => ({
-        id: redemption.id,
-        redeemed_at: redemption.redeemed_at,
-        status: redemption.status,
-        business_id: redemption.business_id || redemption.rewards?.business_id,
-        customer_id: redemption.customer_id || redemption.user_id,
+      const processedRewardRedemptions = (rewardRedemptions || []).map((redemption: any, index: number) => ({
+        id: redemption.id || `reward-${index}`,
+        redeemed_at: redemption.redeemed_at || new Date().toISOString(),
+        status: redemption.status || 'unknown',
+        business_id: redemption.business_id || redemption.rewards?.business_id || null,
+        customer_id: redemption.customer_id || redemption.user_id || userId,
         reward_id: redemption.reward_id,
         rewards: redemption.rewards,
         businesses: redemption.businesses || (redemption.rewards?.business_id ? {
@@ -357,12 +359,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     if (discountRedemptions && !discountRedemptionsError) {
       console.log("[v0] Processing discount redemptions:", discountRedemptions);
       
-      const processedDiscountRedemptions = discountRedemptions.map((redemption: any) => ({
-        id: redemption.id,
-        redeemed_at: redemption.used_at,
+      const processedDiscountRedemptions = (discountRedemptions || []).map((redemption: any, index: number) => ({
+        id: redemption.id || `discount-${index}`,
+        redeemed_at: redemption.used_at || new Date().toISOString(),
         status: 'completed', // Discount redemptions are typically immediate
-        business_id: redemption.business_id || redemption.discount_offers?.business_id,
-        customer_id: redemption.customer_id,
+        business_id: redemption.business_id || redemption.discount_offers?.business_id || null,
+        customer_id: redemption.customer_id || userId,
         discount_offer_id: redemption.discount_offer_id,
         discount_offers: redemption.discount_offers,
         businesses: redemption.businesses || (redemption.discount_offers?.business_id ? {
@@ -379,12 +381,12 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     if (exclusiveOfferRedemptions && !exclusiveOfferRedemptionsError) {
       console.log("[v0] Processing exclusive offer redemptions:", exclusiveOfferRedemptions);
       
-      const processedExclusiveOfferRedemptions = exclusiveOfferRedemptions.map((redemption: any) => ({
-        id: redemption.id,
-        redeemed_at: redemption.used_at,
+      const processedExclusiveOfferRedemptions = (exclusiveOfferRedemptions || []).map((redemption: any, index: number) => ({
+        id: redemption.id || `exclusive-${index}`,
+        redeemed_at: redemption.used_at || new Date().toISOString(),
         status: 'completed', // Exclusive offer redemptions are typically immediate
-        business_id: redemption.business_id || redemption.exclusive_offers?.business_id,
-        customer_id: redemption.customer_id,
+        business_id: redemption.business_id || redemption.exclusive_offers?.business_id || null,
+        customer_id: redemption.customer_id || userId,
         exclusive_offer_id: redemption.exclusive_offer_id,
         exclusive_offers: redemption.exclusive_offers,
         businesses: redemption.businesses || (redemption.exclusive_offers?.business_id ? {
@@ -392,7 +394,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
           profile_pic_url: redemption.exclusive_offers.profile_pic_url
         } : null),
         redemption_type: 'exclusive'
-      })).filter((redemption: any) => redemption.redeemed_at); // Filter out invalid entries
+      })).filter((redemption: any) => redemption.used_at); // Filter out invalid entries
       allRedemptions = [...allRedemptions, ...processedExclusiveOfferRedemptions];
       console.log("[v0] Processed exclusive offer redemptions:", processedExclusiveOfferRedemptions);
     }
@@ -420,7 +422,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     return {
       customer,
       transactions: transactions || [],
-      redemptions: allRedemptions,
+      redemptions: allRedemptions || [],
       businessPoints
     };
   };

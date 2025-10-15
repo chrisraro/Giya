@@ -31,6 +31,8 @@ interface Redemption {
   };
   // Type field to distinguish between redemption types
   redemption_type?: 'reward' | 'discount' | 'exclusive';
+  // Allow any other properties
+  [key: string]: any;
 }
 
 interface RedemptionItemProps {
@@ -40,6 +42,11 @@ interface RedemptionItemProps {
 export const RedemptionItem = memo(function RedemptionItem({ redemption }: RedemptionItemProps) {
   // Debug logging
   console.log("[v0] Rendering RedemptionItem:", redemption);
+
+  // Safety check for redemption object
+  if (!redemption) {
+    return null;
+  }
 
   // Determine the display information based on redemption type
   const getDisplayInfo = () => {
@@ -56,7 +63,7 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
           name: redemption.exclusive_offers?.title || 'Exclusive Offer',
           points: undefined,
           icon: Star,
-          image_url: redemption.exclusive_offers?.image_url
+          image_url: redemption.exclusive_offers?.image_url || undefined
         };
       case 'reward':
       default:
@@ -64,7 +71,7 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
           name: redemption.rewards?.reward_name || 'Reward',
           points: redemption.rewards?.points_required || 0,
           icon: Gift,
-          image_url: redemption.rewards?.image_url
+          image_url: redemption.rewards?.image_url || undefined
         };
     }
   };
@@ -76,7 +83,7 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
   console.log("[v0] Display info:", displayInfo);
 
   // Format the date
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'Unknown date';
     try {
       const date = new Date(dateString);
@@ -151,7 +158,7 @@ export const RedemptionItem = memo(function RedemptionItem({ redemption }: Redem
             <p className="text-sm text-muted-foreground">
               {formatDate(redemption.redeemed_at)}
             </p>
-            {getBusinessName() && (
+            {getBusinessName() && getBusinessName() !== 'Business' && (
               <span className="text-xs text-muted-foreground">
                 at {getBusinessName()}
               </span>

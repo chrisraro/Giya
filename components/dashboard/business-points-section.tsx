@@ -28,8 +28,8 @@ export function BusinessPointsSection({ businessPoints }: BusinessPointsSectionP
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {businessPoints.map((business) => (
-            <BusinessPointsCard key={business.business_id} business={business} />
+          {businessPoints.map((business, index) => (
+            <BusinessPointsCard key={business.business_id || `business-${index}`} business={business} />
           ))}
         </div>
       )}
