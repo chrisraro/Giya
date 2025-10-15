@@ -1,7 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Clock } from "lucide-react"
+import { MapPin, Clock, Gift, Star, Percent } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -12,6 +12,10 @@ interface Business {
   address: string
   profile_pic_url: string | null
   business_hours: any
+  points_per_currency: number
+  rewards_count?: number
+  exclusive_offers_count?: number
+  max_discount?: number
 }
 
 export async function BusinessDiscovery() {
@@ -19,8 +23,33 @@ export async function BusinessDiscovery() {
 
   const { data: businesses, error } = await supabase
     .from("businesses")
-    .select("id, business_name, business_category, address, profile_pic_url, business_hours")
+    .select(`
+      id, 
+      business_name, 
+      business_category, 
+      address, 
+      profile_pic_url, 
+      business_hours,
+      points_per_currency,
+      rewards(count),
+      exclusive_offers(count),
+      discount_offers(max_discount_value)
+    `)
     .order("created_at", { ascending: false })
+
+  // Process the data to extract counts and max discount
+  const processedBusinesses = businesses?.map((business: any) => ({
+    id: business.id,
+    business_name: business.business_name,
+    business_category: business.business_category,
+    address: business.address,
+    profile_pic_url: business.profile_pic_url,
+    business_hours: business.business_hours,
+    points_per_currency: business.points_per_currency,
+    rewards_count: business.rewards?.count || 0,
+    exclusive_offers_count: business.exclusive_offers?.count || 0,
+    max_discount: business.discount_offers?.max_discount_value || 0
+  })) || []
 
   return (
     <section id="businesses" className="section-padding-y bg-background">
@@ -30,11 +59,11 @@ export async function BusinessDiscovery() {
           <p className="text-muted-foreground">Explore amazing local spots and earn rewards with every visit</p>
         </div>
 
-        {!businesses || businesses.length === 0 ? (
+        {!processedBusinesses || processedBusinesses.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {businesses.map((business) => (
+            {processedBusinesses.map((business) => (
               <BusinessCard key={business.id} business={business} />
             ))}
           </div>
@@ -65,6 +94,7 @@ function BusinessCard({ business }: { business: Business }) {
                   {business.business_category}
                 </Badge>
               </div>
+              
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -74,6 +104,29 @@ function BusinessCard({ business }: { business: Business }) {
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 flex-shrink-0" />
                     <span className="text-xs">Open today</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-3 text-sm">
+                <span className="font-medium text-primary">
+                  1 point per ₱{business.points_per_currency || 100}
+                </span>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 mt-3">
+                <div className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                  <Gift className="h-3 w-3 mr-1" />
+                  {business.rewards_count || 0} rewards
+                </div>
+                <div className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                  <Star className="h-3 w-3 mr-1" />
+                  {business.exclusive_offers_count || 0} offers
+                </div>
+                {business.max_discount && business.max_discount > 0 && (
+                  <div className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                    <Percent className="h-3 w-3 mr-1" />
+                    Up to {business.max_discount}% off
                   </div>
                 )}
               </div>
@@ -88,6 +141,7 @@ function BusinessCard({ business }: { business: Business }) {
                   {business.business_category}
                 </Badge>
               </div>
+              
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -97,6 +151,29 @@ function BusinessCard({ business }: { business: Business }) {
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 flex-shrink-0" />
                     <span className="text-xs">Open today</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-3 text-sm">
+                <span className="font-medium text-primary">
+                  1 point per ₱{business.points_per_currency || 100}
+                </span>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 mt-3">
+                <div className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                  <Gift className="h-3 w-3 mr-1" />
+                  {business.rewards_count || 0} rewards
+                </div>
+                <div className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                  <Star className="h-3 w-3 mr-1" />
+                  {business.exclusive_offers_count || 0} offers
+                </div>
+                {business.max_discount && business.max_discount > 0 && (
+                  <div className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                    <Percent className="h-3 w-3 mr-1" />
+                    Up to {business.max_discount}% off
                   </div>
                 )}
               </div>

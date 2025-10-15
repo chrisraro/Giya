@@ -36,6 +36,9 @@ interface BusinessDiscovery {
   business_category: string
   profile_pic_url: string | null
   points_per_currency: number
+  rewards_count?: number
+  exclusive_offers_count?: number
+  max_discount?: number
 }
 
 export default function CustomerDashboard() {
@@ -51,11 +54,32 @@ export default function CustomerDashboard() {
     const fetchBusinessDiscovery = async () => {
       const { data: discoveryBusinesses, error: discoveryError } = await supabase
         .from("businesses")
-        .select("id, business_name, business_category, profile_pic_url, points_per_currency")
+        .select(`
+          id, 
+          business_name, 
+          business_category, 
+          profile_pic_url, 
+          points_per_currency,
+          rewards(count),
+          exclusive_offers(count),
+          discount_offers(max_discount_value)
+        `)
         .limit(10)
 
       if (!discoveryError) {
-        setBusinessDiscovery(discoveryBusinesses || [])
+        // Process the data to extract counts and max discount
+        const processedBusinesses = discoveryBusinesses?.map((business: any) => ({
+          id: business.id,
+          business_name: business.business_name,
+          business_category: business.business_category,
+          profile_pic_url: business.profile_pic_url,
+          points_per_currency: business.points_per_currency,
+          rewards_count: business.rewards?.count || 0,
+          exclusive_offers_count: business.exclusive_offers?.count || 0,
+          max_discount: business.discount_offers?.max_discount_value || 0
+        })) || []
+        
+        setBusinessDiscovery(processedBusinesses)
       }
     }
 
@@ -198,76 +222,69 @@ export default function CustomerDashboard() {
         breadcrumbs={[]}
       >
         <div className="flex min-h-svh items-center justify-center">
-          <Card>
+          <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle>Error</CardTitle>
-              <CardDescription>{error}</CardDescription>
+              <CardTitle className="text-center">Error Loading Dashboard</CardTitle>
+              <CardDescription className="text-center">
+                There was an error loading your dashboard. Please try again.
+              </CardDescription>
             </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <p className="text-sm text-destructive text-center">
+                {error instanceof Error ? error.message : "An unknown error occurred"}
+              </p>
+              <Button onClick={() => window.location.reload()}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reload Page
+              </Button>
+            </CardContent>
           </Card>
         </div>
       </DashboardLayout>
     )
   }
-
-  if (!data || !data.customer) {
-    return (
-      <DashboardLayout
-        userRole="customer"
-        userName="Error"
-        breadcrumbs={[]}
-      >
-        <div className="flex min-h-svh items-center justify-center">
-          <Card>
-            <CardHeader>
-              <CardTitle>Error</CardTitle>
-              <CardDescription>Unable to load customer data</CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </DashboardLayout>
-    )
-  }
-
-  const customer: CustomerData = data.customer;
-  const transactions: Transaction[] = data.transactions || [];
-  const redemptions: Redemption[] = data.redemptions || [];
-  const businessPoints: BusinessPoints[] = data.businessPoints || [];
-
-  // Debug logging
-  console.log("[v0] Customer data:", customer);
-  console.log("[v0] Transactions:", transactions);
-  console.log("[v0] Redemptions:", redemptions);
-  console.log("[v0] Business points:", businessPoints);
 
   return (
     <DashboardLayout
       userRole="customer"
-      userName={customer.full_name}
-      userEmail={customer.nickname ? `@${customer.nickname}` : undefined}
-      userAvatar={customer.profile_pic_url}
+      userName={data?.customer?.full_name || "Customer"}
       breadcrumbs={[]}
     >
-      {/* Points Overview */}
-      <CustomerStats 
-        totalPoints={customer.total_points}
-        totalTransactions={transactions.length}
-        totalRedemptions={redemptions.length}
-      />
+      <div className="flex flex-col gap-6">
+        {/* Stats Overview */}
+        <CustomerStats 
+          totalPoints={data?.totalPoints || 0}
+          totalTransactions={data?.totalTransactions || 0}
+          totalRedemptions={data?.totalRedemptions || 0}
+        />
 
-      {/* Discover Businesses */}
-      <DiscoverBusinesses businessDiscovery={businessDiscovery} />
+        {/* Quick Actions */}
+        <QuickActions 
+          onShowQR={() => setShowQRDialog(true)}
+          onViewRewards={() => router.push("/dashboard/customer/rewards")}
+          onViewDiscounts={() => router.push("/dashboard/customer/discounts")}
+          onViewExclusiveOffers={() => router.push("/dashboard/customer/exclusive-offers")}
+        />
 
-      {/* QR Code Card */}
-      <QrCodeCard qrCodeData={customer.qr_code_data} />
+        {/* Discover Businesses */}
+        <DiscoverBusinesses businessDiscovery={businessDiscovery} />
 
-      {/* Business Points Section */}
-      <BusinessPointsSection businessPoints={businessPoints} />
+        {/* QR Code Card */}
+        <QrCodeCard 
+          showQRDialog={showQRDialog}
+          setShowQRDialog={setShowQRDialog}
+          qrCodeData={data?.customer?.qr_code_data || ""}
+        />
 
-      {/* Quick Actions */}
-      <QuickActions onShowQRDialog={() => setShowQRDialog(true)} />
+        {/* Business Points Section */}
+        <BusinessPointsSection businessPoints={data?.businessPoints || []} />
 
-      {/* Transaction History */}
-      <CustomerTransactionHistory transactions={transactions} redemptions={redemptions} />
+        {/* Transaction History */}
+        <CustomerTransactionHistory 
+          transactions={data?.recentTransactions || []}
+          redemptions={data?.recentRedemptions || []}
+        />
+      </div>
     </DashboardLayout>
   )
 }

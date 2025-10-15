@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Building2 } from "lucide-react"
+import { Building2, Gift, Star, Percent } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { OptimizedImage } from "@/components/optimized-image"
 
@@ -11,6 +11,9 @@ interface BusinessDiscovery {
   business_category: string
   profile_pic_url: string | null
   points_per_currency: number
+  rewards_count?: number
+  exclusive_offers_count?: number
+  max_discount?: number
 }
 
 interface DiscoverBusinessesProps {
@@ -77,9 +80,26 @@ export function DiscoverBusinesses({ businessDiscovery }: DiscoverBusinessesProp
                         <p className="text-sm text-muted-foreground">{business.business_category}</p>
                       </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Points per ₱</span>
-                      <span className="text-xl font-bold text-primary">{business.points_per_currency || 100}</span>
+                    <div className="mt-3 text-sm">
+                      <span className="font-medium text-primary">
+                        1 point per ₱{business.points_per_currency || 100}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <div className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                        <Gift className="h-3 w-3 mr-1" />
+                        {business.rewards_count || 0} rewards
+                      </div>
+                      <div className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                        <Star className="h-3 w-3 mr-1" />
+                        {business.exclusive_offers_count || 0} offers
+                      </div>
+                      {business.max_discount && business.max_discount > 0 && (
+                        <div className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                          <Percent className="h-3 w-3 mr-1" />
+                          Up to {business.max_discount}% off
+                        </div>
+                      )}
                     </div>
                   </div>
                 </>
@@ -91,9 +111,26 @@ export function DiscoverBusinesses({ businessDiscovery }: DiscoverBusinessesProp
                   <div className="flex-1">
                     <h3 className="font-semibold">{business.business_name}</h3>
                     <p className="text-sm text-muted-foreground">{business.business_category}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Points per ₱</span>
-                      <span className="text-lg font-bold text-primary">{business.points_per_currency || 100}</span>
+                    <div className="mt-2 text-sm">
+                      <span className="font-medium text-primary">
+                        1 point per ₱{business.points_per_currency || 100}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                        <Gift className="h-3 w-3 mr-1" />
+                        {business.rewards_count || 0} rewards
+                      </div>
+                      <div className="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">
+                        <Star className="h-3 w-3 mr-1" />
+                        {business.exclusive_offers_count || 0} offers
+                      </div>
+                      {business.max_discount && business.max_discount > 0 && (
+                        <div className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                          <Percent className="h-3 w-3 mr-1" />
+                          Up to {business.max_discount}% off
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -310,12 +310,15 @@ The affiliate system allows influencers to earn commissions by promoting busines
 - The fix ensures all `AvatarImage` components are properly wrapped in `Avatar` components
 - Similar issues were checked across the codebase and no other instances were found
 
-### Business Card Layout Improvements
-- Updated business directory page to use Next.js Image component instead of AvatarImage for business images
-- Added chip components to display business statistics:
+### Business Discovery Section Improvements
+- Implemented chip components to display business statistics in three key locations:
+  1. Landing page business discovery section
+  2. Customer dashboard business discovery section
+  3. Business directory page
+- Added chips showing:
   - Number of rewards with Gift icon
   - Number of exclusive offers with Star icon
   - Maximum discount percentage with Percent icon
-- Updated business detail page to fetch and display the same statistics
-- Changed points display to show "1 point per ₱(value)" format for better clarity
-- Improved overall card layout consistency across the application
+- Updated points display to show "1 point per ₱(value)" format for better clarity
+- Removed chip implementation from business profile page (not requested)
+- Improved overall card layout consistency across all discovery sections
