@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Loader2, QrCode, TrendingUp, Gift, Award, Settings, Building2, Tag } from "lucide-react"
+import { Loader2, QrCode, TrendingUp, Gift, Award, Settings, Building2, Tag, RefreshCw } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import Link from "next/link"
 import { handleApiError } from "@/lib/error-handler"
@@ -45,46 +45,94 @@ export default function CustomerDashboard() {
   const [showQRDialog, setShowQRDialog] = useState(false)
   const [businessDiscovery, setBusinessDiscovery] = useState<BusinessDiscovery[]>([])
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   
   const { data, isLoading, error, refetch } = useDashboardData({ userType: 'customer' })
 
   // Fetch business discovery data separately since it's not user-specific
   useEffect(() => {
     const fetchBusinessDiscovery = async () => {
-      const { data: discoveryBusinesses, error: discoveryError } = await supabase
-        .from("businesses")
-        .select(`
-          id, 
-          business_name, 
-          business_category, 
-          profile_pic_url, 
-          points_per_currency,
-          rewards(count),
-          exclusive_offers(count),
-          discount_offers(max_discount_value)
-        `)
-        .limit(10)
+      try {
+        // First, fetch all businesses with basic data
+        const { data: businessesData, error: businessesError } = await supabase
+          .from("businesses")
+          .select("id, business_name, business_category, profile_pic_url, points_per_currency")
+          .limit(10)
 
-      if (!discoveryError) {
-        // Process the data to extract counts and max discount
-        const processedBusinesses = discoveryBusinesses?.map((business: any) => ({
-          id: business.id,
-          business_name: business.business_name,
-          business_category: business.business_category,
-          profile_pic_url: business.profile_pic_url,
-          points_per_currency: business.points_per_currency,
-          rewards_count: business.rewards?.count || 0,
-          exclusive_offers_count: business.exclusive_offers?.count || 0,
-          max_discount: business.discount_offers?.max_discount_value || 0
-        })) || []
+        if (businessesError) throw businessesError
+
+        // For now, let's fetch all related data and process it manually
+        // This avoids complex SQL queries that might not work in all environments
+        const businessIds = businessesData?.map((business: { id: string }) => business.id) || []
         
+        // Initialize arrays for related data
+        let allRewards: any[] = []
+        let allExclusiveOffers: any[] = []
+        let allDiscountOffers: any[] = []
+        
+        // Only fetch related data if we have business IDs
+        if (businessIds.length > 0) {
+          // Fetch all rewards
+          const { data: rewardsData, error: rewardsError } = await supabase
+            .from("rewards")
+            .select("business_id")
+            .in("business_id", businessIds)
+          
+          if (!rewardsError && rewardsData) {
+            allRewards = rewardsData
+          }
+          
+          // Fetch all exclusive offers
+          const { data: exclusiveOffersData, error: exclusiveOffersError } = await supabase
+            .from("exclusive_offers")
+            .select("business_id")
+          
+          if (!exclusiveOffersError && exclusiveOffersData) {
+            allExclusiveOffers = exclusiveOffersData
+          }
+          
+          // Fetch all discount offers
+          const { data: discountOffersData, error: discountOffersError } = await supabase
+            .from("discount_offers")
+            .select("business_id, discount_value")
+
+          if (!discountOffersError && discountOffersData) {
+            allDiscountOffers = discountOffersData
+          }
+        }
+
+        // Process the data to combine all information
+        const processedBusinesses = businessesData?.map((business: any) => {
+          // Count rewards for this business
+          const rewardsCount = allRewards?.filter((r: any) => r.business_id === business.id).length || 0
+          
+          // Count exclusive offers for this business
+          const exclusiveOffersCount = allExclusiveOffers?.filter((e: any) => e.business_id === business.id).length || 0
+          
+          // Find max discount for this business
+          const businessDiscounts = allDiscountOffers?.filter((d: any) => d.business_id === business.id) || []
+          const maxDiscount = businessDiscounts.length > 0 
+            ? Math.max(...businessDiscounts.map((d: any) => d.discount_value || 0)) 
+            : 0
+
+          return {
+            ...business,
+            rewards_count: rewardsCount,
+            exclusive_offers_count: exclusiveOffersCount,
+            max_discount: maxDiscount
+          }
+        }) || []
+
         setBusinessDiscovery(processedBusinesses)
+      } catch (error) {
+        console.error("Error fetching business discovery data:", error)
+        // Don't show error to user for discovery data, just show empty state
+        setBusinessDiscovery([])
       }
     }
 
     fetchBusinessDiscovery()
-  }, [supabase])
+  }, [])
 
   // Add real-time subscription for redemption validations
   useEffect(() => {
@@ -133,7 +181,7 @@ export default function CustomerDashboard() {
         console.warn("[v0] Error cleaning up redemption validation subscription:", error);
       }
     }
-  }, [supabase, data?.customer?.id, refetch])
+  }, [data?.customer?.id, refetch])
 
   if (isLoading) {
     return (
@@ -231,7 +279,7 @@ export default function CustomerDashboard() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <p className="text-sm text-destructive text-center">
-                {error instanceof Error ? error.message : "An unknown error occurred"}
+                {(error as any) instanceof Error ? (error as any).message : "An unknown error occurred"}
               </p>
               <Button onClick={() => window.location.reload()}>
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -253,36 +301,33 @@ export default function CustomerDashboard() {
       <div className="flex flex-col gap-6">
         {/* Stats Overview */}
         <CustomerStats 
-          totalPoints={data?.totalPoints || 0}
-          totalTransactions={data?.totalTransactions || 0}
-          totalRedemptions={data?.totalRedemptions || 0}
+          totalPoints={data?.customer?.total_points || 0}
+          totalTransactions={data?.transactions?.length || 0}
+          totalRedemptions={data?.redemptions?.length || 0}
         />
 
         {/* Quick Actions */}
         <QuickActions 
-          onShowQR={() => setShowQRDialog(true)}
-          onViewRewards={() => router.push("/dashboard/customer/rewards")}
-          onViewDiscounts={() => router.push("/dashboard/customer/discounts")}
-          onViewExclusiveOffers={() => router.push("/dashboard/customer/exclusive-offers")}
+          onShowQRDialog={() => setShowQRDialog(true)}
         />
 
         {/* Discover Businesses */}
         <DiscoverBusinesses businessDiscovery={businessDiscovery} />
 
         {/* QR Code Card */}
-        <QrCodeCard 
-          showQRDialog={showQRDialog}
-          setShowQRDialog={setShowQRDialog}
-          qrCodeData={data?.customer?.qr_code_data || ""}
-        />
+        {data?.customer?.qr_code_data && (
+          <QrCodeCard 
+            qrCodeData={data?.customer?.qr_code_data || ""}
+          />
+        )}
 
         {/* Business Points Section */}
         <BusinessPointsSection businessPoints={data?.businessPoints || []} />
 
         {/* Transaction History */}
         <CustomerTransactionHistory 
-          transactions={data?.recentTransactions || []}
-          redemptions={data?.recentRedemptions || []}
+          transactions={data?.transactions || []}
+          redemptions={data?.redemptions || []}
         />
       </div>
     </DashboardLayout>
