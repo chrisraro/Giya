@@ -19,9 +19,6 @@ import { toast } from "sonner"
 // Import types from the hook
 import type { CustomerData, BusinessPoints, Transaction, Redemption } from "@/hooks/use-dashboard-data"
 
-// Dynamically import the memoized components
-import dynamic from 'next/dynamic'
-
 // Import new components
 import { CustomerStats } from "@/components/dashboard/customer-stats"
 import { DiscoverBusinesses } from "@/components/dashboard/discover-businesses"

@@ -1,11 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Award } from "lucide-react"
-import dynamic from 'next/dynamic'
-
-// Dynamically import the memoized component
-const BusinessPointsCard = dynamic(() => import('@/components/dashboard/business-points-card').then(mod => mod.BusinessPointsCard), {
-  ssr: false
-})
+import { BusinessPointsCard } from "@/components/dashboard/business-points-card"
 
 interface BusinessPoints {
   business_id: string;

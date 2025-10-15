@@ -1,15 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, Gift } from "lucide-react"
-import dynamic from 'next/dynamic'
-
-// Dynamically import the memoized components
-const TransactionItem = dynamic(() => import('@/components/dashboard/transaction-item').then(mod => mod.TransactionItem), {
-  ssr: false
-})
-
-const RedemptionItem = dynamic(() => import('@/components/dashboard/redemption-item').then(mod => mod.RedemptionItem), {
-  ssr: false
-})
+import { TransactionItem } from '@/components/dashboard/transaction-item'
+import { RedemptionItem } from '@/components/dashboard/redemption-item'
 
 interface Transaction {
   id: string
