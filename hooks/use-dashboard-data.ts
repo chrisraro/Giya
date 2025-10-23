@@ -105,10 +105,10 @@ interface AffiliateLink {
 interface Conversion {
   id: string;
   converted_at: string;
+  points_earned: number;
   customers: {
     full_name: string;
   };
-  points_earned: number;
 }
 
 export interface DashboardData {
@@ -201,12 +201,13 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     
     console.log("[v0] Customer data result:", customer);
 
-    // Fetch transactions
+    // Fetch transactions - ALL transactions, not just limited
     const { data: transactions, error: transactionsError } = await supabase
       .from("points_transactions")
       .select(
         `
         id,
+        customer_id,
         business_id,
         amount_spent,
         points_earned,
@@ -218,8 +219,8 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       `,
       )
       .eq("customer_id", userId)
-      .order("transaction_date", { ascending: false })
-      .limit(10);
+      .order("transaction_date", { ascending: false });
+      // Removed limit to fetch all transactions
 
     if (transactionsError) {
       console.error("[v0] Transactions query error:", transactionsError);
@@ -227,6 +228,19 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     }
     
     console.log("[v0] Transactions result:", transactions);
+
+    // Format transactions to match Transaction interface
+    const formattedTransactions: Transaction[] = transactions?.map((transaction: any) => ({
+      id: transaction.id,
+      customer_id: transaction.customer_id,
+      amount_spent: transaction.amount_spent,
+      points_earned: transaction.points_earned,
+      transaction_date: transaction.transaction_date,
+      businesses: transaction.businesses ? {
+        business_name: transaction.businesses.business_name || '',
+        profile_pic_url: transaction.businesses.profile_pic_url || null
+      } : undefined
+    })) || [];
 
     // Fetch all types of redemptions
     console.log("[v0] Starting redemption queries for customer ID:", userId);
@@ -276,6 +290,8 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         discount_offer_id,
         discount_offers (
           title,
+          discount_value,
+          points_required,
           business_id
         ),
         businesses (
@@ -302,6 +318,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
         exclusive_offer_id,
         exclusive_offers (
           title,
+          points_required,
           image_url,
           business_id
         ),
@@ -354,7 +371,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
           business_name: redemption.rewards.business_name,
           profile_pic_url: redemption.rewards.profile_pic_url
         } : null),
-        redemption_type: 'reward'
+        redemption_type: 'reward' as 'reward'
       })).filter((redemption: any) => redemption.redeemed_at); // Filter out invalid entries
       allRedemptions = [...processedRewardRedemptions];
       console.log("[v0] Processed reward redemptions:", processedRewardRedemptions);
@@ -376,7 +393,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
           business_name: redemption.discount_offers.business_name,
           profile_pic_url: redemption.discount_offers.profile_pic_url
         } : null),
-        redemption_type: 'discount'
+        redemption_type: 'discount' as 'discount'
       })).filter((redemption: any) => redemption.redeemed_at); // Filter out invalid entries
       allRedemptions = [...allRedemptions, ...processedDiscountRedemptions];
       console.log("[v0] Processed discount redemptions:", processedDiscountRedemptions);
@@ -398,7 +415,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
           business_name: redemption.exclusive_offers.business_name,
           profile_pic_url: redemption.exclusive_offers.profile_pic_url
         } : null),
-        redemption_type: 'exclusive'
+        redemption_type: 'exclusive' as 'exclusive'
       })).filter((redemption: any) => redemption.used_at); // Filter out invalid entries
       allRedemptions = [...allRedemptions, ...processedExclusiveOfferRedemptions];
       console.log("[v0] Processed exclusive offer redemptions:", processedExclusiveOfferRedemptions);
@@ -417,17 +434,13 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     // Debug logging
     console.log("[v0] All redemptions after sorting:", allRedemptions);
 
-    // Limit to 20 most recent redemptions (increased from 10)
-    allRedemptions = allRedemptions.slice(0, 20);
-    console.log("[v0] All redemptions after limiting:", allRedemptions);
-
-    // Calculate business points
+    // Calculate business points for businesses where customer has transactions
     const businessPoints = await calculateBusinessPoints(userId);
 
     return {
       customer,
-      transactions: transactions || [],
-      redemptions: allRedemptions || [],
+      transactions: formattedTransactions,
+      redemptions: allRedemptions as Redemption[],
       businessPoints
     };
   };
@@ -727,6 +740,21 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
 
     if (linksError) throw linksError;
 
+    // Format affiliate links to match AffiliateLink interface
+    const formattedAffiliateLinks: AffiliateLink[] = links?.map((link: any) => ({
+      id: link.id,
+      business_id: link.business_id,
+      unique_code: link.unique_code,
+      created_at: link.created_at,
+      businesses: link.businesses ? {
+        business_name: link.businesses.business_name || '',
+        profile_pic_url: link.businesses.profile_pic_url || null
+      } : {
+        business_name: '',
+        profile_pic_url: null
+      }
+    })) || [];
+
     // Fetch conversions
     const { data: conversions, error: conversionsError } = await supabase
       .from("affiliate_conversions")
@@ -749,11 +777,23 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
 
     if (conversionsError) throw conversionsError;
 
+    // Format conversions to match Conversion interface
+    const formattedConversions: Conversion[] = conversions?.map((conversion: any) => ({
+      id: conversion.id,
+      converted_at: conversion.converted_at,
+      points_earned: conversion.points_earned,
+      customers: conversion.customers && conversion.customers.length > 0 ? {
+        full_name: conversion.customers[0].full_name || ''
+      } : {
+        full_name: ''
+      }
+    })) || [];
+
     return {
       influencer,
       businesses: businesses || [],
-      affiliateLinks: links || [],
-      conversions: conversions || []
+      affiliateLinks: formattedAffiliateLinks,
+      conversions: formattedConversions
     };
   };
 

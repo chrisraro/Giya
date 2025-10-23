@@ -15,17 +15,13 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { OptimizedImage } from "@/components/optimized-image"
 import { toast } from "sonner"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 
 // Import types from the hook
 import type { CustomerData, BusinessPoints, Transaction, Redemption } from "@/hooks/use-dashboard-data"
 
 // Import new components
-import { CustomerStats } from "@/components/dashboard/customer-stats"
-import { DiscoverBusinesses } from "@/components/dashboard/discover-businesses"
-import { QrCodeCard } from "@/components/dashboard/qr-code-card"
-import { QuickActions } from "@/components/dashboard/quick-actions"
-import { BusinessPointsSection } from "@/components/dashboard/business-points-section"
-import { CustomerTransactionHistory } from "@/components/dashboard/customer-transaction-history"
+import { MobileCustomerBottomNav } from "@/components/mobile-customer-bottom-nav"
 
 interface BusinessDiscovery {
   id: string
@@ -38,98 +34,238 @@ interface BusinessDiscovery {
   max_discount?: number
 }
 
+interface Reward {
+  id: string
+  reward_name: string
+  points_required: number
+  business_id: string
+  business_name: string
+  business_profile_pic?: string | null
+  image_url?: string | null
+  customer_points?: number
+}
+
+interface Discount {
+  id: string
+  discount_value: number
+  business_id: string
+  business_name: string
+  business_profile_pic?: string | null
+  image_url?: string | null
+}
+
+interface ExclusiveOffer {
+  id: string
+  offer_name: string
+  business_id: string
+  business_name: string
+  business_profile_pic?: string | null
+  product_name: string
+  original_price: number | null
+  discounted_price: number | null
+  discount_percentage: number | null
+  image_url: string | null
+}
+
 export default function CustomerDashboard() {
-  const [showQRDialog, setShowQRDialog] = useState(false)
-  const [businessDiscovery, setBusinessDiscovery] = useState<BusinessDiscovery[]>([])
+  const [discoveredBusinesses, setDiscoveredBusinesses] = useState<any[]>([])
+  const [rewards, setRewards] = useState<Reward[]>([])
+  const [discounts, setDiscounts] = useState<Discount[]>([])
+  const [exclusiveOffers, setExclusiveOffers] = useState<ExclusiveOffer[]>([])
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   
   const { data, isLoading, error, refetch } = useDashboardData({ userType: 'customer' })
 
-  // Fetch business discovery data separately since it's not user-specific
+  // Fetch businesses where customer has transactions and their offers
   useEffect(() => {
-    const fetchBusinessDiscovery = async () => {
+    const fetchBusinessesWithTransactionsAndOffers = async () => {
       try {
-        // First, fetch all businesses with basic data
+        // First, fetch all businesses where this customer has transactions
+        const { data: transactionData, error: transactionError } = await supabase
+          .from("points_transactions")
+          .select("business_id")
+          .eq("customer_id", data?.customer?.id)
+
+        if (transactionError) {
+          console.error("Error fetching customer transactions:", transactionError)
+          throw transactionError
+        }
+
+        // Get unique business IDs from transactions
+        const transactionBusinessIds = [...new Set(transactionData?.map((item: any) => item.business_id) || [])]
+        
+        // Also include businesses where customer has redemptions
+        const { data: redemptionData, error: redemptionError } = await supabase
+          .from("redemptions")
+          .select("business_id")
+          .eq("customer_id", data?.customer?.id)
+
+        let businessIds = transactionBusinessIds
+
+        if (!redemptionError && redemptionData) {
+          // Get unique business IDs from redemptions
+          const redemptionBusinessIds = [...new Set(redemptionData.map((item: any) => item.business_id))]
+          // Combine both arrays and remove duplicates
+          businessIds = [...new Set([...transactionBusinessIds, ...redemptionBusinessIds])]
+        }
+
+        if (businessIds.length === 0) {
+          setDiscoveredBusinesses([])
+          setRewards([])
+          setDiscounts([])
+          setExclusiveOffers([])
+          return
+        }
+
+        // Fetch business details
         const { data: businessesData, error: businessesError } = await supabase
           .from("businesses")
           .select("id, business_name, business_category, profile_pic_url, points_per_currency")
-          .limit(10)
+          .in("id", businessIds)
 
-        if (businessesError) throw businessesError
-
-        // For now, let's fetch all related data and process it manually
-        // This avoids complex SQL queries that might not work in all environments
-        const businessIds = businessesData?.map((business: { id: string }) => business.id) || []
-        
-        // Initialize arrays for related data
-        let allRewards: any[] = []
-        let allExclusiveOffers: any[] = []
-        let allDiscountOffers: any[] = []
-        
-        // Only fetch related data if we have business IDs
-        if (businessIds.length > 0) {
-          // Fetch all rewards
-          const { data: rewardsData, error: rewardsError } = await supabase
-            .from("rewards")
-            .select("business_id")
-            .in("business_id", businessIds)
-          
-          if (!rewardsError && rewardsData) {
-            allRewards = rewardsData
-          }
-          
-          // Fetch all exclusive offers
-          const { data: exclusiveOffersData, error: exclusiveOffersError } = await supabase
-            .from("exclusive_offers")
-            .select("business_id")
-          
-          if (!exclusiveOffersError && exclusiveOffersData) {
-            allExclusiveOffers = exclusiveOffersData
-          }
-          
-          // Fetch all discount offers
-          const { data: discountOffersData, error: discountOffersError } = await supabase
-            .from("discount_offers")
-            .select("business_id, discount_value")
-
-          if (!discountOffersError && discountOffersData) {
-            allDiscountOffers = discountOffersData
-          }
+        if (businessesError) {
+          console.error("Error fetching business details:", businessesError)
+          throw businessesError
         }
 
-        // Process the data to combine all information
-        const processedBusinesses = businessesData?.map((business: any) => {
-          // Count rewards for this business
-          const rewardsCount = allRewards?.filter((r: any) => r.business_id === business.id).length || 0
-          
-          // Count exclusive offers for this business
-          const exclusiveOffersCount = allExclusiveOffers?.filter((e: any) => e.business_id === business.id).length || 0
-          
-          // Find max discount for this business
-          const businessDiscounts = allDiscountOffers?.filter((d: any) => d.business_id === business.id) || []
-          const maxDiscount = businessDiscounts.length > 0 
-            ? Math.max(...businessDiscounts.map((d: any) => d.discount_value || 0)) 
-            : 0
+        setDiscoveredBusinesses(businessesData || [])
 
-          return {
-            ...business,
-            rewards_count: rewardsCount,
-            exclusive_offers_count: exclusiveOffersCount,
-            max_discount: maxDiscount
-          }
-        }) || []
+        // Fetch rewards from businesses where customer has transactions
+        const { data: rewardsData, error: rewardsError } = await supabase
+          .from("rewards")
+          .select(`
+            id, 
+            reward_name, 
+            points_required,
+            image_url,
+            business_id,
+            businesses!inner (business_name, profile_pic_url)
+          `)
+          .in("business_id", businessIds)
+          .eq("is_active", true)
+          .limit(10)
 
-        setBusinessDiscovery(processedBusinesses)
+        if (rewardsError) {
+          console.error("Error fetching rewards:", rewardsError)
+        } else if (rewardsData) {
+          // Fetch customer points for each business
+          const rewardsWithPoints = await Promise.all(rewardsData.map(async (reward: any) => {
+            // Get customer points for this business
+            const { data: pointsData, error: pointsError } = await supabase
+              .from("points_transactions")
+              .select("points_earned")
+              .eq("customer_id", data?.customer?.id)
+              .eq("business_id", reward.business_id)
+
+            let totalPoints = 0
+            if (!pointsError && pointsData) {
+              totalPoints = pointsData.reduce((sum: number, transaction: any) => sum + transaction.points_earned, 0)
+              
+              // Subtract redeemed points
+              const { data: redemptionsData, error: redemptionsError } = await supabase
+                .from("redemptions")
+                .select("points_redeemed")
+                .eq("customer_id", data?.customer?.id)
+                .eq("business_id", reward.business_id)
+                
+              if (!redemptionsError && redemptionsData) {
+                const redeemedPoints = redemptionsData.reduce((sum: number, redemption: any) => sum + redemption.points_redeemed, 0)
+                totalPoints -= redeemedPoints
+              }
+            }
+
+            return {
+              id: reward.id,
+              reward_name: reward.reward_name,
+              points_required: reward.points_required,
+              image_url: reward.image_url,
+              business_id: reward.business_id,
+              business_name: reward.businesses?.business_name || 'Unknown Business',
+              business_profile_pic: reward.businesses?.profile_pic_url || null,
+              customer_points: totalPoints
+            }
+          }))
+
+          setRewards(rewardsWithPoints)
+        }
+
+        // Fetch discounts from businesses where customer has transactions
+        const { data: discountsData, error: discountsError } = await supabase
+          .from("discount_offers")
+          .select(`
+            id, 
+            discount_value,
+            image_url,
+            business_id,
+            businesses!inner (business_name, profile_pic_url)
+          `)
+          .in("business_id", businessIds)
+          .eq("is_active", true)
+          .limit(10)
+
+        if (discountsError) {
+          console.error("Error fetching discounts:", discountsError)
+        } else if (discountsData) {
+          const formattedDiscounts = discountsData.map((discount: any) => ({
+            id: discount.id,
+            discount_value: discount.discount_value,
+            image_url: discount.image_url,
+            business_id: discount.business_id,
+            business_name: discount.businesses?.business_name || 'Unknown Business',
+            business_profile_pic: discount.businesses?.profile_pic_url || null
+          }))
+          setDiscounts(formattedDiscounts)
+        }
+
+        // Fetch exclusive offers from businesses where customer has transactions
+        const { data: exclusiveOffersData, error: exclusiveOffersError } = await supabase
+          .from("exclusive_offers")
+          .select(`
+            id, 
+            title,
+            product_name,
+            original_price,
+            discounted_price,
+            discount_percentage,
+            image_url,
+            business_id,
+            businesses!inner (business_name, profile_pic_url)
+          `)
+          .in("business_id", businessIds)
+          .eq("is_active", true)
+          .limit(10)
+
+        if (exclusiveOffersError) {
+          console.error("Error fetching exclusive offers:", exclusiveOffersError)
+        } else if (exclusiveOffersData) {
+          const formattedExclusiveOffers = exclusiveOffersData.map((offer: any) => ({
+            id: offer.id,
+            offer_name: offer.title,
+            product_name: offer.product_name,
+            original_price: offer.original_price,
+            discounted_price: offer.discounted_price,
+            discount_percentage: offer.discount_percentage,
+            image_url: offer.image_url,
+            business_id: offer.business_id,
+            business_name: offer.businesses?.business_name || 'Unknown Business',
+            business_profile_pic: offer.businesses?.profile_pic_url || null
+          }))
+          setExclusiveOffers(formattedExclusiveOffers)
+        }
       } catch (error) {
-        console.error("Error fetching business discovery data:", error)
-        // Don't show error to user for discovery data, just show empty state
-        setBusinessDiscovery([])
+        console.error("Error fetching businesses with transactions and offers:", error)
+        setDiscoveredBusinesses([])
+        setRewards([])
+        setDiscounts([])
+        setExclusiveOffers([])
       }
     }
 
-    fetchBusinessDiscovery()
-  }, [])
+    if (data?.customer?.id) {
+      fetchBusinessesWithTransactionsAndOffers()
+    }
+  }, [data?.customer?.id, supabase])
 
   // Add real-time subscription for redemption validations
   useEffect(() => {
@@ -180,6 +316,256 @@ export default function CustomerDashboard() {
     }
   }, [data?.customer?.id, refetch])
 
+  // Add real-time subscription for new transactions
+  useEffect(() => {
+    // Only subscribe if we have customer data
+    if (!data?.customer?.id) {
+      return;
+    }
+
+    console.log("[v0] Setting up transaction subscription for customer:", data.customer.id);
+    
+    const channel = supabase
+      .channel('customer-transactions')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'points_transactions'
+        },
+        (payload: any) => {
+          console.log("[v0] Received new transaction:", payload);
+          // Check if this transaction belongs to the current customer
+          if (payload.new.customer_id === data?.customer?.id) {
+            // Show toast notification
+            toast.success('New Transaction!', {
+              description: `You've earned ${payload.new.points_earned} points!`,
+              duration: 5000
+            })
+            
+            // Refetch data to update the UI
+            refetch()
+          }
+        }
+      )
+      .subscribe((status: any) => {
+        console.log("[v0] Transaction subscription status:", status);
+      })
+
+    // Cleanup function
+    return () => {
+      console.log("[v0] Cleaning up transaction subscription");
+      try {
+        supabase.removeChannel(channel)
+      } catch (error) {
+        console.warn("[v0] Error cleaning up transaction subscription:", error);
+      }
+    }
+  }, [data?.customer?.id, refetch])
+
+  const handleQrScan = () => {
+    // For now, we'll just navigate to the discover page
+    // In a real implementation, this would open the QR scanner
+    router.push("/dashboard/customer/discover")
+  }
+
+  const handleRefresh = async () => {
+    try {
+      // Refetch all data
+      await refetch()
+      
+      // Also manually refetch discovered businesses and offers
+      const fetchDiscoveredBusinessesAndOffers = async () => {
+        try {
+          // First, fetch discovered businesses for this customer
+          const { data: discoveredData, error: discoveredError } = await supabase
+            .from("customer_businesses")
+            .select("business_id")
+            .eq("customer_id", data?.customer?.id)
+
+          if (discoveredError) {
+            console.error("Error fetching discovered businesses:", discoveredError)
+            throw discoveredError
+          }
+
+          const businessIds = discoveredData?.map((item: any) => item.business_id) || []
+          
+          if (businessIds.length === 0) {
+            setDiscoveredBusinesses([])
+            setRewards([])
+            setDiscounts([])
+            setExclusiveOffers([])
+            return
+          }
+
+          // Fetch business details
+          const { data: businessesData, error: businessesError } = await supabase
+            .from("businesses")
+            .select("id, business_name, business_category, profile_pic_url, points_per_currency")
+            .in("id", businessIds)
+
+          if (businessesError) {
+            console.error("Error fetching business details:", businessesError)
+            throw businessesError
+          }
+
+          setDiscoveredBusinesses(businessesData || [])
+
+          // Fetch rewards from discovered businesses
+          const { data: rewardsData, error: rewardsError } = await supabase
+            .from("rewards")
+            .select(`
+              id, 
+              reward_name, 
+              points_required,
+              image_url,
+              business_id,
+              businesses!inner (business_name, profile_pic_url)
+            `)
+            .in("business_id", businessIds)
+            .eq("is_active", true)
+            .limit(10)
+
+          if (rewardsError) {
+            console.error("Error fetching rewards:", rewardsError)
+          } else if (rewardsData) {
+            // Fetch customer points for each business
+            const rewardsWithPoints = await Promise.all(rewardsData.map(async (reward: any) => {
+              // Get customer points for this business
+              const { data: pointsData, error: pointsError } = await supabase
+                .from("points_transactions")
+                .select("points_earned")
+                .eq("customer_id", data?.customer?.id)
+                .eq("business_id", reward.business_id)
+
+              let totalPoints = 0
+              if (!pointsError && pointsData) {
+                totalPoints = pointsData.reduce((sum: number, transaction: any) => sum + transaction.points_earned, 0)
+                
+                // Subtract redeemed points
+                const { data: redemptionsData, error: redemptionsError } = await supabase
+                  .from("redemptions")
+                  .select("points_redeemed")
+                  .eq("customer_id", data?.customer?.id)
+                  .eq("business_id", reward.business_id)
+                  
+                if (!redemptionsError && redemptionsData) {
+                  const redeemedPoints = redemptionsData.reduce((sum: number, redemption: any) => sum + redemption.points_redeemed, 0)
+                  totalPoints -= redeemedPoints
+                }
+              }
+
+              return {
+                id: reward.id,
+                reward_name: reward.reward_name,
+                points_required: reward.points_required,
+                image_url: reward.image_url,
+                business_id: reward.business_id,
+                business_name: reward.businesses?.business_name || 'Unknown Business',
+                business_profile_pic: reward.businesses?.profile_pic_url || null,
+                customer_points: totalPoints
+              }
+            }))
+
+            setRewards(rewardsWithPoints)
+          }
+
+          // Fetch discounts from discovered businesses
+          const { data: discountsData, error: discountsError } = await supabase
+            .from("discount_offers")
+            .select(`
+              id, 
+              discount_value,
+              image_url,
+              business_id,
+              businesses!inner (business_name, profile_pic_url)
+            `)
+            .in("business_id", businessIds)
+            .eq("is_active", true)
+            .limit(10)
+
+          if (discountsError) {
+            console.error("Error fetching discounts:", discountsError)
+          } else if (discountsData) {
+            const formattedDiscounts = discountsData.map((discount: any) => ({
+              id: discount.id,
+              discount_value: discount.discount_value,
+              image_url: discount.image_url,
+              business_id: discount.business_id,
+              business_name: discount.businesses?.business_name || 'Unknown Business',
+              business_profile_pic: discount.businesses?.profile_pic_url || null
+            }))
+            setDiscounts(formattedDiscounts)
+          }
+
+          // Fetch exclusive offers from discovered businesses
+          const { data: exclusiveOffersData, error: exclusiveOffersError } = await supabase
+            .from("exclusive_offers")
+            .select(`
+              id, 
+              title,
+              product_name,
+              original_price,
+              discounted_price,
+              discount_percentage,
+              image_url,
+              business_id,
+              businesses!inner (business_name, profile_pic_url)
+            `)
+            .in("business_id", businessIds)
+            .eq("is_active", true)
+            .limit(10)
+
+          if (exclusiveOffersError) {
+            console.error("Error fetching exclusive offers:", exclusiveOffersError)
+          } else if (exclusiveOffersData) {
+            const formattedExclusiveOffers = exclusiveOffersData.map((offer: any) => ({
+              id: offer.id,
+              offer_name: offer.title,
+              product_name: offer.product_name,
+              original_price: offer.original_price,
+              discounted_price: offer.discounted_price,
+              discount_percentage: offer.discount_percentage,
+              image_url: offer.image_url,
+              business_id: offer.business_id,
+              business_name: offer.businesses?.business_name || 'Unknown Business',
+              business_profile_pic: offer.businesses?.profile_pic_url || null
+            }))
+            setExclusiveOffers(formattedExclusiveOffers)
+          }
+        } catch (error) {
+          console.error("Error fetching discovered businesses and offers:", error)
+          setDiscoveredBusinesses([])
+          setRewards([])
+          setDiscounts([])
+          setExclusiveOffers([])
+        }
+      }
+
+      if (data?.customer?.id) {
+        await fetchDiscoveredBusinessesAndOffers()
+      }
+      
+      toast.success("Data refreshed successfully!")
+    } catch (error) {
+      console.error("Error refreshing data:", error)
+      toast.error("Failed to refresh data")
+    }
+  }
+
+  // Add a refresh button to the UI
+  const renderRefreshButton = () => (
+    <Button 
+      variant="outline" 
+      size="sm" 
+      onClick={handleRefresh}
+      className="ml-2"
+    >
+      <RefreshCw className="h-4 w-4" />
+    </Button>
+  )
+
   if (isLoading) {
     return (
       <DashboardLayout
@@ -189,38 +575,24 @@ export default function CustomerDashboard() {
       >
         {/* Main Content with skeleton loading */}
         <div className="flex flex-col gap-6">
-          {/* Stats Overview skeleton */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-4 rounded-full" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-6 w-16" />
-                  <Skeleton className="mt-1 h-3 w-24" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Quick Actions skeleton */}
+          {/* Greeting skeleton */}
+          <Skeleton className="h-8 w-64" />
+          
+          {/* QR Code Card skeleton */}
           <Card>
             <CardHeader>
-              <Skeleton className="h-5 w-28" />
+              <Skeleton className="h-6 w-40" />
             </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <Skeleton className="h-16 rounded-lg" />
-              <Skeleton className="h-16 rounded-lg" />
+            <CardContent className="flex flex-col items-center gap-4">
+              <Skeleton className="h-48 w-48 rounded-lg" />
+              <Skeleton className="h-4 w-40" />
             </CardContent>
           </Card>
 
-          {/* Discover Businesses skeleton */}
+          {/* Rewards Section skeleton */}
           <div className="w-full">
             <div className="flex items-center justify-between mb-4">
               <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-4 w-16" />
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map((i) => (
@@ -242,19 +614,10 @@ export default function CustomerDashboard() {
               ))}
             </div>
           </div>
-
-          {/* QR Code Card skeleton */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="mt-1 h-4 w-64" />
-            </CardHeader>
-            <CardContent className="flex flex-col items-center gap-4">
-              <Skeleton className="h-48 w-48 rounded-lg" />
-              <Skeleton className="h-4 w-40" />
-            </CardContent>
-          </Card>
         </div>
+        
+        {/* Mobile Bottom Navigation */}
+        <MobileCustomerBottomNav onQrScan={handleQrScan} />
       </DashboardLayout>
     )
   }
@@ -285,9 +648,32 @@ export default function CustomerDashboard() {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Mobile Bottom Navigation */}
+        <MobileCustomerBottomNav onQrScan={handleQrScan} />
       </DashboardLayout>
     )
   }
+
+  // QR Code Card Component
+  const QrCodeCard = ({ qrCodeData }: { qrCodeData: string }) => (
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="text-center">Your QR Code</CardTitle>
+        <CardDescription className="text-center">
+          Show this to businesses for transactions
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center gap-4">
+        <div className="p-4 bg-white rounded-lg">
+          <QRCodeSVG value={qrCodeData} size={192} />
+        </div>
+        <p className="text-sm text-muted-foreground text-center">
+          This QR code is unique to you. Businesses can scan it to award points.
+        </p>
+      </CardContent>
+    </Card>
+  )
 
   return (
     <DashboardLayout
@@ -295,38 +681,452 @@ export default function CustomerDashboard() {
       userName={data?.customer?.full_name || "Customer"}
       breadcrumbs={[]}
     >
-      <div className="flex flex-col gap-6">
-        {/* Stats Overview */}
-        <CustomerStats 
-          totalPoints={data?.customer?.total_points || 0}
-          totalTransactions={data?.transactions?.length || 0}
-          totalRedemptions={data?.redemptions?.length || 0}
-        />
+      {/* Hide most content on mobile since we have bottom nav */}
+      <div className="hidden md:block">
+        <div className="flex flex-col gap-6">
+          {/* Customer QR Code - Prominent for easy scanning */}
+          {data?.customer?.qr_code_data && (
+            <div className="flex items-center justify-between">
+              <QrCodeCard 
+                qrCodeData={data?.customer?.qr_code_data || ""}
+              />
+            </div>
+          )}
 
-        {/* Quick Actions */}
-        <QuickActions 
-          onShowQRDialog={() => setShowQRDialog(true)}
-        />
+          {/* Rewards Section */}
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Top Rewards</h2>
+            </div>
+            {rewards.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {rewards.map((reward) => (
+                  <Card 
+                    key={reward.id} 
+                    className="cursor-pointer transition-all hover:shadow-md"
+                    onClick={() => router.push(`/business/${reward.business_id}`)}
+                  >
+                    {reward.image_url ? (
+                      <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                        <OptimizedImage
+                          src={reward.image_url}
+                          alt={reward.reward_name}
+                          width={400}
+                          height={160}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    ) : null}
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        {reward.business_profile_pic ? (
+                          <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                            <OptimizedImage 
+                              src={reward.business_profile_pic} 
+                              alt={reward.business_name} 
+                              width={48}
+                              height={48}
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                            <Building2 className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{reward.reward_name}</p>
+                          <p className="text-sm text-muted-foreground truncate">{reward.business_name}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Points required</span>
+                          <span className="font-medium">{reward.points_required}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Your points</span>
+                          <span className="font-medium text-primary">{reward.customer_points || 0}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">No rewards available from your discovered businesses yet.</p>
+            )}
+          </div>
 
-        {/* Discover Businesses */}
-        <DiscoverBusinesses businessDiscovery={businessDiscovery} />
+          {/* Discounts Section */}
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Top Discounts</h2>
+            </div>
+            {discounts.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {discounts.map((discount) => (
+                  <Card key={discount.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        {discount.business_profile_pic ? (
+                          <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                            <OptimizedImage 
+                              src={discount.business_profile_pic} 
+                              alt={discount.business_name} 
+                              width={48}
+                              height={48}
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                            <Building2 className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{discount.business_name}</p>
+                          <p className="text-sm text-muted-foreground">Discount Offer</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Discount</span>
+                        <span className="font-medium">{discount.discount_value}%</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">No discounts available from your discovered businesses yet.</p>
+            )}
+          </div>
 
-        {/* QR Code Card */}
+          {/* Exclusive Offers Section */}
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Exclusive Offers</h2>
+            </div>
+            {exclusiveOffers.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {exclusiveOffers.map((offer) => (
+                  <Card 
+                    key={offer.id} 
+                    className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
+                    onClick={() => router.push(`/business/${offer.business_id}`)}
+                  >
+                    {offer.image_url ? (
+                      <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                        <OptimizedImage
+                          src={offer.image_url}
+                          alt={offer.offer_name}
+                          width={400}
+                          height={160}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    ) : null}
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        {offer.business_profile_pic ? (
+                          <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                            <OptimizedImage 
+                              src={offer.business_profile_pic} 
+                              alt={offer.business_name} 
+                              width={48}
+                              height={48}
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                            <Building2 className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{offer.offer_name}</p>
+                          <p className="text-sm text-muted-foreground truncate">{offer.business_name}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-sm font-medium text-muted-foreground">{offer.product_name}</p>
+                        <div className="mt-2 space-y-1">
+                          {offer.original_price && (
+                            <p className="text-sm text-muted-foreground line-through">
+                              ₱{offer.original_price.toFixed(2)}
+                            </p>
+                          )}
+                          <p className="text-xl font-bold text-primary">
+                            {offer.discounted_price ? `₱${offer.discounted_price.toFixed(2)}` : "Special Offer"}
+                          </p>
+                          {offer.discount_percentage && (
+                            <p className="text-sm text-green-600 font-medium">
+                              Save {offer.discount_percentage.toFixed(0)}%
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">No exclusive offers available from your discovered businesses yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Mobile View - Simplified Content */}
+      <div className="md:hidden flex flex-col gap-6">
+        {/* Customer QR Code - Prominent for easy scanning */}
         {data?.customer?.qr_code_data && (
-          <QrCodeCard 
-            qrCodeData={data?.customer?.qr_code_data || ""}
-          />
+          <div className="flex items-center justify-between">
+            <QrCodeCard 
+              qrCodeData={data?.customer?.qr_code_data || ""}
+            />
+          </div>
         )}
 
-        {/* Business Points Section */}
-        <BusinessPointsSection businessPoints={data?.businessPoints || []} />
+        {/* Rewards Section - Carousel for mobile */}
+        <div className="w-full">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Top Rewards</h2>
+          </div>
+          {rewards.length > 0 ? (
+            <div className="md:hidden">
+              <Carousel
+                opts={{
+                  align: "start",
+                  slidesToScroll: 1,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2">
+                  {rewards.map((reward) => (
+                    <CarouselItem key={reward.id} className="basis-[85%] md:basis-1/2 lg:basis-1/3 pl-2">
+                      <div className="p-1">
+                        <Card 
+                          className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
+                          onClick={() => router.push(`/business/${reward.business_id}`)}
+                        >
+                          {reward.image_url ? (
+                            <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                              <OptimizedImage
+                                src={reward.image_url}
+                                alt={reward.reward_name}
+                                width={400}
+                                height={160}
+                                className="object-cover w-full h-full"
+                              />
+                            </div>
+                          ) : null}
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                              {reward.business_profile_pic ? (
+                                <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                  <OptimizedImage 
+                                    src={reward.business_profile_pic} 
+                                    alt={reward.business_name} 
+                                    width={48}
+                                    height={48}
+                                    className="object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                  <Building2 className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{reward.reward_name}</p>
+                                <p className="text-sm text-muted-foreground truncate">{reward.business_name}</p>
+                              </div>
+                            </div>
+                            <div className="mt-4 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Points required</span>
+                                <span className="font-medium">{reward.points_required}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Your points</span>
+                                <span className="font-medium text-primary">{reward.customer_points || 0}</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-4">No rewards available from your discovered businesses yet.</p>
+          )}
+        </div>
 
-        {/* Transaction History */}
-        <CustomerTransactionHistory 
-          transactions={data?.transactions || []}
-          redemptions={data?.redemptions || []}
-        />
+        {/* Discounts Section - Carousel for mobile */}
+        <div className="w-full">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Top Discounts</h2>
+          </div>
+          {discounts.length > 0 ? (
+            <div className="md:hidden">
+              <Carousel
+                opts={{
+                  align: "start",
+                  slidesToScroll: 1,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2">
+                  {discounts.map((discount) => (
+                    <CarouselItem key={discount.id} className="basis-[85%] md:basis-1/2 lg:basis-1/3 pl-2">
+                      <div className="p-1">
+                        <Card 
+                          className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
+                          onClick={() => router.push(`/business/${discount.business_id}`)}
+                        >
+                          {discount.image_url ? (
+                            <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                              <OptimizedImage
+                                src={discount.image_url}
+                                alt={discount.business_name}
+                                width={400}
+                                height={160}
+                                className="object-cover w-full h-full"
+                              />
+                            </div>
+                          ) : null}
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                              {discount.business_profile_pic ? (
+                                <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                  <OptimizedImage 
+                                    src={discount.business_profile_pic} 
+                                    alt={discount.business_name} 
+                                    width={48}
+                                    height={48}
+                                    className="object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                  <Building2 className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{discount.business_name}</p>
+                                <p className="text-sm text-muted-foreground">Discount Offer</p>
+                              </div>
+                            </div>
+                            <div className="mt-4 flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Discount</span>
+                              <span className="font-medium">{discount.discount_value}%</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-4">No discounts available from your discovered businesses yet.</p>
+          )}
+        </div>
+
+        {/* Exclusive Offers Section - Carousel for mobile */}
+        <div className="w-full">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Exclusive Offers</h2>
+          </div>
+          {exclusiveOffers.length > 0 ? (
+            <div className="md:hidden">
+              <Carousel
+                opts={{
+                  align: "start",
+                  slidesToScroll: 1,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2">
+                  {exclusiveOffers.map((offer) => (
+                    <CarouselItem key={offer.id} className="basis-[85%] md:basis-1/2 lg:basis-1/3 pl-2">
+                      <div className="p-1">
+                        <Card 
+                          className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
+                          onClick={() => router.push(`/business/${offer.business_id}`)}
+                        >
+                          {offer.image_url ? (
+                            <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                              <OptimizedImage
+                                src={offer.image_url}
+                                alt={offer.offer_name}
+                                width={400}
+                                height={160}
+                                className="object-cover w-full h-full"
+                              />
+                            </div>
+                          ) : null}
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-3">
+                              {offer.business_profile_pic ? (
+                                <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                  <OptimizedImage 
+                                    src={offer.business_profile_pic} 
+                                    alt={offer.business_name} 
+                                    width={48}
+                                    height={48}
+                                    className="object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                  <Building2 className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{offer.offer_name}</p>
+                                <p className="text-sm text-muted-foreground truncate">{offer.business_name}</p>
+                              </div>
+                            </div>
+                            <div className="mt-3">
+                              <p className="text-sm font-medium text-muted-foreground">{offer.product_name}</p>
+                              <div className="mt-2 space-y-1">
+                                {offer.original_price && (
+                                  <p className="text-sm text-muted-foreground line-through">
+                                    ₱{offer.original_price.toFixed(2)}
+                                  </p>
+                                )}
+                                <p className="text-xl font-bold text-primary">
+                                  {offer.discounted_price ? `₱${offer.discounted_price.toFixed(2)}` : "Special Offer"}
+                                </p>
+                                {offer.discount_percentage && (
+                                  <p className="text-sm text-green-600 font-medium">
+                                    Save {offer.discount_percentage.toFixed(0)}%
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-4">No exclusive offers available from your discovered businesses yet.</p>
+          )}
+        </div>
       </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <MobileCustomerBottomNav onQrScan={handleQrScan} />
     </DashboardLayout>
   )
 }

@@ -110,6 +110,11 @@ export function AppSidebar({
       icon: Gift,
     },
     {
+      title: "Transactions",
+      url: "/dashboard/customer/transactions",
+      icon: Wallet,
+    },
+    {
       title: "Discover",
       url: "/",
       icon: TrendingUp,

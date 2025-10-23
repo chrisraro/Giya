@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, useRef, useEffect } from "react";
+import { ReactNode, useState, useRef, useEffect, Fragment } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -161,16 +161,16 @@ export function DashboardLayout({
                     <BreadcrumbLink href="/">Home</BreadcrumbLink>
                   </BreadcrumbItem>
                   {breadcrumbs.map((crumb, index) => (
-                    <>
-                      <BreadcrumbSeparator key={`sep-${index}`} />
-                      <BreadcrumbItem key={index} isCurrent={!crumb.href}>
+                    <Fragment key={index}>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem isCurrent={!crumb.href}>
                         {crumb.href ? (
                           <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
                         ) : (
                           crumb.label
                         )}
                       </BreadcrumbItem>
-                    </>
+                    </Fragment>
                   ))}
                 </BreadcrumbList>
               </Breadcrumb>
