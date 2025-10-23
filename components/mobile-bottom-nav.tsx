@@ -44,7 +44,7 @@ export function MobileBottomNav({ onQrScan }: MobileBottomNavProps) {
       isVisible ? "translate-y-0" : "translate-y-full"
     )}>
       <div className="flex items-center justify-between px-4 py-3">
-        {/* Overview/Home */}
+        {/* Overview/Home - Left */}
         <Link href="/dashboard/business" className="flex flex-col items-center gap-1">
           <Button 
             variant="ghost" 
@@ -67,7 +67,15 @@ export function MobileBottomNav({ onQrScan }: MobileBottomNavProps) {
           </span>
         </Link>
         
-        {/* Transactions */}
+        {/* QR Scanner - Center (prominent) */}
+        <Button
+          onClick={onQrScan}
+          className="h-14 w-14 rounded-full bg-primary shadow-lg hover:bg-primary/90 -translate-y-4 flex items-center justify-center"
+        >
+          <QrCode className="h-6 w-6 text-primary-foreground" />
+        </Button>
+        
+        {/* Transactions - Right */}
         <Link href="/dashboard/business/transactions" className="flex flex-col items-center gap-1">
           <Button 
             variant="ghost" 
@@ -89,14 +97,6 @@ export function MobileBottomNav({ onQrScan }: MobileBottomNavProps) {
             Transactions
           </span>
         </Link>
-        
-        {/* QR Scanner - Prominent center button */}
-        <Button
-          onClick={onQrScan}
-          className="h-14 w-14 rounded-full bg-primary shadow-lg hover:bg-primary/90 -translate-y-4 flex items-center justify-center"
-        >
-          <QrCode className="h-6 w-6 text-primary-foreground" />
-        </Button>
       </div>
     </div>
   )

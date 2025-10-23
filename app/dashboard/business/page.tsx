@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Loader2, Settings, Check } from "lucide-react"
+import { Loader2, Settings, Check, QrCode, Gift, Tag, Star } from "lucide-react"
 import { toast } from "sonner"
 import { handleApiError, handleDatabaseError } from "@/lib/error-handler"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -21,7 +21,7 @@ import dynamic from 'next/dynamic'
 import { BusinessStats } from "@/components/dashboard/business-stats"
 import { QrScannerSection } from "@/components/dashboard/qr-scanner-section"
 import { TransactionHistory } from "@/components/dashboard/transaction-history"
-import { MobileBottomNav } from "@/components/mobile-bottom-nav" // Add this import
+import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 
 // Dynamically import the QR scanner component
 const QrScanner = dynamic(() => import('@/components/qr-scanner').then(mod => mod.QrScanner), {
@@ -47,13 +47,32 @@ interface CustomerInfo {
   total_points: number
 }
 
+interface RedemptionData {
+  id: string
+  customer_id: string
+  reward_id: string
+  points_redeemed: number
+  status: string
+  validated_at: string
+  business_id: string
+  customers: {
+    full_name: string
+    profile_pic_url: string | null
+  }
+  rewards: {
+    reward_name: string
+    description: string
+    points_required: number
+  }
+}
+
 export default function BusinessDashboard() {
   const [showScanner, setShowScanner] = useState(false)
   const [showTransactionDialog, setShowTransactionDialog] = useState(false)
   const [scannedCustomer, setScannedCustomer] = useState<CustomerInfo | null>(null)
   const [transactionAmount, setTransactionAmount] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
-  const [redemptionData, setRedemptionData] = useState<any>(null)
+  const [redemptionData, setRedemptionData] = useState<RedemptionData | null>(null)
   const [isValidating, setIsValidating] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -127,12 +146,18 @@ export default function BusinessDashboard() {
           return
         }
 
-        setRedemptionData(redemption)
+        // Cast the redemption data to the correct type
+        setRedemptionData(redemption as unknown as RedemptionData)
         return
       }
 
       // If we have a scanned customer, use their ID for offer redemptions
-      const customerIdToUse = scannedCustomer?.id || redemption?.customer_id || null;
+      let customerIdToUse: string | null = null;
+      if (scannedCustomer?.id) {
+        customerIdToUse = scannedCustomer.id;
+      } else if (redemption && 'customer_id' in redemption) {
+        customerIdToUse = (redemption as any).customer_id;
+      }
 
       // Try to find a discount offer redemption
       const discountResult = await supabase.rpc('redeem_discount_offer', {
@@ -254,7 +279,7 @@ export default function BusinessDashboard() {
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'local' })
     router.push("/")
   }
 
@@ -325,18 +350,49 @@ export default function BusinessDashboard() {
             ))}
           </div>
 
-          {/* Scan QR Card skeleton */}
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="mt-1 h-4 w-64" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Skeleton className="h-10 w-full rounded" />
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-10 w-full rounded" />
-            </CardContent>
-          </Card>
+          {/* Quick Actions - Hidden on mobile since we have bottom nav */}
+          <div className="hidden md:block">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+                <CardDescription>Common tasks you can perform</CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <Button 
+                  variant="outline" 
+                  className="h-auto flex-col gap-2 p-4"
+                  onClick={() => setShowScanner(true)}
+                >
+                  <QrCode className="h-6 w-6" />
+                  <span>Scan QR</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-auto flex-col gap-2 p-4"
+                  onClick={() => router.push("/dashboard/business/rewards")}
+                >
+                  <Gift className="h-6 w-6" />
+                  <span>Manage Rewards</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-auto flex-col gap-2 p-4"
+                  onClick={() => router.push("/dashboard/business/discounts")}
+                >
+                  <Tag className="h-6 w-6" />
+                  <span>Manage Discounts</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-auto flex-col gap-2 p-4"
+                  onClick={() => router.push("/dashboard/business/exclusive-offers")}
+                >
+                  <Star className="h-6 w-6" />
+                  <span>Manage Exclusive</span>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Transaction History skeleton */}
           <Card>
@@ -424,27 +480,59 @@ export default function BusinessDashboard() {
       userAvatar={data.business.profile_pic_url}
       breadcrumbs={[]}
     >
-      {/* Stats Overview - Show only on mobile and tablet */}
-      <div className="md:hidden">
-        <BusinessStats 
-          totalRevenue={data.stats?.totalRevenue || 0}
-          totalTransactions={data.stats?.totalTransactions || 0}
-          uniqueCustomers={data.stats?.uniqueCustomers || 0}
-        />
+      {/* Stats Overview - Always visible on all devices */}
+      <BusinessStats 
+        totalRevenue={data.stats?.totalRevenue || 0}
+        totalTransactions={data.stats?.totalTransactions || 0}
+        uniqueCustomers={data.stats?.uniqueCustomers || 0}
+      />
+
+      {/* Quick Actions - Hidden on mobile since we have bottom nav */}
+      <div className="hidden md:block">
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common tasks you can perform</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Button 
+              variant="outline" 
+              className="h-auto flex-col gap-2 p-4"
+              onClick={() => setShowScanner(true)}
+            >
+              <QrCode className="h-6 w-6" />
+              <span>Scan QR</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto flex-col gap-2 p-4"
+              onClick={() => router.push("/dashboard/business/rewards")}
+            >
+              <Gift className="h-6 w-6" />
+              <span>Manage Rewards</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto flex-col gap-2 p-4"
+              onClick={() => router.push("/dashboard/business/discounts")}
+            >
+              <Tag className="h-6 w-6" />
+              <span>Manage Discounts</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto flex-col gap-2 p-4"
+              onClick={() => router.push("/dashboard/business/exclusive-offers")}
+            >
+              <Star className="h-6 w-6" />
+              <span>Manage Exclusive</span>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Scan QR Section - Show only on mobile and tablet */}
-      <div className="md:hidden">
-        <QrScannerSection 
-          pointsPerCurrency={data.business.points_per_currency}
-          onOpenScanner={() => setShowScanner(true)}
-        />
-      </div>
-
-      {/* Transaction History - Show only on mobile and tablet */}
-      <div className="md:hidden">
-        <TransactionHistory transactions={data.transactions || []} />
-      </div>
+      {/* Recent Transactions - Always visible on all devices */}
+      <TransactionHistory transactions={data.transactions || []} />
 
       {/* QR Scanner Dialog */}
       <Dialog open={showScanner} onOpenChange={setShowScanner}>

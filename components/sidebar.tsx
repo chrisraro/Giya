@@ -84,9 +84,9 @@ export function Sidebar({
         }
       }
       
-      // Sign out from Supabase
+      // Sign out from Supabase with proper scope
       console.log("[v0] Signing out user")
-      const { error } = await supabase.auth.signOut()
+      const { error } = await supabase.auth.signOut({ scope: 'local' })
       
       if (error) {
         console.error("[v0] Logout error:", error)
@@ -99,6 +99,9 @@ export function Sidebar({
       // Clear any client-side state if needed
       console.log("[v0] Logout successful")
       toast.success("Logged out successfully")
+      
+      // Redirect to home page
+      window.location.href = "/"
     } catch (error) {
       console.error("[v0] Unexpected logout error:", error)
       toast.error("Unexpected error during logout", {
