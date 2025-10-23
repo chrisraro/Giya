@@ -40,63 +40,77 @@ export function MobileBottomNav({ onQrScan }: MobileBottomNavProps) {
 
   return (
     <div className={cn(
-      "md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t transition-transform duration-300",
+      "md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border transition-transform duration-300",
       isVisible ? "translate-y-0" : "translate-y-full"
     )}>
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="relative h-16 flex items-center justify-center px-6 py-3">
         {/* Overview/Home - Left */}
-        <Link href="/dashboard/business" className="flex flex-col items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className={cn(
-              "h-10 w-10 rounded-full",
-              isActive("/dashboard/business") && "bg-primary/10"
-            )}
-          >
-            <Home className={cn(
-              "h-5 w-5",
-              isActive("/dashboard/business") ? "text-primary" : "text-muted-foreground"
-            )} />
-          </Button>
+        <div className="absolute left-4 flex flex-col items-center gap-1">
+          <Link href="/dashboard/business">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className={cn(
+                "h-12 w-12 rounded-xl transition-all duration-200",
+                isActive("/dashboard/business") 
+                  ? "text-primary scale-105" 
+                  : "text-muted-foreground hover:bg-transparent"
+              )}
+            >
+              <Home className={cn(
+                "h-6 w-6 transition-all duration-200",
+                isActive("/dashboard/business") ? "text-primary" : "text-muted-foreground"
+              )} />
+            </Button>
+          </Link>
           <span className={cn(
-            "text-xs",
-            isActive("/dashboard/business") ? "text-primary font-medium" : "text-muted-foreground"
+            "text-xs font-medium transition-all duration-200",
+            isActive("/dashboard/business") 
+              ? "text-primary scale-105" 
+              : "text-muted-foreground"
           )}>
             Home
           </span>
-        </Link>
+        </div>
         
         {/* QR Scanner - Center (prominent) */}
-        <Button
-          onClick={onQrScan}
-          className="h-14 w-14 rounded-full bg-primary shadow-lg hover:bg-primary/90 -translate-y-4 flex items-center justify-center"
-        >
-          <QrCode className="h-6 w-6 text-primary-foreground" />
-        </Button>
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <Button
+            onClick={onQrScan}
+            className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary/90 shadow-lg hover:from-primary/90 hover:to-primary transition-all duration-300 -translate-y-6 flex items-center justify-center group z-10"
+          >
+            <QrCode className="h-7 w-7 text-primary-foreground transition-transform duration-300 group-hover:scale-110" />
+          </Button>
+        </div>
         
         {/* Transactions - Right */}
-        <Link href="/dashboard/business/transactions" className="flex flex-col items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className={cn(
-              "h-10 w-10 rounded-full",
-              isActive("/dashboard/business/transactions") && "bg-primary/10"
-            )}
-          >
-            <Wallet className={cn(
-              "h-5 w-5",
-              isActive("/dashboard/business/transactions") ? "text-primary" : "text-muted-foreground"
-            )} />
-          </Button>
+        <div className="absolute right-4 flex flex-col items-center gap-1">
+          <Link href="/dashboard/business/transactions">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className={cn(
+                "h-12 w-12 rounded-xl transition-all duration-200",
+                isActive("/dashboard/business/transactions") 
+                  ? "text-primary scale-105" 
+                  : "text-muted-foreground hover:bg-transparent"
+              )}
+            >
+              <Wallet className={cn(
+                "h-6 w-6 transition-all duration-200",
+                isActive("/dashboard/business/transactions") ? "text-primary" : "text-muted-foreground"
+              )} />
+            </Button>
+          </Link>
           <span className={cn(
-            "text-xs",
-            isActive("/dashboard/business/transactions") ? "text-primary font-medium" : "text-muted-foreground"
+            "text-xs font-medium transition-all duration-200",
+            isActive("/dashboard/business/transactions") 
+              ? "text-primary scale-105" 
+              : "text-muted-foreground"
           )}>
             Transactions
           </span>
-        </Link>
+        </div>
       </div>
     </div>
   )
