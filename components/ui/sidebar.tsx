@@ -199,7 +199,23 @@ function Sidebar({
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          <div className="flex h-full w-full flex-col relative">
+            {children}
+            {/* Close button for mobile sidebar */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 h-7 w-7 rounded-full z-10"
+              onClick={() => setOpenMobile(false)}
+            >
+              <div className="relative flex flex-col items-center justify-center w-6 h-6">
+                <span className="block absolute h-0.5 w-5 bg-current rounded-full transition-all duration-300 ease-in-out rotate-45 translate-y-0"></span>
+                <span className="block absolute h-0.5 w-5 bg-current rounded-full transition-all duration-300 ease-in-out opacity-0"></span>
+                <span className="block absolute h-0.5 w-5 bg-current rounded-full transition-all duration-300 ease-in-out -rotate-45 -translate-y-0"></span>
+              </div>
+              <span className="sr-only">Close Sidebar</span>
+            </Button>
+          </div>
         </SheetContent>
       </Sheet>
     )
@@ -258,7 +274,10 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, state, isMobile, openMobile } = useSidebar()
+  
+  // Determine if the sidebar is currently "open" based on device type
+  const isSidebarOpen = isMobile ? openMobile : state === 'expanded'
 
   return (
     <Button
@@ -273,7 +292,11 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <PanelLeftIcon />
+      <div className="relative flex flex-col items-center justify-center w-6 h-6">
+        <span className={`block absolute h-0.5 w-5 bg-current rounded-full transition-all duration-300 ease-in-out ${isSidebarOpen ? 'rotate-45 translate-y-0' : '-translate-y-1.5'}`}></span>
+        <span className={`block absolute h-0.5 w-5 bg-current rounded-full transition-all duration-300 ease-in-out ${isSidebarOpen ? 'opacity-0' : 'opacity-100'}`}></span>
+        <span className={`block absolute h-0.5 w-5 bg-current rounded-full transition-all duration-300 ease-in-out ${isSidebarOpen ? '-rotate-45 -translate-y-0' : 'translate-y-1.5'}`}></span>
+      </div>
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
