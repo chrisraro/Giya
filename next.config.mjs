@@ -6,6 +6,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Configure external packages for Edge Runtime compatibility
+  serverExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
   images: {
     unoptimized: false, // Changed to false to fix build issue
     domains: [
@@ -36,6 +38,18 @@ const nextConfig = {
         hostname: '*.supabase.co', // All Supabase storage domains
       },
     ],
+  },
+  // Configure webpack to handle Supabase properly
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
   },
 }
 
