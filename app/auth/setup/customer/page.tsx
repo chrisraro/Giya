@@ -129,7 +129,8 @@ export default function CustomerSetupPage() {
         .eq("id", user.id)
         .single()
 
-      if (!existingProfile && profileCheckError?.code === 'PGRST116') {
+      // Fix the condition to properly check if profile exists
+      if (!existingProfile && (profileCheckError?.code === 'PGRST116' || !profileCheckError)) {
         // Profile doesn't exist, create it
         const { error: profileError } = await supabase.from("profiles").insert({
           id: user.id,

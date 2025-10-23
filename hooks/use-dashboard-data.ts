@@ -151,6 +151,8 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
           return;
         }
 
+        console.log("[useDashboardData] Fetching data for user:", user.id, "with type:", userType);
+
         let resultData: DashboardData = { user };
 
         switch (userType) {
@@ -169,6 +171,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
 
         setData(resultData);
       } catch (err) {
+        console.error("[useDashboardData] Error fetching data for user type:", userType, err);
         const errorMessage = handleApiError(err, `Failed to load ${userType} dashboard data`, `useDashboardData.${userType}`);
         setError(errorMessage);
       } finally {
@@ -188,6 +191,8 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
       .select("id, full_name, nickname, profile_pic_url, qr_code_data, total_points")
       .eq("id", userId)
       .single();
+
+    console.log("[v0] Customer data query result:", { customer, customerError });
 
     if (customerError) {
       console.error("[v0] Customer data query error:", customerError);

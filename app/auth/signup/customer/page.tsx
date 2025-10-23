@@ -98,19 +98,21 @@ export default function CustomerSignupPage() {
     setIsGoogleLoading(true)
     setError(null)
 
-    // Save preferred role to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('preferred_role', 'customer')
-      
-      // Also save referral code if present
-      const urlParams = new URLSearchParams(window.location.search)
-      const refCode = urlParams.get('ref')
-      if (refCode) {
-        localStorage.setItem('affiliate_referral_code', refCode)
-      }
-    }
-
     try {
+      // Save role and form data to localStorage and cookie for callback access
+      const googleSignupData = {
+        role: "customer",
+        formData: { ...formData }
+      }
+      
+      if (typeof window !== 'undefined') {
+        // Save to localStorage
+        localStorage.setItem('google_signup_data', JSON.stringify(googleSignupData))
+        
+        // Also save to a cookie for server-side access
+        document.cookie = `google_signup_data=${JSON.stringify(googleSignupData)}; path=/`
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

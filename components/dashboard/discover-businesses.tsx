@@ -41,7 +41,13 @@ export function DiscoverBusinesses({ businessDiscovery }: DiscoverBusinessesProp
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {businessDiscovery.map((business, index) => (
+          {businessDiscovery.map((business, index) => {
+            // For server-side rendering, we rely on React's built-in XSS protection
+            // User-generated content is automatically escaped by React when rendered as text nodes
+            const businessName = business.business_name || '';
+            const businessCategory = business.business_category || '';
+            
+            return (
             <Card 
               key={business.id || `business-${index}`} 
               className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${business.profile_pic_url ? 'p-0' : 'p-4'}`}
@@ -53,7 +59,7 @@ export function DiscoverBusinesses({ businessDiscovery }: DiscoverBusinessesProp
                     <div className="relative h-full w-full">
                       <OptimizedImage 
                         src={business.profile_pic_url} 
-                        alt={business.business_name} 
+                        alt={businessName} 
                         width={200} 
                         height={128}
                         className="object-cover w-full h-full"
@@ -66,18 +72,18 @@ export function DiscoverBusinesses({ businessDiscovery }: DiscoverBusinessesProp
                         {business.profile_pic_url ? (
                           <OptimizedImage 
                             src={business.profile_pic_url} 
-                            alt={business.business_name} 
+                            alt={businessName} 
                             width={48} 
                             height={48}
                             className="rounded-full"
                           />
                         ) : (
-                          <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback>{businessName.charAt(0)}</AvatarFallback>
                         )}
                       </Avatar>
                       <div className="flex-1">
-                        <h3 className="font-semibold">{business.business_name}</h3>
-                        <p className="text-sm text-muted-foreground">{business.business_category}</p>
+                        <h3 className="font-semibold">{businessName}</h3>
+                        <p className="text-sm text-muted-foreground">{businessCategory}</p>
                       </div>
                     </div>
                     <div className="mt-3 text-sm">
@@ -106,11 +112,11 @@ export function DiscoverBusinesses({ businessDiscovery }: DiscoverBusinessesProp
               ) : (
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
-                    <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{businessName.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <h3 className="font-semibold">{business.business_name}</h3>
-                    <p className="text-sm text-muted-foreground">{business.business_category}</p>
+                    <h3 className="font-semibold">{businessName}</h3>
+                    <p className="text-sm text-muted-foreground">{businessCategory}</p>
                     <div className="mt-2 text-sm">
                       <span className="font-medium text-primary">
                         1 point per ₱{business.points_per_currency || 100}
@@ -126,7 +132,7 @@ export function DiscoverBusinesses({ businessDiscovery }: DiscoverBusinessesProp
                         {business.exclusive_offers_count || 0} offers
                       </div>
                       {business.max_discount && business.max_discount > 0 && (
-                        <div className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700">
+                        <div className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-purple-700">
                           <Percent className="h-3 w-3 mr-1" />
                           Up to {business.max_discount}% off
                         </div>
@@ -136,7 +142,7 @@ export function DiscoverBusinesses({ businessDiscovery }: DiscoverBusinessesProp
                 </div>
               )}
             </Card>
-          ))}
+            )})}
         </div>
       )}
     </div>

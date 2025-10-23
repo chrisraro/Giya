@@ -106,12 +106,21 @@ export default function InfluencerSignupPage() {
     setIsGoogleLoading(true)
     setError(null)
 
-    // Save preferred role to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('preferred_role', 'influencer')
-    }
-
     try {
+      // Save role and form data to localStorage and cookie for callback access
+      const googleSignupData = {
+        role: "influencer",
+        formData: { ...formData }
+      }
+      
+      if (typeof window !== 'undefined') {
+        // Save to localStorage
+        localStorage.setItem('google_signup_data', JSON.stringify(googleSignupData))
+        
+        // Also save to a cookie for server-side access
+        document.cookie = `google_signup_data=${JSON.stringify(googleSignupData)}; path=/`
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

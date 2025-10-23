@@ -49,7 +49,7 @@ export function MyLinksTab({
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={link.businesses.profile_pic_url || undefined} />
+                      <AvatarImage src={link.businesses.profile_pic_url || undefined} alt={link.businesses.business_name} />
                       <AvatarFallback>{link.businesses.business_name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">

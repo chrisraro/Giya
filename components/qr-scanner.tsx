@@ -23,17 +23,20 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
   const [showManualInput, setShowManualInput] = useState(false)
   const [manualCode, setManualCode] = useState("")
   const [cameraError, setCameraError] = useState<string | null>(null)
+  const isComponentMounted = useRef(true)
 
   useEffect(() => {
+    isComponentMounted.current = true
     startCamera()
 
     return () => {
+      isComponentMounted.current = false
       stopCamera()
     }
   }, [])
 
   const startCamera = async () => {
-    if (!scannerRef.current) return
+    if (!scannerRef.current || !isComponentMounted.current) return
 
     try {
       setCameraError(null)
@@ -41,7 +44,11 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
       // Clear previous scanner if exists
       if (html5QrCodeRef.current) {
         if (html5QrCodeRef.current.getState() !== Html5QrcodeScannerState.NOT_STARTED) {
-          await html5QrCodeRef.current.stop()
+          try {
+            await html5QrCodeRef.current.stop()
+          } catch (error) {
+            console.warn("Error stopping previous scanner:", error)
+          }
         }
       }
 
@@ -62,10 +69,15 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
       // Start scanning with retry
       await retryWithBackoff(
         async () => {
+          if (!isComponentMounted.current) return
+          
           await html5QrCodeRef.current!.start(
             { facingMode: "environment" },
             config,
             (decodedText, decodedResult) => {
+              // Check if component is still mounted
+              if (!isComponentMounted.current) return
+              
               // QR code detected
               console.log("QR Code detected:", decodedText)
               stopCamera()
@@ -80,8 +92,12 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
         { maxRetries: 3, delay: 1000, exponentialBackoff: true }
       )
 
-      setIsScanning(true)
+      if (isComponentMounted.current) {
+        setIsScanning(true)
+      }
     } catch (error) {
+      if (!isComponentMounted.current) return
+      
       console.error("Camera start error:", error)
       const errorMessage = handleQrScanError(error)
       setCameraError(errorMessage)
@@ -99,7 +115,9 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
       console.error("Error stopping camera:", error)
       // We don't show this error to the user as it's not critical
     } finally {
-      setIsScanning(false)
+      if (isComponentMounted.current) {
+        setIsScanning(false)
+      }
     }
   }
 

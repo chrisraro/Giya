@@ -38,7 +38,7 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
               <div key={transaction.id} className="flex items-center justify-between border-b pb-4 last:border-0">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={transaction.customers?.profile_pic_url || undefined} />
+                    <AvatarImage src={transaction.customers?.profile_pic_url || undefined} alt={transaction.customers?.full_name || 'Customer'} />
                     <AvatarFallback>{transaction.customers?.full_name?.charAt(0) || 'C'}</AvatarFallback>
                   </Avatar>
                   <div>

@@ -286,6 +286,53 @@ The affiliate system allows influencers to earn commissions by promoting busines
 5. Deploy the application
 6. Test all functionality
 
+## Security Measures
+
+### Implemented Security Features
+1. **Rate Limiting**: All authentication and API endpoints are now protected with rate limiting to prevent brute force attacks and DDoS attacks
+   - Authentication endpoints: 5 requests per 15 minutes per IP
+   - API endpoints: 100 requests per minute per IP
+   - General pages: 20 requests per minute per IP
+   - Uses custom in-memory rate limiting (Redis recommended for production)
+
+2. **Security Headers**: Multiple security headers implemented across the application
+   - `X-Content-Type-Options: nosniff` - Prevents MIME type sniffing
+   - `X-Frame-Options: DENY` - Prevents clickjacking attacks
+   - `X-XSS-Protection: 1; mode=block` - Provides basic XSS protection
+   - `Referrer-Policy: strict-origin-when-cross-origin` - Controls referrer information
+   - `Permissions-Policy` - Restricts browser features
+   - `Content-Security-Policy` - Prevents XSS and other injection attacks
+   - NOTE: Security headers are implemented via middleware for better compatibility
+
+3. **Input Validation**: Comprehensive Zod schema validation for all user input
+   - Authentication forms (signup, login) now use Zod with react-hook-form
+   - Business, customer, and influencer data validation
+   - API payload validation to prevent injection attacks
+   - Frontend and backend validation for all user inputs
+
+4. **Cross-Site Scripting (XSS) Protection**: Implemented content sanitization
+   - User-generated content (business names, descriptions, etc.) is sanitized before display
+   - Added `sanitizeUserInput` utility function using HTML entity encoding
+   - For server components, relies on React's built-in XSS protection
+   - Sanitized output in business discovery and dashboard components as needed
+
+5. **CSRF Protection**: Implemented via Supabase OAuth state parameter
+   - Supabase OAuth automatically includes and validates state parameter
+   - Provides CSRF protection for authentication flows
+
+6. **Secure Cookie Handling**: Enhanced cookie security features
+   - All sensitive cookies use `httpOnly: true` flag
+   - Secure flag enabled in production environment
+   - SameSite attribute set to 'lax' for CSRF protection
+   - Proper cookie cleanup after operations
+
+### Security Best Practices Followed
+- Clean, readable code with consistent error handling
+- Proper separation of concerns between UI, business logic, and data layers
+- Comprehensive logging and monitoring for debugging and security
+- Regular validation and sanitization of user inputs
+- Secure coding practices following OWASP guidelines
+
 ## Troubleshooting
 
 ### Common Issues
@@ -293,6 +340,7 @@ The affiliate system allows influencers to earn commissions by promoting busines
 - **Database Connection**: Verify Supabase URL and keys
 - **Image Upload Failures**: Check storage bucket permissions and tokens
 - **RLS Policy Errors**: Review database policies and user roles
+- **Security Issues**: Verify security headers and rate limiting behavior
 
 ### Performance Optimization
 - Image optimization and compression

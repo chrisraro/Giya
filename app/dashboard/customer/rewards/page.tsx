@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -41,7 +41,7 @@ interface Reward {
   name?: string // Add this for backward compatibility
 }
 
-export default function CustomerRewardsPage({ searchParams }: { searchParams: { businessId?: string, rewardId?: string } }) {
+export default function CustomerRewardsPage() {
   const [rewards, setRewards] = useState<Reward[]>([])
   const [filteredRewards, setFilteredRewards] = useState<Reward[]>([])
   const [customerPoints, setCustomerPoints] = useState<Record<string, number>>({})
@@ -60,6 +60,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
   const [snackbarAction, setSnackbarAction] = useState<React.ReactNode>(null)
   const [snackbarOnAction, setSnackbarOnAction] = useState<(() => void) | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   // Get unique categories from rewards
@@ -73,8 +74,8 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
 
   useEffect(() => {
     // Check if there's a businessId in the query parameters
-    const businessId = searchParams?.businessId
-    const rewardId = searchParams?.rewardId
+    const businessId = searchParams?.get('businessId')
+    const rewardId = searchParams?.get('rewardId')
     
     if (businessId) {
       setSelectedBusinessId(businessId)
@@ -83,7 +84,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
     }
     
     fetchData()
-  }, [searchParams?.businessId, searchParams?.rewardId])
+  }, [searchParams?.get('businessId'), searchParams?.get('rewardId')])
 
   // Separate useEffect for filtering rewards when data or filters change
   useEffect(() => {
@@ -110,7 +111,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
     }
     
     // Handle auto-opening reward dialog if a specific rewardId is provided
-    const rewardId = searchParams?.rewardId
+    const rewardId = searchParams?.get('rewardId')
     if (rewardId && rewards.length > 0) {
       const reward = rewards.find(r => r.id === rewardId)
       if (reward) {
@@ -120,7 +121,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
         }, 500)
       }
     }
-  }, [selectedBusinessId, selectedCategory, rewards, searchParams?.rewardId])
+  }, [selectedBusinessId, selectedCategory, rewards, searchParams?.get('rewardId')])
 
   const fetchData = async () => {
     try {
@@ -209,7 +210,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
         setFilteredRewards(businessRewards)
         
         // If there's only one reward from this business and no specific rewardId, show the redeem dialog directly
-        if (businessRewards.length === 1 && !searchParams?.rewardId) {
+        if (businessRewards.length === 1 && !searchParams?.get('rewardId')) {
           const userPoints = customerPoints[selectedBusinessId] || 0
           if (userPoints >= businessRewards[0].points_required) {
             // Small delay to allow UI to render first
@@ -508,7 +509,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
                   <CardHeader>
                     <div className="flex items-center gap-3 mb-2">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={reward.businesses?.profile_pic_url || undefined} />
+                        <AvatarImage src={reward.businesses?.profile_pic_url || undefined} alt={reward.businesses?.business_name || 'Business'} />
                         <AvatarFallback>{reward.businesses?.business_name?.charAt(0) || 'B'}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
@@ -566,7 +567,7 @@ export default function CustomerRewardsPage({ searchParams }: { searchParams: { 
               <div className="rounded-lg border bg-secondary p-4">
                 <div className="mb-3 flex items-center gap-3">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={selectedReward?.businesses?.profile_pic_url || undefined} />
+                    <AvatarImage src={selectedReward?.businesses?.profile_pic_url || undefined} alt={selectedReward?.businesses?.business_name || 'Business'} />
                     <AvatarFallback>{selectedReward?.businesses?.business_name?.charAt(0) || 'B'}</AvatarFallback>
                   </Avatar>
                   <div>

@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ProfileImageUpload } from "@/components/profile-image-upload";
+import { MapPinning } from "@/components/map-pinning"; // Add this import
+import { GoogleMap } from "@/components/google-map"; // Add this import
 
 interface BusinessData {
   id: string;
@@ -20,6 +22,10 @@ interface BusinessData {
   profile_pic_url: string | null;
   points_per_currency: number;
   gmaps_link: string | null;
+  description: string | null;
+  access_link: string | null;
+  latitude: number | null; // Add latitude field
+  longitude: number | null; // Add longitude field
 }
 
 export default function BusinessProfilePage() {
@@ -30,49 +36,81 @@ export default function BusinessProfilePage() {
     business_category: "",
     address: "",
     points_per_currency: "100",
-    gmaps_link: ""
+    gmaps_link: "",
+    description: ""
   });
+  const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null); // Add location state
   const router = useRouter();
   const supabase = createClient();
 
+  // Get Google Maps API key from environment variables
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+
   useEffect(() => {
-    fetchBusinessData();
-  }, []);
+    let isMounted = true;
 
-  const fetchBusinessData = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const fetchData = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.push("/auth/login");
-        return;
+        if (!user) {
+          if (isMounted) {
+            router.push("/auth/login");
+          }
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("businesses")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (error) throw error;
+        
+        if (isMounted) {
+          setBusiness(data);
+          setFormData({
+            business_name: data.business_name,
+            business_category: data.business_category,
+            address: data.address,
+            points_per_currency: data.points_per_currency?.toString() || "100",
+            gmaps_link: data.gmaps_link || "",
+            description: data.description || ""
+          });
+          
+          // Set initial location if available
+          if (data.latitude && data.longitude) {
+            setLocation({
+              lat: data.latitude,
+              lng: data.longitude,
+              address: data.address || ""
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching business data:", error);
+        if (isMounted) {
+          toast.error("Failed to load profile data");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
+    };
 
-      const { data, error } = await supabase
-        .from("businesses")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (error) throw error;
-      
-      setBusiness(data);
-      setFormData({
-        business_name: data.business_name,
-        business_category: data.business_category,
-        address: data.address,
-        points_per_currency: data.points_per_currency?.toString() || "100",
-        gmaps_link: data.gmaps_link || ""
-      });
-    } catch (error) {
-      console.error("Error fetching business data:", error);
-      toast.error("Failed to load profile data");
-    } finally {
+    fetchData();
+    
+    // Cleanup function to prevent state updates on unmounted component
+    return () => {
+      isMounted = false;
+      // Reset state
       setLoading(false);
-    }
-  };
+    };
+  }, [router, supabase]);
 
   const handleImageUpdate = (newImageUrl: string | null) => {
     if (business) {
@@ -94,15 +132,30 @@ export default function BusinessProfilePage() {
     if (!business) return;
     
     try {
+      // Generate Google Maps link from coordinates if we have them
+      let gmapsLink = formData.gmaps_link;
+      if (location && location.lat && location.lng) {
+        gmapsLink = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
+      }
+
+      const updateData: any = {
+        business_name: formData.business_name,
+        business_category: formData.business_category,
+        address: formData.address,
+        points_per_currency: parseInt(formData.points_per_currency),
+        gmaps_link: gmapsLink || null,
+        description: formData.description || null
+      };
+      
+      // Only add latitude and longitude if they exist
+      if (location) {
+        updateData.latitude = location.lat || null;
+        updateData.longitude = location.lng || null;
+      }
+
       const { error } = await supabase
         .from("businesses")
-        .update({
-          business_name: formData.business_name,
-          business_category: formData.business_category,
-          address: formData.address,
-          points_per_currency: parseInt(formData.points_per_currency),
-          gmaps_link: formData.gmaps_link || null
-        })
+        .update(updateData)
         .eq("id", business.id);
         
       if (error) throw error;
@@ -201,6 +254,18 @@ export default function BusinessProfilePage() {
                     </div>
                     
                     <div className="space-y-2">
+                      <Label htmlFor="description">Business Description</Label>
+                      <Textarea
+                        id="description"
+                        name="description"
+                        value={formData.description}
+                        onChange={handleInputChange}
+                        placeholder="Describe your business, services, and what makes you unique..."
+                        rows={4}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
                       <Label htmlFor="address">Address</Label>
                       <Textarea
                         id="address"
@@ -227,16 +292,62 @@ export default function BusinessProfilePage() {
                       </p>
                     </div>
                     
+                    {/* Display Access Link */}
+                    {business.access_link && (
+                      <div className="space-y-2">
+                        <Label>Business Access Link</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={`${window.location.origin}/discover/${business.access_link}`}
+                            readOnly
+                          />
+                          <Button 
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${window.location.origin}/discover/${business.access_link}`);
+                              toast.success("Access link copied to clipboard");
+                            }}
+                          >
+                            Copy
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Share this link with customers to allow them to discover your business
+                        </p>
+                      </div>
+                    )}
+                    
                     <div className="space-y-2">
-                      <Label htmlFor="gmaps_link">Google Maps Link (Optional)</Label>
-                      <Input
-                        id="gmaps_link"
-                        name="gmaps_link"
-                        value={formData.gmaps_link}
-                        onChange={handleInputChange}
-                        placeholder="https://maps.google.com/..."
+                      <Label>Business Location</Label>
+                      <MapPinning
+                        initialAddress={formData.address}
+                        initialLocation={
+                          business.latitude && business.longitude
+                            ? { lat: business.latitude, lng: business.longitude }
+                            : undefined
+                        }
+                        onLocationSelect={(location) => {
+                          setLocation(location);
+                          setFormData(prev => ({
+                            ...prev,
+                            address: location.address
+                          }));
+                        }}
+                        apiKey={googleMapsApiKey}
                       />
                     </div>
+                    
+                    {/* Show current Google Maps link if exists */}
+                    {business.gmaps_link && (
+                      <div className="space-y-2">
+                        <Label>Current Map Preview</Label>
+                        <GoogleMap 
+                          url={business.gmaps_link} 
+                          address={formData.address} 
+                          apiKey={googleMapsApiKey}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
                 

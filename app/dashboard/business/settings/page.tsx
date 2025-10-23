@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Save, MapPin, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { GoogleMap } from "@/components/google-map"
-// Add breadcrumb components
+import { BusinessQRCode } from "@/components/business-qr-code"
 import { 
   Breadcrumb, 
   BreadcrumbItem, 
@@ -20,6 +20,7 @@ import {
   BreadcrumbSeparator 
 } from "@/components/ui/breadcrumb"
 import { ProfileImageUpload } from "@/components/profile-image-upload"
+import { DomErrorBoundary } from "@/components/shared/dom-error-boundary"
 
 interface BusinessData {
   id: string
@@ -30,6 +31,11 @@ interface BusinessData {
   profile_pic_url: string | null
   points_per_currency: number
   business_hours: any
+  description: string | null
+  access_link: string | null
+  access_qr_code: string | null
+  latitude: number | null
+  longitude: number | null
 }
 
 export default function BusinessProfileSettings() {
@@ -40,36 +46,50 @@ export default function BusinessProfileSettings() {
     address: "",
     gmaps_link: "",
     points_per_currency: 100,
+    description: ""
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const isComponentMounted = useRef(true)
   
   // Get Google Maps API key from environment variables
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+    isComponentMounted.current = true
+    fetchData()
+    
+    // Cleanup function
+    return () => {
+      isComponentMounted.current = false
+    }
+  }, [])
 
-        if (!user) {
+  const fetchData = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        if (isComponentMounted.current) {
           router.push("/auth/login")
-          return
         }
+        return
+      }
 
-        // Fetch business data
-        const { data: business, error: businessError } = await supabase
-          .from("businesses")
-          .select("*")
-          .eq("id", user.id)
-          .single()
+      // Fetch business data
+      const { data: business, error: businessError } = await supabase
+        .from("businesses")
+        .select("*")
+        .eq("id", user.id)
+        .single()
 
-        if (businessError) throw businessError
+      if (businessError) throw businessError
 
+      if (isComponentMounted.current) {
         setBusinessData(business)
         setFormData({
           business_name: business.business_name || "",
@@ -77,17 +97,20 @@ export default function BusinessProfileSettings() {
           address: business.address || "",
           gmaps_link: business.gmaps_link || "",
           points_per_currency: business.points_per_currency || 100,
+          description: business.description || ""
         })
-      } catch (error) {
-        console.error("[v0] Error fetching data:", error)
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching data:", error)
+      if (isComponentMounted.current) {
         toast.error("Failed to load profile data")
-      } finally {
+      }
+    } finally {
+      if (isComponentMounted.current) {
         setIsLoading(false)
       }
     }
-
-    fetchData()
-  }, [router, supabase])
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -104,47 +127,55 @@ export default function BusinessProfileSettings() {
     setIsSaving(true)
 
     try {
+      const updateData = {
+        business_name: formData.business_name,
+        business_category: formData.business_category,
+        address: formData.address,
+        gmaps_link: formData.gmaps_link || null,
+        points_per_currency: formData.points_per_currency,
+        description: formData.description || null
+      }
+
       const { error } = await supabase
         .from("businesses")
-        .update({
-          business_name: formData.business_name,
-          business_category: formData.business_category,
-          address: formData.address,
-          gmaps_link: formData.gmaps_link || null,
-          points_per_currency: formData.points_per_currency,
-        })
+        .update(updateData)
         .eq("id", businessData.id)
 
       if (error) throw error
 
-      toast.success("Profile updated successfully!")
-      
-      // Update local state
-      setBusinessData({
-        ...businessData,
-        ...formData,
-        gmaps_link: formData.gmaps_link || null,
-      })
+      if (isComponentMounted.current) {
+        toast.success("Profile updated successfully!")
+        
+        // Update local state
+        setBusinessData({
+          ...businessData,
+          ...formData
+        } as BusinessData)
+      }
     } catch (error) {
       console.error("[v0] Error updating profile:", error)
-      toast.error("Failed to update profile")
+      if (isComponentMounted.current) {
+        toast.error("Failed to update profile")
+      }
     } finally {
-      setIsSaving(false)
+      if (isComponentMounted.current) {
+        setIsSaving(false)
+      }
     }
   }
 
   const handleImageUpdate = (newImageUrl: string | null) => {
-    if (businessData) {
+    if (businessData && isComponentMounted.current) {
       setBusinessData({
         ...businessData,
         profile_pic_url: newImageUrl
-      });
+      })
     }
-  };
+  }
 
   if (isLoading) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -152,7 +183,7 @@ export default function BusinessProfileSettings() {
 
   if (!businessData) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <Card>
           <CardHeader>
             <CardTitle>Error</CardTitle>
@@ -164,180 +195,212 @@ export default function BusinessProfileSettings() {
   }
 
   return (
-    <div className="min-h-svh bg-secondary">
-      <header className="border-b bg-background">
-        <div className="container-padding-x container mx-auto py-4">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => router.push("/dashboard/business")}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container-padding-x container mx-auto py-8">
-        {/* Breadcrumbs */}
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/dashboard/business">Dashboard</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem isCurrent>
-              Settings
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Business Profile Settings</h1>
-            <p className="text-muted-foreground">Manage your business information and preferences</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="grid gap-6 md:grid-cols-1 lg:grid-cols-3 mt-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Business Information</CardTitle>
-                <CardDescription>Update your business details</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-center mb-6">
-                  <ProfileImageUpload
-                    currentImageUrl={businessData.profile_pic_url}
-                    userId={businessData.id}
-                    userType="business"
-                    onImageUpdate={handleImageUpdate}
-                    size="lg"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="business_name">Business Name</Label>
-                  <Input
-                    id="business_name"
-                    name="business_name"
-                    value={formData.business_name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="business_category">Business Category</Label>
-                  <Input
-                    id="business_category"
-                    name="business_category"
-                    value={formData.business_category}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Textarea
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="gmaps_link">Google Maps Link</Label>
-                  <Input
-                    id="gmaps_link"
-                    name="gmaps_link"
-                    value={formData.gmaps_link}
-                    onChange={handleInputChange}
-                    placeholder="https://maps.google.com/..."
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Enter a full Google Maps URL for your business location
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="points_per_currency">Points Per Currency</Label>
-                  <Input
-                    id="points_per_currency"
-                    name="points_per_currency"
-                    type="number"
-                    min="1"
-                    value={formData.points_per_currency}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    How many points customers earn per peso spent (e.g., 1 point per ₱{formData.points_per_currency})
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
+    <DomErrorBoundary fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <Card>
+          <CardHeader>
+            <CardTitle>Temporary Error</CardTitle>
+            <CardDescription>There was an issue loading the settings page. Please refresh the page.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <div className="min-h-screen bg-secondary">
+        <header className="border-b bg-background">
+          <div className="container mx-auto py-4 px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => router.push("/dashboard/business")}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
               </Button>
             </div>
           </div>
+        </header>
 
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Location Preview</CardTitle>
-                <CardDescription>How your location will appear to customers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {formData.gmaps_link ? (
-                  <div className="space-y-4">
+        <main className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          {/* Breadcrumbs */}
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/dashboard/business">Dashboard</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                Settings
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Business Profile Settings</h1>
+              <p className="text-muted-foreground">Manage your business information and preferences</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="grid gap-6 md:grid-cols-1 lg:grid-cols-3 mt-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Business Information</CardTitle>
+                  <CardDescription>Update your business details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-center mb-6">
+                    <ProfileImageUpload
+                      currentImageUrl={businessData.profile_pic_url}
+                      userId={businessData.id}
+                      userType="business"
+                      onImageUpdate={handleImageUpdate}
+                      size="lg"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="business_name">Business Name</Label>
+                    <Input
+                      id="business_name"
+                      name="business_name"
+                      value={formData.business_name}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="business_category">Business Category</Label>
+                    <Input
+                      id="business_category"
+                      name="business_category"
+                      value={formData.business_category}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Business Description</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      placeholder="Describe your business, services, and what makes you unique..."
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Textarea
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="gmaps_link">Google Maps Link</Label>
+                    <Input
+                      id="gmaps_link"
+                      name="gmaps_link"
+                      value={formData.gmaps_link}
+                      onChange={handleInputChange}
+                      placeholder="https://maps.google.com/..."
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Paste the Google Maps link to your business location
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="points_per_currency">Points Per Currency</Label>
+                    <Input
+                      id="points_per_currency"
+                      name="points_per_currency"
+                      type="number"
+                      min="1"
+                      value={formData.points_per_currency}
+                      onChange={handleInputChange}
+                      required
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      How many points customers earn per peso spent (e.g., 1 point per ₱{formData.points_per_currency})
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <BusinessQRCode 
+                businessId={businessData.id}
+                businessName={businessData.business_name}
+                accessLink={businessData.access_link}
+                accessQRCode={businessData.access_qr_code}
+              />
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Location Preview</CardTitle>
+                  <CardDescription>Preview of your business location</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {formData.gmaps_link ? (
                     <GoogleMap 
                       url={formData.gmaps_link} 
                       address={formData.address} 
                       apiKey={googleMapsApiKey}
                     />
-                    <div className="text-sm text-muted-foreground">
-                      <MapPin className="inline h-4 w-4 mr-1" />
-                      {formData.address}
+                  ) : (
+                    <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center">
+                      <div className="text-center p-4">
+                        <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-muted-foreground">
+                          No Google Maps link provided
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Add a Google Maps link to preview your location
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <MapPin className="h-12 w-12 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Enter a Google Maps link to preview your location
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </form>
-      </main>
-    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </form>
+        </main>
+      </div>
+    </DomErrorBoundary>
   )
 }

@@ -12,6 +12,9 @@ import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Icons } from "@/components/icons"
+import { signupSchema, type SignupInput } from "@/lib/validation/auth"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
 
 const BUSINESS_CATEGORIES = [
   "Food and Drinks",
@@ -25,32 +28,38 @@ const BUSINESS_CATEGORIES = [
 
 export default function SignupPage() {
   const [selectedRole, setSelectedRole] = useState<"customer" | "business" | "influencer" | null>(null)
-  const [formData, setFormData] = useState({
-    // Customer fields
-    fullName: "",
-    nickname: "",
-    // Business fields
-    businessName: "",
-    businessCategory: "",
-    address: "",
-    gmapsLink: "",
-    // Influencer fields
-    influencerFullName: "",
-    influencerAddress: "",
-    facebookLink: "",
-    tiktokLink: "",
-    twitterLink: "",
-    youtubeLink: "",
-    // Common fields
-    email: "",
-    password: "",
-    confirmPassword: "",
-  })
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  // Use react-hook-form with Zod validation
+  const form = useForm<SignupInput>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      // Customer fields
+      fullName: "",
+      nickname: "",
+      // Business fields
+      businessName: "",
+      businessCategory: "",
+      address: "",
+      gmapsLink: "",
+      // Influencer fields
+      influencerFullName: "",
+      influencerAddress: "",
+      facebookLink: "",
+      tiktokLink: "",
+      twitterLink: "",
+      youtubeLink: "",
+      // Common fields
+      email: "",
+      password: "",
+      confirmPassword: "",
+      role: "customer" as const,
+    }
+  })
 
   // Check if user is already authenticated
   useEffect(() => {
@@ -85,6 +94,7 @@ export default function SignupPage() {
 
   const handleRoleSelect = (role: "customer" | "business" | "influencer") => {
     setSelectedRole(role)
+    form.setValue('role', role)
     // Save preferred role to localStorage
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferred_role', role)
@@ -94,6 +104,7 @@ export default function SignupPage() {
   const handleBackToRoles = () => {
     setSelectedRole(null)
     setError(null)
+    form.reset()
   }
 
   const handleGoogleSignup = async () => {
@@ -102,19 +113,19 @@ export default function SignupPage() {
       return
     }
 
-    // Validate required fields based on role
-    if (selectedRole === "customer" && !formData.fullName) {
-      setError("Please enter your full name")
-      return
+    // Validate form fields based on selected role
+    let isValid = true
+
+    if (selectedRole === "customer") {
+      isValid = await form.trigger(['fullName'])
+    } else if (selectedRole === "business") {
+      isValid = await form.trigger(['businessName', 'businessCategory', 'address'])
+    } else if (selectedRole === "influencer") {
+      isValid = await form.trigger(['influencerFullName', 'influencerAddress'])
     }
-    
-    if (selectedRole === "business" && (!formData.businessName || !formData.businessCategory || !formData.address)) {
-      setError("Please fill in all required business information")
-      return
-    }
-    
-    if (selectedRole === "influencer" && (!formData.influencerFullName || !formData.influencerAddress)) {
-      setError("Please enter your full name and address")
+
+    if (!isValid) {
+      setError("Please fill in all required fields")
       return
     }
 
@@ -122,6 +133,9 @@ export default function SignupPage() {
     setError(null)
 
     try {
+      // Get form data values
+      const formData = form.getValues()
+
       // Save form data and role to localStorage for use after Google auth
       const googleSignupData = {
         role: selectedRole,
@@ -179,13 +193,25 @@ export default function SignupPage() {
     setIsLoading(true)
     setError(null)
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
+    // Trigger validation for the selected role
+    let isValid = true
+    if (selectedRole === "customer") {
+      isValid = await form.trigger(['email', 'password', 'confirmPassword', 'fullName'])
+    } else if (selectedRole === "business") {
+      isValid = await form.trigger(['email', 'password', 'confirmPassword', 'businessName', 'businessCategory', 'address'])
+    } else if (selectedRole === "influencer") {
+      isValid = await form.trigger(['email', 'password', 'confirmPassword', 'influencerFullName', 'influencerAddress'])
+    }
+
+    if (!isValid) {
+      setError("Please fix validation errors")
       setIsLoading(false)
       return
     }
 
     try {
+      const formData = form.getValues()
+
       let signupData: any = {
         email: formData.email,
         password: formData.password,
@@ -388,18 +414,18 @@ export default function SignupPage() {
                         <Input
                           id="fullName"
                           type="text"
-                          required
-                          value={formData.fullName}
-                          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                          {...form.register("fullName", { required: selectedRole === "customer" })}
                         />
+                        {form.formState.errors.fullName && (
+                          <p className="text-sm text-destructive">{form.formState.errors.fullName.message}</p>
+                        )}
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="nickname">Nickname (Optional)</Label>
                         <Input
                           id="nickname"
                           type="text"
-                          value={formData.nickname}
-                          onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
+                          {...form.register("nickname")}
                         />
                       </div>
                     </>
@@ -412,16 +438,17 @@ export default function SignupPage() {
                         <Input
                           id="businessName"
                           type="text"
-                          required
-                          value={formData.businessName}
-                          onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                          {...form.register("businessName", { required: selectedRole === "business" })}
                         />
+                        {form.formState.errors.businessName && (
+                          <p className="text-sm text-destructive">{form.formState.errors.businessName.message}</p>
+                        )}
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="businessCategory">Business Category</Label>
                         <Select
-                          value={formData.businessCategory}
-                          onValueChange={(value) => setFormData({ ...formData, businessCategory: value })}
+                          value={form.watch("businessCategory")}
+                          onValueChange={(value) => form.setValue("businessCategory", value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select category" />
@@ -434,16 +461,20 @@ export default function SignupPage() {
                             ))}
                           </SelectContent>
                         </Select>
+                        {form.formState.errors.businessCategory && (
+                          <p className="text-sm text-destructive">{form.formState.errors.businessCategory.message}</p>
+                        )}
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="address">Address</Label>
                         <Input
                           id="address"
                           type="text"
-                          required
-                          value={formData.address}
-                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                          {...form.register("address", { required: selectedRole === "business" })}
                         />
+                        {form.formState.errors.address && (
+                          <p className="text-sm text-destructive">{form.formState.errors.address.message}</p>
+                        )}
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="gmapsLink">Google Maps Link (Optional)</Label>
@@ -451,8 +482,7 @@ export default function SignupPage() {
                           id="gmapsLink"
                           type="url"
                           placeholder="https://maps.google.com/..."
-                          value={formData.gmapsLink}
-                          onChange={(e) => setFormData({ ...formData, gmapsLink: e.target.value })}
+                          {...form.register("gmapsLink")}
                         />
                       </div>
                     </>
@@ -465,20 +495,22 @@ export default function SignupPage() {
                         <Input
                           id="influencerFullName"
                           type="text"
-                          required
-                          value={formData.influencerFullName}
-                          onChange={(e) => setFormData({ ...formData, influencerFullName: e.target.value })}
+                          {...form.register("influencerFullName", { required: selectedRole === "influencer" })}
                         />
+                        {form.formState.errors.influencerFullName && (
+                          <p className="text-sm text-destructive">{form.formState.errors.influencerFullName.message}</p>
+                        )}
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="influencerAddress">Address</Label>
                         <Input
                           id="influencerAddress"
                           type="text"
-                          required
-                          value={formData.influencerAddress}
-                          onChange={(e) => setFormData({ ...formData, influencerAddress: e.target.value })}
+                          {...form.register("influencerAddress", { required: selectedRole === "influencer" })}
                         />
+                        {form.formState.errors.influencerAddress && (
+                          <p className="text-sm text-destructive">{form.formState.errors.influencerAddress.message}</p>
+                        )}
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="facebookLink">Facebook Link (Optional)</Label>
@@ -486,8 +518,7 @@ export default function SignupPage() {
                           id="facebookLink"
                           type="url"
                           placeholder="https://facebook.com/..."
-                          value={formData.facebookLink}
-                          onChange={(e) => setFormData({ ...formData, facebookLink: e.target.value })}
+                          {...form.register("facebookLink")}
                         />
                       </div>
                       <div className="grid gap-2">
@@ -496,8 +527,7 @@ export default function SignupPage() {
                           id="tiktokLink"
                           type="url"
                           placeholder="https://tiktok.com/..."
-                          value={formData.tiktokLink}
-                          onChange={(e) => setFormData({ ...formData, tiktokLink: e.target.value })}
+                          {...form.register("tiktokLink")}
                         />
                       </div>
                       <div className="grid gap-2">
@@ -506,8 +536,7 @@ export default function SignupPage() {
                           id="twitterLink"
                           type="url"
                           placeholder="https://twitter.com/..."
-                          value={formData.twitterLink}
-                          onChange={(e) => setFormData({ ...formData, twitterLink: e.target.value })}
+                          {...form.register("twitterLink")}
                         />
                       </div>
                       <div className="grid gap-2">
@@ -516,8 +545,7 @@ export default function SignupPage() {
                           id="youtubeLink"
                           type="url"
                           placeholder="https://youtube.com/..."
-                          value={formData.youtubeLink}
-                          onChange={(e) => setFormData({ ...formData, youtubeLink: e.target.value })}
+                          {...form.register("youtubeLink")}
                         />
                       </div>
                     </>
@@ -530,30 +558,33 @@ export default function SignupPage() {
                       id="email"
                       type="email"
                       placeholder="you@example.com"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      {...form.register("email")}
                     />
+                    {form.formState.errors.email && (
+                      <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+                    )}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="password">Password</Label>
                     <Input
                       id="password"
                       type="password"
-                      required
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      {...form.register("password")}
                     />
+                    {form.formState.errors.password && (
+                      <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
+                    )}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
                     <Input
                       id="confirmPassword"
                       type="password"
-                      required
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      {...form.register("confirmPassword")}
                     />
+                    {form.formState.errors.confirmPassword && (
+                      <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
+                    )}
                   </div>
                   {error && <p className="text-sm text-destructive">{error}</p>}
                   <Button type="submit" className="w-full" disabled={isLoading}>

@@ -3,6 +3,8 @@ import type { Metadata } from "next"
 import { Onest } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "sonner"
+import { DomErrorBoundary } from "@/components/shared/dom-error-boundary"
+import UniversalForceRefreshFix from "@/components/shared/universal-force-refresh-fix"
 
 const onest = Onest({
   subsets: ["latin"],
@@ -25,14 +27,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <>
-      <html lang="en" suppressHydrationWarning>
-        <head />
-        <body className={`${onest.variable} relative antialiased`}>
+    <html lang="en" suppressHydrationWarning>
+      <head />
+      <body className={`${onest.variable} relative antialiased`}>
+        <DomErrorBoundary>
+          <UniversalForceRefreshFix />
           {children}
           <Toaster />
-        </body>
-      </html>
-    </>
+        </DomErrorBoundary>
+      </body>
+    </html>
   )
 }

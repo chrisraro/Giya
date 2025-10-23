@@ -1,133 +1,34 @@
 "use client"
 
-import type React from "react"
-import { useEffect, useState } from "react"
-
-import { createClient } from "@/lib/supabase/client"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { ArrowRight, ArrowLeft } from "lucide-react"
 import Image from "next/image"
+import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 import { Icons } from "@/components/icons"
+import { loginSchema, type LoginInput } from "@/lib/validation/auth"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
-  // Check if user is already authenticated
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        // Fetch user profile to determine role
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single()
-
-        if (!profileError && profile) {
-          // Redirect based on role
-          switch (profile.role) {
-            case "customer":
-              router.push("/dashboard/customer")
-              break
-            case "business":
-              router.push("/dashboard/business")
-              break
-            case "influencer":
-              router.push("/dashboard/influencer")
-              break
-            default:
-              router.push("/")
-          }
-        } else {
-          // If no profile, check user metadata
-          const userRole = user.user_metadata?.role
-          if (userRole) {
-            router.push(`/auth/setup/${userRole}`)
-          }
-        }
-      }
+  const form = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
     }
-
-    checkUser()
-  }, [router, supabase])
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
-
-    console.log("[v0] Starting login process for:", email)
-
-    try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (signInError) {
-        console.log("[v0] Sign in error:", signInError)
-        throw signInError
-      }
-
-      console.log("[v0] Sign in successful, user ID:", data.user.id)
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .single()
-
-      console.log("[v0] Profile lookup result:", { profile, profileError })
-
-      // If profile doesn't exist, check user metadata for role and redirect to setup
-      if (profileError || !profile) {
-        console.log("[v0] Profile not found, checking user metadata")
-        const userRole = data.user.user_metadata?.role
-        console.log("[v0] User role from metadata:", userRole)
-
-        if (userRole) {
-          // Redirect to appropriate setup wizard
-          router.push(`/auth/setup/${userRole}`)
-          return
-        } else {
-          throw new Error("Account setup incomplete. Please contact support.")
-        }
-      }
-
-      console.log("[v0] Profile found, redirecting to dashboard for role:", profile.role)
-
-      // Redirect based on role
-      switch (profile.role) {
-        case "customer":
-          router.push("/dashboard/customer")
-          break
-        case "business":
-          router.push("/dashboard/business")
-          break
-        case "influencer":
-          router.push("/dashboard/influencer")
-          break
-        default:
-          router.push("/")
-      }
-    } catch (error: unknown) {
-      console.log("[v0] Login error:", error)
-      setError(error instanceof Error ? error.message : "An error occurred")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  })
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true)
@@ -138,34 +39,67 @@ export default function LoginPage() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          skipBrowserRedirect: true // We'll handle the redirect manually
         },
       })
 
       if (error) throw error
-
-      // Check if this is a new signup or existing user
-      if (data.url) {
-        // Open Google OAuth in a popup or redirect
-        window.location.href = data.url
-      }
+      // Let the callback handler and middleware handle the redirect based on user role
     } catch (error) {
       console.log("[v0] Google login error:", error)
-      setError(error instanceof Error ? error.message : "An error occurred during Google sign-in")
-    } finally {
+      setError(error instanceof Error ? error.message : "An error occurred during Google login")
       setIsGoogleLoading(false)
+    }
+  }
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Validate form
+    const isValid = await form.trigger()
+    if (!isValid) {
+      setError("Please fix validation errors")
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const { email, password } = form.getValues()
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) throw error
+
+      // Instead of hardcoding the redirect, let the middleware handle it
+      // The middleware will redirect to the appropriate dashboard based on user role
+      router.push("/") // Go to home page, middleware will redirect appropriately
+      router.refresh()
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Invalid email or password")
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <div className="flex justify-center mb-8">
-          <Image src="/giya-logo.png" alt="Giya Logo" width={80} height={80} className="object-contain" />
-        </div>
+      <div className="w-full max-w-md">
+        <Button variant="ghost" asChild className="mb-4">
+          <Link href="/">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Link>
+        </Button>
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome back to Giya</CardTitle>
+            <div className="flex justify-center mb-4">
+              <Image src="/giya-logo.png" alt="Giya Logo" width={80} height={80} className="object-contain" />
+            </div>
+            <CardTitle className="text-2xl">Welcome back</CardTitle>
             <CardDescription>Sign in to your account to continue</CardDescription>
           </CardHeader>
           <CardContent>
@@ -179,12 +113,12 @@ export default function LoginPage() {
                 {isGoogleLoading ? (
                   <>
                     <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                    Redirecting...
+                    Signing in...
                   </>
                 ) : (
                   <>
                     <Icons.google className="mr-2 h-4 w-4" />
-                    Sign in with Google
+                    Continue with Google
                   </>
                 )}
               </Button>
@@ -195,52 +129,52 @@ export default function LoginPage() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
+                    Or sign in with email
                   </span>
                 </div>
               </div>
               
-              <form onSubmit={handleLogin}>
+              <form onSubmit={handleEmailLogin}>
                 <div className="flex flex-col gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="loginEmail">Email</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
-                      id="loginEmail"
+                      id="email"
                       type="email"
                       placeholder="you@example.com"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      {...form.register("email")}
                     />
+                    {form.formState.errors.email && (
+                      <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+                    )}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="password">Password</Label>
                     <Input
                       id="password"
                       type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      {...form.register("password")}
                     />
-                  </div>
-                  {error && <p className="text-sm text-destructive">{error}</p>}
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      "Sign in"
+                    {form.formState.errors.password && (
+                      <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
                     )}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Signing in..." : "Sign in"}
                   </Button>
+                  {error && <p className="text-sm text-destructive text-center">{error}</p>}
                 </div>
               </form>
             </div>
-            <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
+            <div className="mt-6 text-center text-sm">
+              Don't have an account?{" "}
               <Link href="/auth/signup" className="underline underline-offset-4 text-primary">
                 Sign up
+              </Link>
+            </div>
+            <div className="mt-2 text-center text-sm">
+              <Link href="/auth/forgot-password" className="underline underline-offset-4 text-primary">
+                Forgot password?
               </Link>
             </div>
           </CardContent>

@@ -454,7 +454,7 @@ export default function BusinessDashboard() {
             <div className="space-y-4">
               <div className="flex items-center gap-3 rounded-lg border p-3">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={scannedCustomer.profile_pic_url || undefined} />
+                  <AvatarImage src={scannedCustomer.profile_pic_url || undefined} alt={scannedCustomer.full_name} />
                   <AvatarFallback>{scannedCustomer.full_name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -520,7 +520,7 @@ export default function BusinessDashboard() {
             <div className="space-y-6">
               <div className="flex items-center gap-4 rounded-lg border bg-secondary p-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={redemptionData.customers.profile_pic_url || undefined} />
+                  <AvatarImage src={redemptionData.customers.profile_pic_url || undefined} alt={redemptionData.customers.full_name} />
                   <AvatarFallback>{redemptionData.customers.full_name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>

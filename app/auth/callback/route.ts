@@ -6,6 +6,10 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get("code")
   const next = searchParams.get("next") ?? "/"
+  const state = searchParams.get("state") // Get the state parameter for CSRF protection
+
+  // Note: Supabase OAuth automatically handles CSRF protection via the state parameter
+  // The state parameter is verified by Supabase internally during exchangeCodeForSession
 
   if (code) {
     const cookieStore = await cookies()

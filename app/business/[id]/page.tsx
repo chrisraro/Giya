@@ -39,6 +39,9 @@ interface Business {
   profile_pic_url: string
   points_per_currency: number
   business_hours: any
+  description: string | null
+  latitude: number | null // Add latitude field
+  longitude: number | null // Add longitude field
 }
 
 interface Reward {
@@ -177,7 +180,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
             <div className="lg:col-span-2 space-y-6">
               <div className="flex items-start gap-6">
                 <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-                  <AvatarImage src={business?.profile_pic_url || undefined} />
+                  <AvatarImage src={business?.profile_pic_url || undefined} alt={business?.business_name || 'Business'} />
                   <AvatarFallback className="text-2xl">{business?.business_name?.charAt(0) || 'B'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
@@ -206,6 +209,20 @@ export default async function BusinessProfilePage({ params }: PageProps) {
                   </div>
                 </div>
               </div>
+
+              {/* Business Description */}
+              {business?.description && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>About</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      {business.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Points System Info */}
               <Card>

@@ -222,7 +222,7 @@ export function RewardCard({ reward, business, user, businessId }: {
             <div className="rounded-lg border bg-secondary p-4">
               <div className="mb-3 flex items-center gap-3">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={business.profile_pic_url || undefined} />
+                  <AvatarImage src={business.profile_pic_url || undefined} alt={business.business_name} />
                   <AvatarFallback>{business.business_name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>

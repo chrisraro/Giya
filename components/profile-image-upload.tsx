@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,39 @@ export function ProfileImageUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isComponentMounted = useRef(true);
+  const pendingPreviewUrl = useRef<string | null>(null);
+  const downloadLinkRef = useRef<HTMLAnchorElement | null>(null);
+
+  useEffect(() => {
+    isComponentMounted.current = true;
+    
+    // Cleanup function
+    return () => {
+      isComponentMounted.current = false;
+      // Revoke any pending preview URLs to prevent memory leaks
+      if (pendingPreviewUrl.current) {
+        try {
+          URL.revokeObjectURL(pendingPreviewUrl.current);
+        } catch (error) {
+          console.warn("Error revoking preview URL:", error)
+        }
+        pendingPreviewUrl.current = null;
+      }
+      
+      // Clean up any pending downloads
+      if (downloadLinkRef.current) {
+        try {
+          if (downloadLinkRef.current.parentNode) {
+            downloadLinkRef.current.parentNode.removeChild(downloadLinkRef.current)
+          }
+        } catch (error) {
+          console.warn("Error cleaning up download link:", error)
+        }
+        downloadLinkRef.current = null
+      }
+    };
+  }, []);
 
   const sizeClasses = {
     sm: { avatar: 'h-16 w-16', button: 'h-6 w-6' },
@@ -53,7 +86,11 @@ export function ProfileImageUpload({
     try {
       // Create preview
       const preview = URL.createObjectURL(file);
-      setPreviewUrl(preview);
+      pendingPreviewUrl.current = preview;
+      
+      if (isComponentMounted.current) {
+        setPreviewUrl(preview);
+      }
 
       // Upload to Vercel Blob
       const imageUrl = await uploadProfileImage(file, userId, userType);
@@ -62,18 +99,43 @@ export function ProfileImageUpload({
       await updateProfileImageInDatabase(userId, userType, imageUrl);
       
       // Notify parent component
-      onImageUpdate(imageUrl);
-      
-      toast.success('Profile image updated successfully');
+      if (isComponentMounted.current) {
+        onImageUpdate(imageUrl);
+        toast.success('Profile image updated successfully');
+        // Revoke the preview URL as it's no longer needed
+        try {
+          URL.revokeObjectURL(preview);
+        } catch (error) {
+          console.warn("Error revoking preview URL:", error)
+        }
+        pendingPreviewUrl.current = null;
+      }
     } catch (error) {
       console.error('Error uploading profile image:', error);
-      toast.error('Failed to upload profile image');
-      // Revert preview
-      setPreviewUrl(currentImageUrl || null);
+      if (isComponentMounted.current) {
+        toast.error('Failed to upload profile image');
+        // Revert preview
+        setPreviewUrl(currentImageUrl || null);
+        // Revoke the preview URL on error
+        if (pendingPreviewUrl.current) {
+          try {
+            URL.revokeObjectURL(pendingPreviewUrl.current);
+          } catch (error) {
+            console.warn("Error revoking preview URL:", error)
+          }
+          pendingPreviewUrl.current = null;
+        }
+      }
     } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      if (isComponentMounted.current) {
+        setIsUploading(false);
+        if (fileInputRef.current) {
+          try {
+            fileInputRef.current.value = '';
+          } catch (error) {
+            console.warn("Error resetting file input:", error)
+          }
+        }
       }
     }
   };
@@ -93,20 +155,31 @@ export function ProfileImageUpload({
       await updateProfileImageInDatabase(userId, userType, null);
       
       // Update state
-      setPreviewUrl(null);
-      onImageUpdate(null);
-      
-      toast.success('Profile image removed successfully');
+      if (isComponentMounted.current) {
+        setPreviewUrl(null);
+        onImageUpdate(null);
+        toast.success('Profile image removed successfully');
+      }
     } catch (error) {
       console.error('Error removing profile image:', error);
-      toast.error('Failed to remove profile image');
+      if (isComponentMounted.current) {
+        toast.error('Failed to remove profile image');
+      }
     } finally {
-      setIsUploading(false);
+      if (isComponentMounted.current) {
+        setIsUploading(false);
+      }
     }
   };
 
   const triggerFileInput = () => {
-    fileInputRef.current?.click();
+    if (isComponentMounted.current && fileInputRef.current) {
+      try {
+        fileInputRef.current.click();
+      } catch (error) {
+        console.warn("Error triggering file input:", error)
+      }
+    }
   };
 
   return (
@@ -114,7 +187,7 @@ export function ProfileImageUpload({
       <div className="relative">
         <Avatar className={sizeClasses[size].avatar}>
           {previewUrl ? (
-            <AvatarImage src={previewUrl} className="object-cover" />
+            <AvatarImage src={previewUrl} alt="Profile picture" className="object-cover" />
           ) : (
             <AvatarFallback className="bg-muted">
               <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />

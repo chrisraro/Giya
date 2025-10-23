@@ -13,9 +13,12 @@ interface Business {
   profile_pic_url: string | null
   business_hours: any
   points_per_currency: number
+  description: string | null
   rewards_count?: number
   exclusive_offers_count?: number
   max_discount?: number
+  latitude: number | null // Add latitude field
+  longitude: number | null // Add longitude field
 }
 
 export async function BusinessDiscovery() {
@@ -25,7 +28,7 @@ export async function BusinessDiscovery() {
     // First, fetch all businesses with basic data
     const { data: businesses, error: businessesError } = await supabase
       .from("businesses")
-      .select("id, business_name, business_category, address, profile_pic_url, business_hours, points_per_currency")
+      .select("id, business_name, business_category, address, profile_pic_url, business_hours, points_per_currency, description, latitude, longitude")
       .order("created_at", { ascending: false })
 
     if (businessesError) {
@@ -122,6 +125,13 @@ export async function BusinessDiscovery() {
 }
 
 function BusinessCard({ business }: { business: Business }) {
+  // For server-side rendering, we rely on React's built-in XSS protection
+  // User-generated content is automatically escaped by React when rendered as text nodes
+  const businessName = business.business_name;
+  const businessCategory = business.business_category;
+  const address = business.address;
+  const description = business.description;
+
   return (
     <Link href={`/business/${business.id}`}>
       <Card className={`group transition-all hover:shadow-lg ${business.profile_pic_url ? 'p-0' : 'p-4'}`}>
@@ -130,23 +140,30 @@ function BusinessCard({ business }: { business: Business }) {
             <div className="relative aspect-[4/3] overflow-hidden rounded-t-lg bg-muted">
               <Image
                 src={business.profile_pic_url || "/placeholder.svg"}
-                alt={business.business_name}
+                alt={businessName}
                 fill
                 className="object-cover transition-transform group-hover:scale-105"
               />
             </div>
             <CardContent className="p-4">
               <div className="mb-2">
-                <h3 className="font-semibold text-lg line-clamp-1 mb-1">{business.business_name}</h3>
+                <h3 className="font-semibold text-lg line-clamp-1 mb-1">{businessName}</h3>
                 <Badge variant="secondary" className="text-xs">
-                  {business.business_category}
+                  {businessCategory}
                 </Badge>
               </div>
+              
+              {/* Show business description if available */}
+              {description && (
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                  {description}
+                </p>
+              )}
               
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <span className="line-clamp-2">{business.address}</span>
+                  <span className="line-clamp-2">{address}</span>
                 </div>
                 {business.business_hours && (
                   <div className="flex items-center gap-2">
@@ -184,16 +201,23 @@ function BusinessCard({ business }: { business: Business }) {
           <CardContent className="p-0">
             <div className="p-4">
               <div className="mb-2">
-                <h3 className="font-semibold text-lg line-clamp-1 mb-1">{business.business_name}</h3>
+                <h3 className="font-semibold text-lg line-clamp-1 mb-1">{businessName}</h3>
                 <Badge variant="secondary" className="text-xs">
-                  {business.business_category}
+                  {businessCategory}
                 </Badge>
               </div>
+              
+              {/* Show business description if available */}
+              {description && (
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                  {description}
+                </p>
+              )}
               
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <span className="line-clamp-2">{business.address}</span>
+                  <span className="line-clamp-2">{address}</span>
                 </div>
                 {business.business_hours && (
                   <div className="flex items-center gap-2">

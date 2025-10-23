@@ -1,6 +1,5 @@
 import { updateSession } from "@/lib/supabase/middleware"
-import { type NextRequest } from "next/server"
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 
 export async function middleware(request: NextRequest) {
   // Capture referral code from URL parameters
@@ -12,6 +11,8 @@ export async function middleware(request: NextRequest) {
     response.cookies.set('affiliate_referral_code', refCode, {
       maxAge: 60 * 60 * 24 * 7, // 7 days
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Only secure in production
+      sameSite: 'lax',
       path: '/',
     })
     return response
