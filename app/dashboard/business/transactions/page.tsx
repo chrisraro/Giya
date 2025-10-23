@@ -10,6 +10,7 @@ import { Loader2, ArrowLeft, Gift, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { OptimizedImage } from "@/components/optimized-image"
+import { MobileBottomNav } from "@/components/mobile-bottom-nav" // Add this import
 
 interface Transaction {
   id: string
@@ -124,7 +125,7 @@ export default function BusinessTransactionsPage() {
       if (pointsTransactions) {
         allTransactions = pointsTransactions.map((transaction: any) => ({
           ...transaction,
-          type: 'points_earned'
+          type: 'points_earned' as const
         }))
       }
 
@@ -139,7 +140,7 @@ export default function BusinessTransactionsPage() {
           status: redemption.status,
           customers: redemption.customers,
           rewards: redemption.rewards,
-          type: 'redemption_validated'
+          type: 'redemption_validated' as const
         }))
         allTransactions = [...allTransactions, ...validationTransactions]
       }
@@ -212,6 +213,8 @@ export default function BusinessTransactionsPage() {
     return (
       <div className="flex min-h-svh items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav onQrScan={() => {}} />
       </div>
     )
   }
@@ -402,6 +405,9 @@ export default function BusinessTransactionsPage() {
           </div>
         )}
       </main>
+      
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav onQrScan={() => router.push("/dashboard/business")} />
     </div>
   )
 }

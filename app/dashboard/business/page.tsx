@@ -21,6 +21,7 @@ import dynamic from 'next/dynamic'
 import { BusinessStats } from "@/components/dashboard/business-stats"
 import { QrScannerSection } from "@/components/dashboard/qr-scanner-section"
 import { TransactionHistory } from "@/components/dashboard/transaction-history"
+import { MobileBottomNav } from "@/components/mobile-bottom-nav" // Add this import
 
 // Dynamically import the QR scanner component
 const QrScanner = dynamic(() => import('@/components/qr-scanner').then(mod => mod.QrScanner), {
@@ -364,6 +365,9 @@ export default function BusinessDashboard() {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav onQrScan={() => setShowScanner(true)} />
       </DashboardLayout>
     )
   }
@@ -383,6 +387,9 @@ export default function BusinessDashboard() {
             </CardHeader>
           </Card>
         </div>
+        
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav onQrScan={() => setShowScanner(true)} />
       </DashboardLayout>
     )
   }
@@ -402,6 +409,9 @@ export default function BusinessDashboard() {
             </CardHeader>
           </Card>
         </div>
+        
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav onQrScan={() => setShowScanner(true)} />
       </DashboardLayout>
     )
   }
@@ -414,21 +424,27 @@ export default function BusinessDashboard() {
       userAvatar={data.business.profile_pic_url}
       breadcrumbs={[]}
     >
-      {/* Stats Overview */}
-      <BusinessStats 
-        totalRevenue={data.stats?.totalRevenue || 0}
-        totalTransactions={data.stats?.totalTransactions || 0}
-        uniqueCustomers={data.stats?.uniqueCustomers || 0}
-      />
+      {/* Stats Overview - Show only on mobile and tablet */}
+      <div className="md:hidden">
+        <BusinessStats 
+          totalRevenue={data.stats?.totalRevenue || 0}
+          totalTransactions={data.stats?.totalTransactions || 0}
+          uniqueCustomers={data.stats?.uniqueCustomers || 0}
+        />
+      </div>
 
-      {/* Scan QR Section */}
-      <QrScannerSection 
-        pointsPerCurrency={data.business.points_per_currency}
-        onOpenScanner={() => setShowScanner(true)}
-      />
+      {/* Scan QR Section - Show only on mobile and tablet */}
+      <div className="md:hidden">
+        <QrScannerSection 
+          pointsPerCurrency={data.business.points_per_currency}
+          onOpenScanner={() => setShowScanner(true)}
+        />
+      </div>
 
-      {/* Transaction History */}
-      <TransactionHistory transactions={data.transactions || []} />
+      {/* Transaction History - Show only on mobile and tablet */}
+      <div className="md:hidden">
+        <TransactionHistory transactions={data.transactions || []} />
+      </div>
 
       {/* QR Scanner Dialog */}
       <Dialog open={showScanner} onOpenChange={setShowScanner}>
@@ -562,6 +578,9 @@ export default function BusinessDashboard() {
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav onQrScan={() => setShowScanner(true)} />
     </DashboardLayout>
   )
 }
