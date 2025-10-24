@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Loader2, QrCode, TrendingUp, Gift, Award, Settings, Building2, Tag, RefreshCw } from "lucide-react"
+import { Loader2, QrCode, TrendingUp, Gift, Award, Settings, Building2, Tag, RefreshCw, Check, Star } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import Link from "next/link"
 import { handleApiError } from "@/lib/error-handler"
@@ -16,6 +16,8 @@ import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { OptimizedImage } from "@/components/optimized-image"
 import { toast } from "sonner"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { QrScanner } from "@/components/qr-scanner"
 
 // Import types from the hook
 import type { CustomerData, BusinessPoints, Transaction, Redemption } from "@/hooks/use-dashboard-data"
@@ -364,10 +366,142 @@ export default function CustomerDashboard() {
     }
   }, [data?.customer?.id, refetch])
 
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false)
+  const [scannedBusinessId, setScannedBusinessId] = useState<string | null>(null)
+  const [isRedeeming, setIsRedeeming] = useState(false)
+  const [showRedemptionQR, setShowRedemptionQR] = useState(false)
+  const [redemptionQRCode, setRedemptionQRCode] = useState<string>("")
+  const [redemptionDetails, setRedemptionDetails] = useState<any>(null)
+
   const handleQrScan = () => {
-    // For now, we'll just navigate to the discover page
-    // In a real implementation, this would open the QR scanner
-    router.push("/dashboard/customer/discover")
+    setIsQrScannerOpen(true)
+  }
+
+  const handleQrScanSuccess = async (data: string) => {
+    try {
+      // Assume the QR code contains the business ID
+      const businessId = data
+      
+      // Fetch business details
+      const { data: businessData, error: businessError } = await supabase
+        .from("businesses")
+        .select("*")
+        .eq("id", businessId)
+        .single()
+
+      if (businessError) throw businessError
+
+      if (businessData) {
+        setScannedBusinessId(businessId)
+        // Redirect to the business page
+        router.push(`/business/${businessId}`)
+      } else {
+        toast.error("Business not found")
+      }
+    } catch (error) {
+      console.error("Error processing QR code:", error)
+      toast.error("Failed to process QR code")
+    } finally {
+      setIsQrScannerOpen(false)
+    }
+  }
+
+  const handleClaimReward = async (reward: Reward) => {
+    if (!data?.customer?.id) {
+      toast.error("You must be logged in to claim rewards")
+      return
+    }
+
+    if (reward.customer_points && reward.customer_points < reward.points_required) {
+      toast.error("Not enough points to claim this reward")
+      return
+    }
+
+    setIsRedeeming(true)
+
+    try {
+      const redemptionCode = `GIYA-REDEEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+      const { data: redemption, error: redemptionError } = await supabase
+        .from("redemptions")
+        .insert({
+          customer_id: data.customer.id,
+          reward_id: reward.id,
+          business_id: reward.business_id,
+          points_redeemed: reward.points_required,
+          redemption_qr_code: redemptionCode,
+          status: "pending",
+        })
+        .select()
+        .single()
+
+      if (redemptionError) throw redemptionError
+
+      toast.success("Reward claimed! Show the QR code to the business.")
+
+      setRedemptionQRCode(redemptionCode)
+      setRedemptionDetails({
+        reward: reward,
+        redemption: redemption,
+      })
+      setShowRedemptionQR(true)
+
+      // Refresh data to update points
+      refetch()
+    } catch (error) {
+      console.error("Failed to claim reward:", error)
+      toast.error("Failed to claim reward")
+    } finally {
+      setIsRedeeming(false)
+    }
+  }
+
+  const handleRedeemDiscount = async (discount: Discount) => {
+    if (!data?.customer?.id) {
+      toast.error("You must be logged in to redeem discounts")
+      return
+    }
+
+    try {
+      // For discount offers, we generate a QR code that the business can scan
+      const redemptionCode = `GIYA-DISCOUNT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${discount.id}`
+
+      toast.success("Discount ready! Show the QR code to the business when making a purchase.")
+
+      setRedemptionQRCode(redemptionCode)
+      setRedemptionDetails({
+        offer: discount,
+        type: "discount"
+      })
+      setShowRedemptionQR(true)
+    } catch (error) {
+      console.error("Failed to process discount:", error)
+      toast.error("Failed to process discount")
+    }
+  }
+
+  const handleRedeemExclusiveOffer = async (offer: ExclusiveOffer) => {
+    if (!data?.customer?.id) {
+      toast.error("You must be logged in to redeem exclusive offers")
+      return
+    }
+
+    try {
+      // For exclusive offers, we generate a QR code that the business can scan
+      const redemptionCode = `GIYA-EXCLUSIVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${offer.id}`
+
+      toast.success("Exclusive offer ready! Show the QR code to the business to claim your offer.")
+
+      setRedemptionQRCode(redemptionCode)
+      setRedemptionDetails({
+        offer: offer,
+        type: "exclusive"
+      })
+      setShowRedemptionQR(true)
+    } catch (error) {
+      console.error("Failed to process exclusive offer:", error)
+      toast.error("Failed to process exclusive offer")
+    }
   }
 
   const handleRefresh = async () => {
@@ -749,6 +883,19 @@ export default function CustomerDashboard() {
                           <span className="font-medium text-primary">{reward.customer_points || 0}</span>
                         </div>
                       </div>
+                      <Button 
+                        className="w-full mt-4" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleClaimReward(reward);
+                        }}
+                        disabled={!reward.customer_points || reward.customer_points < reward.points_required}
+                      >
+                        <Gift className="mr-2 h-4 w-4" />
+                        {reward.customer_points && reward.customer_points >= reward.points_required 
+                          ? "Claim Reward" 
+                          : `Need ${reward.points_required - (reward.customer_points || 0)} more points`}
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -793,6 +940,16 @@ export default function CustomerDashboard() {
                         <span className="text-sm text-muted-foreground">Discount</span>
                         <span className="font-medium">{discount.discount_value}%</span>
                       </div>
+                      <Button 
+                        className="w-full mt-4" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRedeemDiscount(discount);
+                        }}
+                      >
+                        <Tag className="mr-2 h-4 w-4" />
+                        Redeem Now
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -866,6 +1023,16 @@ export default function CustomerDashboard() {
                           )}
                         </div>
                       </div>
+                      <Button 
+                        className="w-full mt-4" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRedeemExclusiveOffer(offer);
+                        }}
+                      >
+                        <Star className="mr-2 h-4 w-4" />
+                        Redeem Now
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -953,6 +1120,19 @@ export default function CustomerDashboard() {
                                 <span className="font-medium text-primary">{reward.customer_points || 0}</span>
                               </div>
                             </div>
+                            <Button 
+                              className="w-full mt-4" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleClaimReward(reward);
+                              }}
+                              disabled={!reward.customer_points || reward.customer_points < reward.points_required}
+                            >
+                              <Gift className="mr-2 h-4 w-4" />
+                              {reward.customer_points && reward.customer_points >= reward.points_required 
+                                ? "Claim Reward" 
+                                : `Need ${reward.points_required - (reward.customer_points || 0)} more points`}
+                            </Button>
                           </CardContent>
                         </Card>
                       </div>
@@ -1025,6 +1205,16 @@ export default function CustomerDashboard() {
                               <span className="text-sm text-muted-foreground">Discount</span>
                               <span className="font-medium">{discount.discount_value}%</span>
                             </div>
+                            <Button 
+                              className="w-full mt-4" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRedeemDiscount(discount);
+                              }}
+                            >
+                              <Tag className="mr-2 h-4 w-4" />
+                              Redeem Now
+                            </Button>
                           </CardContent>
                         </Card>
                       </div>
@@ -1111,6 +1301,16 @@ export default function CustomerDashboard() {
                                 )}
                               </div>
                             </div>
+                            <Button 
+                              className="w-full mt-4" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRedeemExclusiveOffer(offer);
+                              }}
+                            >
+                              <Star className="mr-2 h-4 w-4" />
+                              Redeem Now
+                            </Button>
                           </CardContent>
                         </Card>
                       </div>
@@ -1124,6 +1324,45 @@ export default function CustomerDashboard() {
           )}
         </div>
       </div>
+      
+      {/* QR Scanner Dialog */}
+      <Dialog open={isQrScannerOpen} onOpenChange={setIsQrScannerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <QrScanner 
+            onScanSuccess={handleQrScanSuccess} 
+            onClose={() => setIsQrScannerOpen(false)} 
+          />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Redemption QR Code Dialog */}
+      <Dialog open={showRedemptionQR} onOpenChange={setShowRedemptionQR}>
+        <DialogContent className="sm:max-w-md">
+          <div className="space-y-4">
+            <div className="flex justify-center rounded-lg border bg-white p-6">
+              <QRCodeSVG value={redemptionQRCode} size={200} level="H" />
+            </div>
+
+            {redemptionDetails && (
+              <div className="rounded-lg border bg-secondary p-4">
+                <h3 className="font-semibold mb-2">{redemptionDetails.reward.reward_name}</h3>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Points redeemed:</span>
+                  <span className="font-bold text-primary">{redemptionDetails.reward.points_required}</span>
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-center text-muted-foreground">
+              This QR code is valid for one-time use. The business will scan it to validate your redemption.
+            </p>
+
+            <Button onClick={() => setShowRedemptionQR(false)} className="w-full">
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Mobile Bottom Navigation */}
       <MobileCustomerBottomNav onQrScan={handleQrScan} />
