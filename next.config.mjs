@@ -10,12 +10,6 @@ const nextConfig = {
   serverExternalPackages: ['@supabase/ssr', '@supabase/supabase-js'],
   images: {
     unoptimized: false, // Changed to false to fix build issue
-    domains: [
-      'luevgaxookqykkqw.public.blob.vercel-storage.com', 
-      'cdn.discordapp.com', 
-      'lh3.googleusercontent.com', 
-      'avatars.githubusercontent.com'
-    ],
     remotePatterns: [
       {
         protocol: 'https',

@@ -91,7 +91,7 @@ export function ExclusiveOfferCard({
             <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
               <Image
                 src={offer.image_url}
-                alt={offer.title}
+                alt={offer.title || "Exclusive Offer"}
                 fill
                 className="object-cover"
               />

@@ -837,66 +837,117 @@ export default function CustomerDashboard() {
                 {rewards.map((reward) => (
                   <Card 
                     key={reward.id} 
-                    className="cursor-pointer transition-all hover:shadow-md"
+                    className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${reward.image_url ? 'p-0' : ''}`}
                     onClick={() => router.push(`/business/${reward.business_id}`)}
                   >
                     {reward.image_url ? (
-                      <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
-                        <OptimizedImage
-                          src={reward.image_url}
-                          alt={reward.reward_name}
-                          width={400}
-                          height={160}
-                          className="object-cover w-full h-full"
-                        />
-                      </div>
-                    ) : null}
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        {reward.business_profile_pic ? (
-                          <div className="relative h-12 w-12 rounded-full overflow-hidden">
-                            <OptimizedImage 
-                              src={reward.business_profile_pic} 
-                              alt={reward.business_name} 
-                              width={48}
-                              height={48}
-                              className="object-cover"
-                            />
+                      <>
+                        <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                          <OptimizedImage
+                            src={reward.image_url}
+                            alt={reward.reward_name || "Reward"}
+                            width={400}
+                            height={160}
+                            className="object-cover w-full h-full"
+                          />
+                        </div>
+                        <CardHeader className="p-4 bg-transparent">
+                          <div className="flex items-center gap-3">
+                            {reward.business_profile_pic ? (
+                              <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                <OptimizedImage 
+                                  src={reward.business_profile_pic} 
+                                  alt={reward.business_name || "Business"} 
+                                  width={48}
+                                  height={48}
+                                  className="object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                <Building2 className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{reward.reward_name}</p>
+                              <p className="text-sm text-muted-foreground truncate">{reward.business_name}</p>
+                            </div>
                           </div>
-                        ) : (
-                          <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
-                            <Building2 className="h-6 w-6 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Points required</span>
+                              <span className="font-medium">{reward.points_required}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Your points</span>
+                              <span className="font-medium text-primary">{reward.customer_points || 0}</span>
+                            </div>
                           </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{reward.reward_name}</p>
-                          <p className="text-sm text-muted-foreground truncate">{reward.business_name}</p>
+                          <Button 
+                            className="w-full mt-4" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleClaimReward(reward);
+                            }}
+                            disabled={!reward.customer_points || reward.customer_points < reward.points_required}
+                          >
+                            <Gift className="mr-2 h-4 w-4" />
+                            {reward.customer_points && reward.customer_points >= reward.points_required 
+                              ? "Claim Reward" 
+                              : `Need ${reward.points_required - (reward.customer_points || 0)} more points`}
+                          </Button>
+                        </CardContent>
+                      </>
+                    ) : (
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          {reward.business_profile_pic ? (
+                            <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                              <OptimizedImage 
+                                src={reward.business_profile_pic} 
+                                alt={reward.business_name || "Business"} 
+                                width={48}
+                                height={48}
+                                className="object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                              <Building2 className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{reward.reward_name}</p>
+                            <p className="text-sm text-muted-foreground truncate">{reward.business_name}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Points required</span>
-                          <span className="font-medium">{reward.points_required}</span>
+                        <div className="mt-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Points required</span>
+                            <span className="font-medium">{reward.points_required}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Your points</span>
+                            <span className="font-medium text-primary">{reward.customer_points || 0}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">Your points</span>
-                          <span className="font-medium text-primary">{reward.customer_points || 0}</span>
-                        </div>
-                      </div>
-                      <Button 
-                        className="w-full mt-4" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleClaimReward(reward);
-                        }}
-                        disabled={!reward.customer_points || reward.customer_points < reward.points_required}
-                      >
-                        <Gift className="mr-2 h-4 w-4" />
-                        {reward.customer_points && reward.customer_points >= reward.points_required 
-                          ? "Claim Reward" 
-                          : `Need ${reward.points_required - (reward.customer_points || 0)} more points`}
-                      </Button>
-                    </CardContent>
+                        <Button 
+                          className="w-full mt-4" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClaimReward(reward);
+                          }}
+                          disabled={!reward.customer_points || reward.customer_points < reward.points_required}
+                        >
+                          <Gift className="mr-2 h-4 w-4" />
+                          {reward.customer_points && reward.customer_points >= reward.points_required 
+                            ? "Claim Reward" 
+                            : `Need ${reward.points_required - (reward.customer_points || 0)} more points`}
+                        </Button>
+                      </CardContent>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -913,44 +964,101 @@ export default function CustomerDashboard() {
             {discounts.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {discounts.map((discount) => (
-                  <Card key={discount.id}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        {discount.business_profile_pic ? (
-                          <div className="relative h-12 w-12 rounded-full overflow-hidden">
-                            <OptimizedImage 
-                              src={discount.business_profile_pic} 
-                              alt={discount.business_name} 
-                              width={48}
-                              height={48}
-                              className="object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
-                            <Building2 className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{discount.business_name}</p>
-                          <p className="text-sm text-muted-foreground">Discount Offer</p>
+                  <Card 
+                    key={discount.id}
+                    className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${discount.image_url ? 'p-0' : ''}`}
+                    onClick={() => router.push(`/business/${discount.business_id}`)}
+                  >
+                    {discount.image_url ? (
+                      <>
+                        <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                          <OptimizedImage
+                            src={discount.image_url}
+                            alt={discount.business_name || "Discount"}
+                            width={400}
+                            height={160}
+                            className="object-cover w-full h-full"
+                          />
                         </div>
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Discount</span>
-                        <span className="font-medium">{discount.discount_value}%</span>
-                      </div>
-                      <Button 
-                        className="w-full mt-4" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRedeemDiscount(discount);
-                        }}
-                      >
-                        <Tag className="mr-2 h-4 w-4" />
-                        Redeem Now
-                      </Button>
-                    </CardContent>
+                        <CardHeader className="p-4 bg-transparent">
+                          <div className="flex items-center gap-3">
+                            {discount.business_profile_pic ? (
+                              <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                <OptimizedImage 
+                                  src={discount.business_profile_pic} 
+                                  alt={discount.business_name || "Business"} 
+                                  width={48}
+                                  height={48}
+                                  className="object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                <Building2 className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{discount.business_name}</p>
+                              <p className="text-sm text-muted-foreground">Discount Offer</p>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <div className="mt-4 flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Discount</span>
+                            <span className="font-medium">{discount.discount_value}%</span>
+                          </div>
+                          <Button 
+                            className="w-full mt-4" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRedeemDiscount(discount);
+                            }}
+                          >
+                            <Tag className="mr-2 h-4 w-4" />
+                            Redeem Now
+                          </Button>
+                        </CardContent>
+                      </>
+                    ) : (
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          {discount.business_profile_pic ? (
+                            <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                              <OptimizedImage 
+                                src={discount.business_profile_pic} 
+                                alt={discount.business_name || "Business"} 
+                                width={48}
+                                height={48}
+                                className="object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                              <Building2 className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{discount.business_name}</p>
+                            <p className="text-sm text-muted-foreground">Discount Offer</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Discount</span>
+                          <span className="font-medium">{discount.discount_value}%</span>
+                        </div>
+                        <Button 
+                          className="w-full mt-4" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRedeemDiscount(discount);
+                          }}
+                        >
+                          <Tag className="mr-2 h-4 w-4" />
+                          Redeem Now
+                        </Button>
+                      </CardContent>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -969,71 +1077,127 @@ export default function CustomerDashboard() {
                 {exclusiveOffers.map((offer) => (
                   <Card 
                     key={offer.id} 
-                    className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
+                    className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${offer.image_url ? 'p-0' : ''}`}
                     onClick={() => router.push(`/business/${offer.business_id}`)}
                   >
                     {offer.image_url ? (
-                      <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
-                        <OptimizedImage
-                          src={offer.image_url}
-                          alt={offer.offer_name}
-                          width={400}
-                          height={160}
-                          className="object-cover w-full h-full"
-                        />
-                      </div>
-                    ) : null}
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        {offer.business_profile_pic ? (
-                          <div className="relative h-12 w-12 rounded-full overflow-hidden">
-                            <OptimizedImage 
-                              src={offer.business_profile_pic} 
-                              alt={offer.business_name} 
-                              width={48}
-                              height={48}
-                              className="object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
-                            <Building2 className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{offer.offer_name}</p>
-                          <p className="text-sm text-muted-foreground truncate">{offer.business_name}</p>
+                      <>
+                        <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                          <OptimizedImage
+                            src={offer.image_url}
+                            alt={offer.offer_name || "Exclusive Offer"}
+                            width={400}
+                            height={160}
+                            className="object-cover w-full h-full"
+                          />
                         </div>
-                      </div>
-                      <div className="mt-3">
-                        <p className="text-sm font-medium text-muted-foreground">{offer.product_name}</p>
-                        <div className="mt-2 space-y-1">
-                          {offer.original_price && (
-                            <p className="text-sm text-muted-foreground line-through">
-                              ₱{offer.original_price.toFixed(2)}
-                            </p>
+                        <CardHeader className="p-4 bg-transparent">
+                          <div className="flex items-center gap-3">
+                            {offer.business_profile_pic ? (
+                              <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                <OptimizedImage 
+                                  src={offer.business_profile_pic} 
+                                  alt={offer.business_name || "Business"} 
+                                  width={48}
+                                  height={48}
+                                  className="object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                <Building2 className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{offer.offer_name}</p>
+                              <p className="text-sm text-muted-foreground truncate">{offer.business_name}</p>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <div className="mt-3">
+                            <p className="text-sm font-medium text-muted-foreground">{offer.product_name}</p>
+                            <div className="mt-2 space-y-1">
+                              {offer.original_price && (
+                                <p className="text-sm text-muted-foreground line-through">
+                                  ₱{offer.original_price.toFixed(2)}
+                                </p>
+                              )}
+                              <p className="text-xl font-bold text-primary">
+                                {offer.discounted_price ? `₱${offer.discounted_price.toFixed(2)}` : "Special Offer"}
+                              </p>
+                              {offer.discount_percentage && (
+                                <p className="text-sm text-green-600 font-medium">
+                                  Save {offer.discount_percentage.toFixed(0)}%
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <Button 
+                            className="w-full mt-4" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRedeemExclusiveOffer(offer);
+                            }}
+                          >
+                            <Star className="mr-2 h-4 w-4" />
+                            Redeem Now
+                          </Button>
+                        </CardContent>
+                      </>
+                    ) : (
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          {offer.business_profile_pic ? (
+                            <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                              <OptimizedImage 
+                                src={offer.business_profile_pic} 
+                                alt={offer.business_name || "Business"} 
+                                width={48}
+                                height={48}
+                                className="object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                              <Building2 className="h-6 w-6 text-muted-foreground" />
+                            </div>
                           )}
-                          <p className="text-xl font-bold text-primary">
-                            {offer.discounted_price ? `₱${offer.discounted_price.toFixed(2)}` : "Special Offer"}
-                          </p>
-                          {offer.discount_percentage && (
-                            <p className="text-sm text-green-600 font-medium">
-                              Save {offer.discount_percentage.toFixed(0)}%
-                            </p>
-                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{offer.offer_name}</p>
+                            <p className="text-sm text-muted-foreground truncate">{offer.business_name}</p>
+                          </div>
                         </div>
-                      </div>
-                      <Button 
-                        className="w-full mt-4" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRedeemExclusiveOffer(offer);
-                        }}
-                      >
-                        <Star className="mr-2 h-4 w-4" />
-                        Redeem Now
-                      </Button>
-                    </CardContent>
+                        <div className="mt-3">
+                          <p className="text-sm font-medium text-muted-foreground">{offer.product_name}</p>
+                          <div className="mt-2 space-y-1">
+                            {offer.original_price && (
+                              <p className="text-sm text-muted-foreground line-through">
+                                ₱{offer.original_price.toFixed(2)}
+                              </p>
+                            )}
+                            <p className="text-xl font-bold text-primary">
+                              {offer.discounted_price ? `₱${offer.discounted_price.toFixed(2)}` : "Special Offer"}
+                            </p>
+                            {offer.discount_percentage && (
+                              <p className="text-sm text-green-600 font-medium">
+                                Save {offer.discount_percentage.toFixed(0)}%
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          className="w-full mt-4" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRedeemExclusiveOffer(offer);
+                          }}
+                        >
+                          <Star className="mr-2 h-4 w-4" />
+                          Redeem Now
+                        </Button>
+                      </CardContent>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -1074,66 +1238,115 @@ export default function CustomerDashboard() {
                     <CarouselItem key={reward.id} className="basis-[85%] md:basis-1/2 lg:basis-1/3 pl-2">
                       <div className="p-1">
                         <Card 
-                          className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
+                          className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${reward.image_url ? 'p-0' : ''}`}
                           onClick={() => router.push(`/business/${reward.business_id}`)}
                         >
                           {reward.image_url ? (
-                            <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
-                              <OptimizedImage
-                                src={reward.image_url}
-                                alt={reward.reward_name}
-                                width={400}
-                                height={160}
-                                className="object-cover w-full h-full"
-                              />
-                            </div>
-                          ) : null}
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                              {reward.business_profile_pic ? (
-                                <div className="relative h-12 w-12 rounded-full overflow-hidden">
-                                  <OptimizedImage 
-                                    src={reward.business_profile_pic} 
-                                    alt={reward.business_name} 
-                                    width={48}
-                                    height={48}
-                                    className="object-cover"
-                                  />
+                            <>
+                              <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                                <OptimizedImage
+                                  src={reward.image_url}
+                                  alt={reward.reward_name || "Reward"}
+                                  width={400}
+                                  height={160}
+                                  className="object-cover w-full h-full"
+                                />
+                              </div>
+                              <div className="p-4">
+                                <div className="flex items-center gap-3">
+                                  {reward.business_profile_pic ? (
+                                    <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                      <OptimizedImage 
+                                        src={reward.business_profile_pic} 
+                                        alt={reward.business_name} 
+                                        width={48}
+                                        height={48}
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                      <Building2 className="h-6 w-6 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{reward.reward_name}</p>
+                                    <p className="text-sm text-muted-foreground truncate">{reward.business_name}</p>
+                                  </div>
                                 </div>
-                              ) : (
-                                <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
-                                  <Building2 className="h-6 w-6 text-muted-foreground" />
+                                <div className="mt-4 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">Points required</span>
+                                    <span className="font-medium">{reward.points_required}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">Your points</span>
+                                    <span className="font-medium text-primary">{reward.customer_points || 0}</span>
+                                  </div>
                                 </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{reward.reward_name}</p>
-                                <p className="text-sm text-muted-foreground truncate">{reward.business_name}</p>
+                                <Button 
+                                  className="w-full mt-4" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleClaimReward(reward);
+                                  }}
+                                  disabled={!reward.customer_points || reward.customer_points < reward.points_required}
+                                >
+                                  <Gift className="mr-2 h-4 w-4" />
+                                  {reward.customer_points && reward.customer_points >= reward.points_required 
+                                    ? "Claim Reward" 
+                                    : `Need ${reward.points_required - (reward.customer_points || 0)} more points`}
+                                </Button>
                               </div>
-                            </div>
-                            <div className="mt-4 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-muted-foreground">Points required</span>
-                                <span className="font-medium">{reward.points_required}</span>
+                            </>
+                          ) : (
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                {reward.business_profile_pic ? (
+                                  <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                    <OptimizedImage 
+                                      src={reward.business_profile_pic} 
+                                      alt={reward.business_name || "Business"} 
+                                      width={48}
+                                      height={48}
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                    <Building2 className="h-6 w-6 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{reward.reward_name}</p>
+                                  <p className="text-sm text-muted-foreground truncate">{reward.business_name}</p>
+                                </div>
                               </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-muted-foreground">Your points</span>
-                                <span className="font-medium text-primary">{reward.customer_points || 0}</span>
+                              <div className="mt-4 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-muted-foreground">Points required</span>
+                                  <span className="font-medium">{reward.points_required}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-muted-foreground">Your points</span>
+                                  <span className="font-medium text-primary">{reward.customer_points || 0}</span>
+                                </div>
                               </div>
-                            </div>
-                            <Button 
-                              className="w-full mt-4" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleClaimReward(reward);
-                              }}
-                              disabled={!reward.customer_points || reward.customer_points < reward.points_required}
-                            >
-                              <Gift className="mr-2 h-4 w-4" />
-                              {reward.customer_points && reward.customer_points >= reward.points_required 
-                                ? "Claim Reward" 
-                                : `Need ${reward.points_required - (reward.customer_points || 0)} more points`}
-                            </Button>
-                          </CardContent>
+                              <Button 
+                                className="w-full mt-4" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleClaimReward(reward);
+                                }}
+                                disabled={!reward.customer_points || reward.customer_points < reward.points_required}
+                              >
+                                <Gift className="mr-2 h-4 w-4" />
+                                {reward.customer_points && reward.customer_points >= reward.points_required 
+                                  ? "Claim Reward" 
+                                  : `Need ${reward.points_required - (reward.customer_points || 0)} more points`}
+                              </Button>
+                            </CardContent>
+                          )}
                         </Card>
                       </div>
                     </CarouselItem>
@@ -1165,57 +1378,97 @@ export default function CustomerDashboard() {
                     <CarouselItem key={discount.id} className="basis-[85%] md:basis-1/2 lg:basis-1/3 pl-2">
                       <div className="p-1">
                         <Card 
-                          className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
+                          className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${discount.image_url ? 'p-0' : ''}`}
                           onClick={() => router.push(`/business/${discount.business_id}`)}
                         >
                           {discount.image_url ? (
-                            <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
-                              <OptimizedImage
-                                src={discount.image_url}
-                                alt={discount.business_name}
-                                width={400}
-                                height={160}
-                                className="object-cover w-full h-full"
-                              />
-                            </div>
-                          ) : null}
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                              {discount.business_profile_pic ? (
-                                <div className="relative h-12 w-12 rounded-full overflow-hidden">
-                                  <OptimizedImage 
-                                    src={discount.business_profile_pic} 
-                                    alt={discount.business_name} 
-                                    width={48}
-                                    height={48}
-                                    className="object-cover"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
-                                  <Building2 className="h-6 w-6 text-muted-foreground" />
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{discount.business_name}</p>
-                                <p className="text-sm text-muted-foreground">Discount Offer</p>
+                            <>
+                              <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                                <OptimizedImage
+                                  src={discount.image_url}
+                                  alt={discount.business_name || "Discount"}
+                                  width={400}
+                                  height={160}
+                                  className="object-cover w-full h-full"
+                                />
                               </div>
-                            </div>
-                            <div className="mt-4 flex items-center justify-between">
-                              <span className="text-sm text-muted-foreground">Discount</span>
-                              <span className="font-medium">{discount.discount_value}%</span>
-                            </div>
-                            <Button 
-                              className="w-full mt-4" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRedeemDiscount(discount);
-                              }}
-                            >
-                              <Tag className="mr-2 h-4 w-4" />
-                              Redeem Now
-                            </Button>
-                          </CardContent>
+                              <div className="p-4">
+                                <div className="flex items-center gap-3">
+                                  {discount.business_profile_pic ? (
+                                    <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                      <OptimizedImage 
+                                        src={discount.business_profile_pic} 
+                                        alt={discount.business_name} 
+                                        width={48}
+                                        height={48}
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                      <Building2 className="h-6 w-6 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{discount.business_name}</p>
+                                    <p className="text-sm text-muted-foreground">Discount Offer</p>
+                                  </div>
+                                </div>
+                                <div className="mt-4 flex items-center justify-between">
+                                  <span className="text-sm text-muted-foreground">Discount</span>
+                                  <span className="font-medium">{discount.discount_value}%</span>
+                                </div>
+                                <Button 
+                                  className="w-full mt-4" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRedeemDiscount(discount);
+                                  }}
+                                >
+                                  <Tag className="mr-2 h-4 w-4" />
+                                  Redeem Now
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                {discount.business_profile_pic ? (
+                                  <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                    <OptimizedImage 
+                                      src={discount.business_profile_pic} 
+                                      alt={discount.business_name || "Business"} 
+                                      width={48}
+                                      height={48}
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                    <Building2 className="h-6 w-6 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{discount.business_name}</p>
+                                  <p className="text-sm text-muted-foreground">Discount Offer</p>
+                                </div>
+                              </div>
+                              <div className="mt-4 flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Discount</span>
+                                <span className="font-medium">{discount.discount_value}%</span>
+                              </div>
+                              <Button 
+                                className="w-full mt-4" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRedeemDiscount(discount);
+                                }}
+                              >
+                                <Tag className="mr-2 h-4 w-4" />
+                                Redeem Now
+                              </Button>
+                            </CardContent>
+                          )}
                         </Card>
                       </div>
                     </CarouselItem>
@@ -1247,71 +1500,125 @@ export default function CustomerDashboard() {
                     <CarouselItem key={offer.id} className="basis-[85%] md:basis-1/2 lg:basis-1/3 pl-2">
                       <div className="p-1">
                         <Card 
-                          className="cursor-pointer transition-all hover:shadow-md overflow-hidden"
+                          className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${offer.image_url ? 'p-0' : ''}`}
                           onClick={() => router.push(`/business/${offer.business_id}`)}
                         >
                           {offer.image_url ? (
-                            <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
-                              <OptimizedImage
-                                src={offer.image_url}
-                                alt={offer.offer_name}
-                                width={400}
-                                height={160}
-                                className="object-cover w-full h-full"
-                              />
-                            </div>
-                          ) : null}
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                              {offer.business_profile_pic ? (
-                                <div className="relative h-12 w-12 rounded-full overflow-hidden">
-                                  <OptimizedImage 
-                                    src={offer.business_profile_pic} 
-                                    alt={offer.business_name} 
-                                    width={48}
-                                    height={48}
-                                    className="object-cover"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
-                                  <Building2 className="h-6 w-6 text-muted-foreground" />
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{offer.offer_name}</p>
-                                <p className="text-sm text-muted-foreground truncate">{offer.business_name}</p>
+                            <>
+                              <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                                <OptimizedImage
+                                  src={offer.image_url}
+                                  alt={offer.offer_name || "Exclusive Offer"}
+                                  width={400}
+                                  height={160}
+                                  className="object-cover w-full h-full"
+                                />
                               </div>
-                            </div>
-                            <div className="mt-3">
-                              <p className="text-sm font-medium text-muted-foreground">{offer.product_name}</p>
-                              <div className="mt-2 space-y-1">
-                                {offer.original_price && (
-                                  <p className="text-sm text-muted-foreground line-through">
-                                    ₱{offer.original_price.toFixed(2)}
-                                  </p>
-                                )}
-                                <p className="text-xl font-bold text-primary">
-                                  {offer.discounted_price ? `₱${offer.discounted_price.toFixed(2)}` : "Special Offer"}
-                                </p>
-                                {offer.discount_percentage && (
-                                  <p className="text-sm text-green-600 font-medium">
-                                    Save {offer.discount_percentage.toFixed(0)}%
-                                  </p>
-                                )}
+                              <div className="p-4">
+                                <div className="flex items-center gap-3">
+                                  {offer.business_profile_pic ? (
+                                    <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                      <OptimizedImage 
+                                        src={offer.business_profile_pic} 
+                                        alt={offer.business_name} 
+                                        width={48}
+                                        height={48}
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                      <Building2 className="h-6 w-6 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{offer.offer_name}</p>
+                                    <p className="text-sm text-muted-foreground truncate">{offer.business_name}</p>
+                                  </div>
+                                </div>
+                                <div className="mt-3">
+                                  <p className="text-sm font-medium text-muted-foreground">{offer.product_name}</p>
+                                  <div className="mt-2 space-y-1">
+                                    {offer.original_price && (
+                                      <p className="text-sm text-muted-foreground line-through">
+                                        ₱{offer.original_price.toFixed(2)}
+                                      </p>
+                                    )}
+                                    <p className="text-xl font-bold text-primary">
+                                      {offer.discounted_price ? `₱${offer.discounted_price.toFixed(2)}` : "Special Offer"}
+                                    </p>
+                                    {offer.discount_percentage && (
+                                      <p className="text-sm text-green-600 font-medium">
+                                        Save {offer.discount_percentage.toFixed(0)}%
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <Button 
+                                  className="w-full mt-4" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRedeemExclusiveOffer(offer);
+                                  }}
+                                >
+                                  <Star className="mr-2 h-4 w-4" />
+                                  Redeem Now
+                                </Button>
                               </div>
-                            </div>
-                            <Button 
-                              className="w-full mt-4" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRedeemExclusiveOffer(offer);
-                              }}
-                            >
-                              <Star className="mr-2 h-4 w-4" />
-                              Redeem Now
-                            </Button>
-                          </CardContent>
+                            </>
+                          ) : (
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                {offer.business_profile_pic ? (
+                                  <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                    <OptimizedImage 
+                                      src={offer.business_profile_pic} 
+                                      alt={offer.business_name || "Business"} 
+                                      width={48}
+                                      height={48}
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                    <Building2 className="h-6 w-6 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{offer.offer_name}</p>
+                                  <p className="text-sm text-muted-foreground truncate">{offer.business_name}</p>
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <p className="text-sm font-medium text-muted-foreground">{offer.product_name}</p>
+                                <div className="mt-2 space-y-1">
+                                  {offer.original_price && (
+                                    <p className="text-sm text-muted-foreground line-through">
+                                      ₱{offer.original_price.toFixed(2)}
+                                    </p>
+                                  )}
+                                  <p className="text-xl font-bold text-primary">
+                                    {offer.discounted_price ? `₱${offer.discounted_price.toFixed(2)}` : "Special Offer"}
+                                  </p>
+                                  {offer.discount_percentage && (
+                                    <p className="text-sm text-green-600 font-medium">
+                                      Save {offer.discount_percentage.toFixed(0)}%
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <Button 
+                                className="w-full mt-4" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRedeemExclusiveOffer(offer);
+                                }}
+                              >
+                                <Star className="mr-2 h-4 w-4" />
+                                Redeem Now
+                              </Button>
+                            </CardContent>
+                          )}
                         </Card>
                       </div>
                     </CarouselItem>
