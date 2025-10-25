@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [isFacebookLoading, setIsFacebookLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -48,6 +49,27 @@ export default function LoginPage() {
       console.log("[v0] Google login error:", error)
       setError(error instanceof Error ? error.message : "An error occurred during Google login")
       setIsGoogleLoading(false)
+    }
+  }
+
+  const handleFacebookLogin = async () => {
+    setIsFacebookLoading(true)
+    setError(null)
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) throw error
+      // Let the callback handler and middleware handle the redirect based on user role
+    } catch (error) {
+      console.log("[v0] Facebook login error:", error)
+      setError(error instanceof Error ? error.message : "An error occurred during Facebook login")
+      setIsFacebookLoading(false)
     }
   }
 
@@ -107,7 +129,7 @@ export default function LoginPage() {
               <Button 
                 variant="outline" 
                 onClick={handleGoogleLogin}
-                disabled={isGoogleLoading}
+                disabled={isGoogleLoading || isFacebookLoading}
                 className="w-full"
               >
                 {isGoogleLoading ? (
@@ -119,6 +141,25 @@ export default function LoginPage() {
                   <>
                     <Icons.google className="mr-2 h-4 w-4" />
                     Continue with Google
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={handleFacebookLogin}
+                disabled={isGoogleLoading || isFacebookLoading}
+                className="w-full"
+              >
+                {isFacebookLoading ? (
+                  <>
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <Icons.facebook className="mr-2 h-4 w-4" />
+                    Continue with Facebook
                   </>
                 )}
               </Button>
@@ -142,6 +183,8 @@ export default function LoginPage() {
                       id="email"
                       type="email"
                       placeholder="you@example.com"
+                      data-lpignore="true"
+                      data-form-type="other"
                       {...form.register("email")}
                     />
                     {form.formState.errors.email && (
@@ -153,6 +196,9 @@ export default function LoginPage() {
                     <Input
                       id="password"
                       type="password"
+                      data-lpignore="true"
+                      data-form-type="other"
+                      autoComplete="current-password"
                       {...form.register("password")}
                     />
                     {form.formState.errors.password && (

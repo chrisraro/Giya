@@ -16,7 +16,7 @@ import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { OptimizedImage } from "@/components/optimized-image"
 import { toast } from "sonner"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog"
 import { QrScanner } from "@/components/qr-scanner"
 
 // Import types from the hook
@@ -372,6 +372,8 @@ export default function CustomerDashboard() {
   const [showRedemptionQR, setShowRedemptionQR] = useState(false)
   const [redemptionQRCode, setRedemptionQRCode] = useState<string>("")
   const [redemptionDetails, setRedemptionDetails] = useState<any>(null)
+  const [showRedeemDialog, setShowRedeemDialog] = useState(false)
+  const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
 
   const handleQrScan = () => {
     setIsQrScannerOpen(true)
@@ -417,41 +419,79 @@ export default function CustomerDashboard() {
       return
     }
 
+    // Show confirmation dialog first
+    setSelectedReward(reward)
+    setShowRedeemDialog(true)
+  }
+
+  const handleConfirmRedeem = async () => {
+    if (!selectedReward || !data?.customer?.id) {
+      return
+    }
+
     setIsRedeeming(true)
 
     try {
       const redemptionCode = `GIYA-REDEEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
+      console.log("[Claim Reward] Attempting to create redemption:", {
+        customer_id: data.customer.id,
+        reward_id: selectedReward.id,
+        business_id: selectedReward.business_id,
+        points_redeemed: selectedReward.points_required,
+        redemption_qr_code: redemptionCode
+      })
+
       const { data: redemption, error: redemptionError } = await supabase
         .from("redemptions")
         .insert({
           customer_id: data.customer.id,
-          reward_id: reward.id,
-          business_id: reward.business_id,
-          points_redeemed: reward.points_required,
+          reward_id: selectedReward.id,
+          business_id: selectedReward.business_id,
+          points_redeemed: selectedReward.points_required,
           redemption_qr_code: redemptionCode,
           status: "pending",
         })
         .select()
         .single()
 
-      if (redemptionError) throw redemptionError
+      if (redemptionError) {
+        console.error("[Claim Reward] Database error:", redemptionError)
+        throw redemptionError
+      }
+
+      console.log("[Claim Reward] Redemption created successfully:", redemption)
+
+      // Update local rewards state to reflect the point deduction
+      setRewards(prevRewards => 
+        prevRewards.map(r => 
+          r.id === selectedReward.id 
+            ? { ...r, customer_points: (r.customer_points || 0) - selectedReward.points_required }
+            : r
+        )
+      )
 
       toast.success("Reward claimed! Show the QR code to the business.")
 
+      // Set QR code data
       setRedemptionQRCode(redemptionCode)
       setRedemptionDetails({
-        reward: reward,
+        reward: selectedReward,
         redemption: redemption,
       })
-      setShowRedemptionQR(true)
-
-      // Refresh data to update points
-      refetch()
+      
+      // Close confirmation dialog first
+      setShowRedeemDialog(false)
+      setIsRedeeming(false)
+      
+      // Wait for dialog animation to complete before opening QR dialog
+      setTimeout(() => {
+        console.log("[Claim Reward] Opening QR Code dialog with code:", redemptionCode)
+        setShowRedemptionQR(true)
+      }, 300)
     } catch (error) {
-      console.error("Failed to claim reward:", error)
-      toast.error("Failed to claim reward")
-    } finally {
+      console.error("[Claim Reward] Failed to claim reward:", error)
+      toast.error("Failed to claim reward: " + (error instanceof Error ? error.message : "Unknown error"))
       setIsRedeeming(false)
     }
   }
@@ -466,6 +506,8 @@ export default function CustomerDashboard() {
       // For discount offers, we generate a QR code that the business can scan
       const redemptionCode = `GIYA-DISCOUNT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${discount.id}`
 
+      console.log("[Redeem Discount] Generating QR code:", redemptionCode)
+
       toast.success("Discount ready! Show the QR code to the business when making a purchase.")
 
       setRedemptionQRCode(redemptionCode)
@@ -474,8 +516,10 @@ export default function CustomerDashboard() {
         type: "discount"
       })
       setShowRedemptionQR(true)
+
+      console.log("[Redeem Discount] Modal state set - should be visible now")
     } catch (error) {
-      console.error("Failed to process discount:", error)
+      console.error("[Redeem Discount] Failed to process discount:", error)
       toast.error("Failed to process discount")
     }
   }
@@ -490,6 +534,8 @@ export default function CustomerDashboard() {
       // For exclusive offers, we generate a QR code that the business can scan
       const redemptionCode = `GIYA-EXCLUSIVE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${offer.id}`
 
+      console.log("[Redeem Exclusive] Generating QR code:", redemptionCode)
+
       toast.success("Exclusive offer ready! Show the QR code to the business to claim your offer.")
 
       setRedemptionQRCode(redemptionCode)
@@ -498,8 +544,10 @@ export default function CustomerDashboard() {
         type: "exclusive"
       })
       setShowRedemptionQR(true)
+
+      console.log("[Redeem Exclusive] Modal state set - should be visible now")
     } catch (error) {
-      console.error("Failed to process exclusive offer:", error)
+      console.error("[Redeem Exclusive] Failed to process exclusive offer:", error)
       toast.error("Failed to process exclusive offer")
     }
   }
@@ -1632,9 +1680,97 @@ export default function CustomerDashboard() {
         </div>
       </div>
       
+      {/* Redeem Confirmation Dialog */}
+      <Dialog open={showRedeemDialog} onOpenChange={setShowRedeemDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Redeem Reward</DialogTitle>
+            <DialogDescription>Confirm your reward redemption</DialogDescription>
+          </DialogHeader>
+          {selectedReward && (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-secondary p-4">
+                <div className="mb-3 flex items-center gap-3">
+                  {selectedReward.business_profile_pic ? (
+                    <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                      <OptimizedImage 
+                        src={selectedReward.business_profile_pic} 
+                        alt={selectedReward.business_name || "Business"} 
+                        width={48}
+                        height={48}
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback>{selectedReward.business_name?.charAt(0) || 'B'}</AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div>
+                    <h3 className="font-semibold">{selectedReward.reward_name}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedReward.business_name}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border bg-primary/5 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Points to redeem:</span>
+                  <span className="text-lg font-bold text-primary">{selectedReward.points_required}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Remaining points:</span>
+                  <span className="font-semibold">
+                    {(selectedReward.customer_points || 0) - selectedReward.points_required}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShowRedeemDialog(false)
+                  }} 
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleConfirmRedeem()
+                  }} 
+                  disabled={isRedeeming} 
+                  className="flex-1"
+                >
+                  {isRedeeming ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Redeeming...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Confirm Redemption
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      
       {/* QR Scanner Dialog */}
       <Dialog open={isQrScannerOpen} onOpenChange={setIsQrScannerOpen}>
         <DialogContent className="sm:max-w-md">
+          <DialogTitle>Scan QR Code</DialogTitle>
           <QrScanner 
             onScanSuccess={handleQrScanSuccess} 
             onClose={() => setIsQrScannerOpen(false)} 
@@ -1645,6 +1781,10 @@ export default function CustomerDashboard() {
       {/* Redemption QR Code Dialog */}
       <Dialog open={showRedemptionQR} onOpenChange={setShowRedemptionQR}>
         <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">Redemption QR Code</DialogTitle>
+            <DialogDescription className="text-center">Show this QR code to the business to validate your reward</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="flex justify-center rounded-lg border bg-white p-6">
               <QRCodeSVG value={redemptionQRCode} size={200} level="H" />
@@ -1652,11 +1792,46 @@ export default function CustomerDashboard() {
 
             {redemptionDetails && (
               <div className="rounded-lg border bg-secondary p-4">
-                <h3 className="font-semibold mb-2">{redemptionDetails.reward.reward_name}</h3>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Points redeemed:</span>
-                  <span className="font-bold text-primary">{redemptionDetails.reward.points_required}</span>
-                </div>
+                {redemptionDetails.type === "discount" ? (
+                  <>
+                    <h3 className="font-semibold mb-2">{redemptionDetails.offer.business_name}</h3>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Discount:</span>
+                      <span className="font-bold text-primary">{redemptionDetails.offer.discount_value}%</span>
+                    </div>
+                  </>
+                ) : redemptionDetails.type === "exclusive" ? (
+                  <>
+                    <h3 className="font-semibold mb-2">{redemptionDetails.offer.offer_name}</h3>
+                    <div className="space-y-1 text-sm">
+                      <p className="text-muted-foreground">{redemptionDetails.offer.product_name}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Price:</span>
+                        <span className="font-bold text-primary">
+                          {redemptionDetails.offer.discounted_price 
+                            ? `₱${redemptionDetails.offer.discounted_price.toFixed(2)}` 
+                            : "Special Offer"}
+                        </span>
+                      </div>
+                      {redemptionDetails.offer.discount_percentage && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Savings:</span>
+                          <span className="font-bold text-green-600">
+                            {redemptionDetails.offer.discount_percentage.toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="font-semibold mb-2">{redemptionDetails.reward.reward_name}</h3>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Points redeemed:</span>
+                      <span className="font-bold text-primary">{redemptionDetails.reward.points_required}</span>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

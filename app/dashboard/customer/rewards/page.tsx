@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -43,11 +43,12 @@ interface Reward {
 
 // Add props interface
 interface CustomerRewardsPageProps {
-  searchParams?: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ businessId?: string; rewardId?: string }>
 }
 
 // Modify the component to accept props
-export default function CustomerRewardsPage({ searchParams = {} }: CustomerRewardsPageProps) {
+export default function CustomerRewardsPage({ searchParams: searchParamsPromise }: CustomerRewardsPageProps) {
+  const searchParams = use(searchParamsPromise)
   const [rewards, setRewards] = useState<Reward[]>([])
   const [filteredRewards, setFilteredRewards] = useState<Reward[]>([])
   const [customerPoints, setCustomerPoints] = useState<Record<string, number>>({})

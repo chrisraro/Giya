@@ -31,6 +31,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [isFacebookLoading, setIsFacebookLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -180,6 +181,78 @@ export default function SignupPage() {
       setError(error instanceof Error ? error.message : "An error occurred during Google sign-up")
     } finally {
       setIsGoogleLoading(false)
+    }
+  }
+
+  const handleFacebookSignup = async () => {
+    if (!selectedRole) {
+      setError("Please select a role first")
+      return
+    }
+
+    // Validate form fields based on selected role
+    let isValid = true
+
+    if (selectedRole === "customer") {
+      isValid = await form.trigger(['fullName'])
+    } else if (selectedRole === "business") {
+      isValid = await form.trigger(['businessName', 'businessCategory', 'address'])
+    } else if (selectedRole === "influencer") {
+      isValid = await form.trigger(['influencerFullName', 'influencerAddress'])
+    }
+
+    if (!isValid) {
+      setError("Please fill in all required fields")
+      return
+    }
+
+    setIsFacebookLoading(true)
+    setError(null)
+
+    try {
+      // Get form data values
+      const formData = form.getValues()
+
+      // Save form data and role to localStorage for use after Facebook auth
+      const facebookSignupData = {
+        role: selectedRole,
+        formData: { ...formData }
+      }
+      
+      if (typeof window !== 'undefined') {
+        // Save to localStorage
+        localStorage.setItem('facebook_signup_data', JSON.stringify(facebookSignupData))
+        
+        // Save referral code if present
+        const urlParams = new URLSearchParams(window.location.search)
+        const refCode = urlParams.get('ref')
+        if (refCode) {
+          localStorage.setItem('affiliate_referral_code', refCode)
+        }
+        
+        // Also save to a cookie for server-side access
+        document.cookie = `facebook_signup_data=${JSON.stringify(facebookSignupData)}; path=/`
+        if (refCode) {
+          document.cookie = `affiliate_referral_code=${refCode}; path=/`
+        }
+      }
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) throw error
+
+      // The browser will automatically redirect to Facebook OAuth
+      // After authentication, Facebook will redirect back to our callback URL
+    } catch (error) {
+      console.log("[v0] Facebook signup error:", error)
+      setError(error instanceof Error ? error.message : "An error occurred during Facebook sign-up")
+    } finally {
+      setIsFacebookLoading(false)
     }
   }
 
@@ -377,7 +450,7 @@ export default function SignupPage() {
               <Button 
                 variant="outline" 
                 onClick={handleGoogleSignup}
-                disabled={isGoogleLoading}
+                disabled={isGoogleLoading || isFacebookLoading}
                 className="w-full"
               >
                 {isGoogleLoading ? (
@@ -389,6 +462,25 @@ export default function SignupPage() {
                   <>
                     <Icons.google className="mr-2 h-4 w-4" />
                     Continue with Google
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={handleFacebookSignup}
+                disabled={isGoogleLoading || isFacebookLoading}
+                className="w-full"
+              >
+                {isFacebookLoading ? (
+                  <>
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                    Validating fields...
+                  </>
+                ) : (
+                  <>
+                    <Icons.facebook className="mr-2 h-4 w-4" />
+                    Continue with Facebook
                   </>
                 )}
               </Button>

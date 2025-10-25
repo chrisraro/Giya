@@ -53,14 +53,18 @@ export async function GET(request: Request) {
           }
           return NextResponse.redirect(new URL(redirectPath, request.url))
         } else {
-          // Check if this is a Google signup with form data
+          // Check if this is a Google or Facebook signup with form data
           // Try to get form data from cookies
           const googleSignupDataCookie = cookieStore.get('google_signup_data')?.value
+          const facebookSignupDataCookie = cookieStore.get('facebook_signup_data')?.value
           
-          if (googleSignupDataCookie) {
+          const signupDataCookie = googleSignupDataCookie || facebookSignupDataCookie
+          const cookieName = googleSignupDataCookie ? 'google_signup_data' : 'facebook_signup_data'
+          
+          if (signupDataCookie) {
             try {
-              const googleSignupData = JSON.parse(googleSignupDataCookie)
-              const { role, formData } = googleSignupData
+              const signupData = JSON.parse(signupDataCookie)
+              const { role, formData } = signupData
               
               // Update user metadata with role and form data
               const updateData: any = {
@@ -110,10 +114,10 @@ export async function GET(request: Request) {
               
               const response = NextResponse.redirect(new URL(redirectPath, request.url))
               // Set the expired cookie to clean up
-              response.cookies.set('google_signup_data', expiredCookie)
+              response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' })
               return response
             } catch (parseError) {
-              console.error("Error parsing google signup data:", parseError)
+              console.error("Error parsing OAuth signup data:", parseError)
             }
           }
           
