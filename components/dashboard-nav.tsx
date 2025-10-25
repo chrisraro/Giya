@@ -8,7 +8,7 @@ import Link from "next/link"
 import Image from "next/image"
 
 interface DashboardNavProps {
-  userRole: "customer" | "business" | "influencer"
+  userRole: "customer" | "business"
   userName: string
   userAvatar?: string | null
 }
@@ -69,28 +69,11 @@ export function DashboardNav({ userRole, userName, userAvatar }: DashboardNavPro
     },
   ]
 
-  const influencerItems = [
-    {
-      title: "Overview",
-      href: "/dashboard/influencer",
-      icon: Home,
-    },
-    {
-      title: "Affiliates",
-      href: "/dashboard/influencer/affiliates",
-      icon: Users,
-    },
-    {
-      title: "Settings",
-      href: "/dashboard/influencer/settings",
-      icon: Settings,
-    },
-  ]
+  // Removed influencer navigation items - feature disabled
 
   const navItems = {
     customer: customerItems,
     business: businessItems,
-    influencer: influencerItems,
   }
 
   const currentNavItems = navItems[userRole]

@@ -39,7 +39,7 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 
 interface AppSidebarProps {
-  userRole: "customer" | "business" | "influencer"
+  userRole: "customer" | "business"
   userName: string
   userEmail?: string
   userAvatar?: string | null
@@ -159,28 +159,11 @@ export function AppSidebar({
     },
   ]
 
-  const influencerItems = [
-    {
-      title: "Overview",
-      url: "/dashboard/influencer",
-      icon: BarChart3,
-    },
-    {
-      title: "Affiliates",
-      url: "/dashboard/influencer/affiliates",
-      icon: Users,
-    },
-    {
-      title: "Settings",
-      url: "/dashboard/influencer/settings",
-      icon: Settings,
-    },
-  ]
+  // Removed influencer navigation items - feature disabled
 
   const navItems = {
     customer: customerItems,
     business: businessItems,
-    influencer: influencerItems,
   }
 
   const currentNavItems = navItems[userRole]

@@ -9,7 +9,8 @@ import Link from "next/link"
 const MENU_ITEMS = [
   { label: "Discover", href: "#businesses" },
   { label: "For Business", href: "/auth/signup/business" },
-  { label: "For Influencers", href: "/auth/signup/influencer" },
+  // Influencer Hub - Coming Soon
+  // { label: "For Influencers", href: "/auth/signup/influencer" },
 ] as const
 
 interface NavMenuItemsProps {

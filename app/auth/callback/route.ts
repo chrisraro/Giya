@@ -36,6 +36,11 @@ export async function GET(request: Request) {
         
         // Check if user already has a role in user_metadata (from signup)
         if (user.user_metadata?.role) {
+          // Prevent influencer access - feature disabled
+          if (user.user_metadata.role === "influencer") {
+            return NextResponse.redirect(new URL("/auth/signup?error=influencer_disabled", request.url))
+          }
+          
           // User already has a role, redirect to appropriate setup page
           let redirectPath = "/"
           switch (user.user_metadata.role) {
@@ -44,9 +49,6 @@ export async function GET(request: Request) {
               break
             case "business":
               redirectPath = "/auth/setup/business"
-              break
-            case "influencer":
-              redirectPath = "/auth/setup/influencer"
               break
             default:
               redirectPath = "/"
@@ -65,6 +67,13 @@ export async function GET(request: Request) {
             try {
               const signupData = JSON.parse(signupDataCookie)
               const { role, formData } = signupData
+              
+              // Prevent influencer access - feature disabled
+              if (role === "influencer") {
+                const response = NextResponse.redirect(new URL("/auth/signup?error=influencer_disabled", request.url))
+                response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' })
+                return response
+              }
               
               // Update user metadata with role and form data
               const updateData: any = {
@@ -105,9 +114,6 @@ export async function GET(request: Request) {
                 case "business":
                   redirectPath = "/auth/setup/business"
                   break
-                case "influencer":
-                  redirectPath = "/auth/setup/influencer"
-                  break
                 default:
                   redirectPath = "/"
               }
@@ -129,6 +135,11 @@ export async function GET(request: Request) {
             .single()
 
           if (!profileError && profile) {
+            // Prevent influencer access - feature disabled
+            if (profile.role === "influencer") {
+              return NextResponse.redirect(new URL("/auth/signup?error=influencer_disabled", request.url))
+            }
+            
             // User has a profile, redirect to appropriate dashboard
             let redirectPath = "/"
             switch (profile.role) {
@@ -137,9 +148,6 @@ export async function GET(request: Request) {
                 break
               case "business":
                 redirectPath = "/dashboard/business"
-                break
-              case "influencer":
-                redirectPath = "/dashboard/influencer"
                 break
               default:
                 redirectPath = "/"

@@ -26,7 +26,7 @@ import { toast } from "sonner"
 import Image from "next/image"
 
 interface SidebarProps {
-  userRole: "customer" | "business" | "influencer"
+  userRole: "customer" | "business"
   userName: string
   userEmail?: string
   userAvatar?: string | null
@@ -166,28 +166,11 @@ export function Sidebar({
     },
   ]
 
-  const influencerItems = [
-    {
-      title: "Overview",
-      href: "/dashboard/influencer",
-      icon: BarChart3,
-    },
-    {
-      title: "Affiliates",
-      href: "/dashboard/influencer/affiliates",
-      icon: Users,
-    },
-    {
-      title: "Settings",
-      href: "/dashboard/influencer/settings",
-      icon: Settings,
-    },
-  ]
+  // Removed influencer navigation items - feature disabled
 
   const navItems = {
     customer: customerItems,
     business: businessItems,
-    influencer: influencerItems,
   }
 
   const currentNavItems = navItems[userRole]

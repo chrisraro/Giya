@@ -69,6 +69,12 @@ export default function SignupPage() {
       if (user) {
         // Check if user already has a role
         if (user.user_metadata?.role) {
+          // Prevent influencer access - feature disabled
+          if (user.user_metadata.role === "influencer") {
+            router.push("/auth/signup?error=influencer_disabled")
+            return
+          }
+          
           // Redirect based on role
           switch (user.user_metadata.role) {
             case "customer":
@@ -76,9 +82,6 @@ export default function SignupPage() {
               break
             case "business":
               router.push("/dashboard/business")
-              break
-            case "influencer":
-              router.push("/dashboard/influencer")
               break
             default:
               router.push("/")
@@ -91,6 +94,15 @@ export default function SignupPage() {
     }
 
     checkUser()
+    
+    // Check for error parameter in URL
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const errorParam = urlParams.get('error')
+      if (errorParam === 'influencer_disabled') {
+        setError('Influencer Hub is coming soon! Please sign up as a Customer or Business for now.')
+      }
+    }
   }, [router, supabase])
 
   const handleRoleSelect = (role: "customer" | "business" | "influencer") => {
@@ -346,7 +358,7 @@ export default function SignupPage() {
             <p className="text-muted-foreground">Choose your account type to get started</p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader className="text-center">
                 <div className="flex justify-center mb-3">
@@ -391,27 +403,28 @@ export default function SignupPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            {/* Influencer Hub - Coming Soon */}
+            {/* <Card>
               <CardHeader className="text-center">
                 <div className="flex justify-center mb-3">
                   <div className="bg-primary/10 p-3 rounded-full">
                     <Megaphone className="h-6 w-6 text-primary" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl">Influencer Account</CardTitle>
-                <CardDescription>Join Giya to promote businesses</CardDescription>
+                <CardTitle className="text-2xl">Influencer Hub</CardTitle>
+                <CardDescription>Coming Soon - Join Giya to promote businesses</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button 
                   onClick={() => handleRoleSelect("influencer")}
                   className="w-full"
                   variant="default"
+                  disabled
                 >
-                  Sign Up as Influencer
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  Coming Soon
                 </Button>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
           <div className="mt-6 text-center text-sm">
             Already have an account?{" "}
