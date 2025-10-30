@@ -113,15 +113,26 @@ export default function CuratedListDetailPage() {
 
       // Fetch available businesses (approved and not in list)
       const currentBusinessIds = itemsData?.map(item => item.business_id) || []
-      const { data: businessesData, error: businessesError } = await supabase
+      
+      let businessesQuery = supabase
         .from("businesses")
         .select("id, business_name, business_category, profile_pic_url, address")
         .eq("approval_status", "approved")
         .eq("is_active", true)
-        .not("id", "in", `(${currentBusinessIds.join(",") || 'null'})`)
         .order("business_name", { ascending: true })
 
-      if (businessesError) throw businessesError
+      // Only add NOT IN filter if there are businesses in the list
+      if (currentBusinessIds.length > 0) {
+        businessesQuery = businessesQuery.not("id", "in", `(${currentBusinessIds.join(",")})`)
+      }
+
+      const { data: businessesData, error: businessesError } = await businessesQuery
+
+      if (businessesError) {
+        console.error("Businesses error:", businessesError)
+      } else {
+        console.log("Available businesses fetched:", businessesData?.length || 0)
+      }
       setAvailableBusinesses(businessesData || [])
     } catch (error) {
       console.error("Error:", error)
