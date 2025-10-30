@@ -127,3 +127,15 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Comment
 COMMENT ON FUNCTION get_admin_profile IS 'Securely retrieves admin profile, bypassing RLS';
+
+-- Function to update admin last login
+CREATE OR REPLACE FUNCTION update_admin_last_login(admin_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE public.admins
+  SET last_login_at = NOW()
+  WHERE id = admin_id AND is_active = true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+COMMENT ON FUNCTION update_admin_last_login IS 'Updates admin last login timestamp, bypassing RLS';

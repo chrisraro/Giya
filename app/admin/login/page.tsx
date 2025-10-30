@@ -70,11 +70,8 @@ export default function AdminLoginPage() {
         // Continue anyway since we know they're an admin
       }
 
-      // Update last login time
-      await supabase
-        .from("admins")
-        .update({ last_login_at: new Date().toISOString() })
-        .eq("id", authData.user.id)
+      // Update last login time using RPC to bypass RLS
+      await supabase.rpc('update_admin_last_login', { admin_id: authData.user.id })
 
       const displayName = adminData?.full_name || authData.user.email || "Admin"
 

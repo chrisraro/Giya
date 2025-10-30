@@ -53,7 +53,6 @@ CREATE OR REPLACE VIEW admin_customer_analytics AS
 SELECT
   c.id,
   c.full_name,
-  c.email,
   c.total_points,
   c.created_at,
   COUNT(DISTINCT pt.id) AS transaction_count,
@@ -65,7 +64,7 @@ SELECT
 FROM public.customers c
 LEFT JOIN public.points_transactions pt ON c.id = pt.customer_id
 LEFT JOIN public.redemptions red ON c.id = red.customer_id
-GROUP BY c.id, c.full_name, c.email, c.total_points, c.created_at;
+GROUP BY c.id, c.full_name, c.total_points, c.created_at;
 
 GRANT SELECT ON admin_customer_analytics TO authenticated;
 
@@ -166,7 +165,7 @@ BEGIN
   RETURN QUERY
   (
     SELECT 'new_customer'::TEXT, 
-           jsonb_build_object('id', id, 'name', full_name, 'email', email), 
+           jsonb_build_object('id', id, 'name', full_name), 
            created_at
     FROM public.customers
     ORDER BY created_at DESC
@@ -203,13 +202,6 @@ BEGIN
   LIMIT p_limit;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- RLS Policies for admin views
-CREATE POLICY "Only admins can view platform stats"
-  ON admin_platform_stats
-  FOR SELECT
-  TO authenticated
-  USING (is_admin());
 
 -- Add comments
 COMMENT ON VIEW admin_platform_stats IS 'Overview statistics for the entire platform';

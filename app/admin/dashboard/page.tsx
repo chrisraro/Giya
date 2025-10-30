@@ -32,21 +32,22 @@ export default function AdminDashboardPage() {
         return
       }
 
-      const { data: adminData, error } = await supabase
-        .from("admins")
-        .select("*")
-        .eq("id", user.id)
-        .eq("is_active", true)
-        .single()
-
-      if (error || !adminData) {
+      // Use RPC function to check admin status
+      const { data: isAdminResult } = await supabase.rpc('is_admin', { user_id: user.id })
+      
+      if (!isAdminResult) {
         await supabase.auth.signOut()
         router.push("/admin/login")
         toast.error("Access denied")
         return
       }
 
-      setAdmin(adminData)
+      // Get admin profile
+      const { data: adminData } = await supabase.rpc('get_admin_profile', { user_id: user.id })
+      
+      if (adminData && adminData.length > 0) {
+        setAdmin(adminData[0])
+      }
     } catch (error) {
       console.error("Auth check error:", error)
       router.push("/admin/login")

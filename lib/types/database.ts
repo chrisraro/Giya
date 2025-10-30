@@ -288,7 +288,6 @@ export interface BusinessAnalytics {
 export interface CustomerAnalytics {
   id: string
   full_name: string
-  email: string
   total_points: number
   created_at: string
   transaction_count: number

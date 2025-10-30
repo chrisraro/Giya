@@ -37,14 +37,13 @@ export default function AdminBusinessesPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { data: adminData } = await supabase
-      .from("admins")
-      .select("*")
-      .eq("id", user.id)
-      .eq("is_active", true)
-      .single()
+    const { data: isAdminResult } = await supabase.rpc('is_admin', { user_id: user.id })
+    if (!isAdminResult) return
 
-    if (adminData) setAdmin(adminData)
+    const { data: adminData } = await supabase.rpc('get_admin_profile', { user_id: user.id })
+    if (adminData && adminData.length > 0) {
+      setAdmin(adminData[0])
+    }
     setIsLoading(false)
   }
 
