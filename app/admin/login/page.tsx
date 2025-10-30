@@ -37,15 +37,21 @@ export default function AdminLoginPage() {
         throw new Error("No user data returned")
       }
 
-      // Check if user is an admin
-      const { data: adminData, error: adminError } = await supabase
-        .from("admins")
-        .select("*")
-        .eq("id", authData.user.id)
-        .eq("is_active", true)
-        .single()
+      // Check if user is an admin using RPC function instead of direct query
+      // This bypasses RLS issues
+      const { data: isAdminResult, error: isAdminError } = await supabase
+        .rpc('is_admin', { user_id: authData.user.id })
 
-      if (adminError || !adminData) {
+      if (isAdminError) {
+        console.error("Error checking admin status:", isAdminError)
+        await supabase.auth.signOut()
+        toast.error("Access denied", {
+          description: "Failed to verify admin privileges"
+        })
+        return
+      }
+
+      if (!isAdminResult) {
         // Not an admin, sign them out
         await supabase.auth.signOut()
         toast.error("Access denied", {
@@ -54,14 +60,26 @@ export default function AdminLoginPage() {
         return
       }
 
+      // Get admin details using SECURITY DEFINER function
+      const { data: adminData, error: adminError } = await supabase
+        .rpc('get_admin_profile', { user_id: authData.user.id })
+
+      if (adminError || !adminData) {
+        console.error("Error fetching admin profile:", adminError)
+        toast.error("Failed to load admin profile")
+        // Continue anyway since we know they're an admin
+      }
+
       // Update last login time
       await supabase
         .from("admins")
         .update({ last_login_at: new Date().toISOString() })
-        .eq("id", adminData.id)
+        .eq("id", authData.user.id)
+
+      const displayName = adminData?.full_name || authData.user.email || "Admin"
 
       toast.success("Welcome back!", {
-        description: `Logged in as ${adminData.full_name}`
+        description: `Logged in as ${displayName}`
       })
 
       router.push("/admin/dashboard")
