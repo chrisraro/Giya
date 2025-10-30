@@ -1,6 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { MapPin, Clock, Gift, Star, Percent } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -25,10 +26,21 @@ export async function BusinessDiscovery() {
   const supabase = await createServerClient()
 
   try {
+    // Fetch curated lists with their businesses
+    const { data: curatedListsData, error: curatedListsError } = await supabase
+      .rpc('get_curated_lists_with_businesses')
+
+    let curatedLists: any[] = []
+    if (!curatedListsError && curatedListsData) {
+      curatedLists = curatedListsData
+    }
+
     // First, fetch all businesses with basic data
     const { data: businesses, error: businessesError } = await supabase
       .from("businesses")
       .select("id, business_name, business_category, address, profile_pic_url, business_hours, points_per_currency, description, latitude, longitude")
+      .eq("approval_status", "approved")
+      .eq("is_active", true)
       .order("created_at", { ascending: false })
 
     if (businessesError) {
@@ -101,6 +113,53 @@ export async function BusinessDiscovery() {
     return (
       <section id="businesses" className="section-padding-y bg-background">
         <div className="container-padding-x container mx-auto">
+          {/* Curated Lists Carousels */}
+          {curatedLists && curatedLists.length > 0 && (
+            <div className="space-y-8 md:space-y-12 mb-12">
+              {curatedLists.map((list: any) => {
+                const businesses = typeof list.businesses === 'string' 
+                  ? JSON.parse(list.businesses) 
+                  : list.businesses
+                
+                if (!businesses || businesses.length === 0) return null
+
+                return (
+                  <div key={list.list_id} className="space-y-4">
+                    <div className="mb-6">
+                      <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                        {list.list_title}
+                      </h2>
+                      {list.list_description && (
+                        <p className="text-muted-foreground">{list.list_description}</p>
+                      )}
+                    </div>
+                    
+                    <Carousel
+                      opts={{
+                        align: "start",
+                        loop: false,
+                      }}
+                      className="w-full"
+                    >
+                      <CarouselContent className="-ml-2 md:-ml-4">
+                        {businesses.map((business: any) => (
+                          <CarouselItem key={business.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                            <CuratedBusinessCard business={business} />
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <div className="hidden md:block">
+                        <CarouselPrevious className="-left-4" />
+                        <CarouselNext className="-right-4" />
+                      </div>
+                    </Carousel>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* All Businesses Section */}
           <div className="mb-8 md:mb-12">
             <h2 className="heading-lg mb-2">Discover Local Businesses in <span className="text-primary">Naga City</span></h2>
             <p className="text-muted-foreground">Explore amazing local spots and earn rewards with every visit</p>
@@ -275,5 +334,75 @@ function EmptyState() {
         Be the first to discover amazing local businesses. Check back soon as new spots join Giya!
       </p>
     </div>
+  )
+}
+
+// Simplified card for curated lists (same design as BusinessCard)
+function CuratedBusinessCard({ business }: { business: any }) {
+  const businessName = business.business_name
+  const businessCategory = business.business_category
+  const address = business.address
+  const description = business.description
+
+  return (
+    <Link href={`/business/${business.id}`}>
+      <Card className={`group transition-all hover:shadow-lg h-full ${business.profile_pic_url ? 'p-0' : 'p-4'}`}>
+        {business.profile_pic_url ? (
+          <>
+            <div className="relative aspect-[4/3] overflow-hidden rounded-t-lg bg-muted">
+              <Image
+                src={business.profile_pic_url}
+                alt={businessName}
+                fill
+                className="object-cover transition-transform group-hover:scale-105"
+              />
+            </div>
+            <CardContent className="p-4">
+              <div className="mb-2">
+                <h3 className="font-semibold text-lg line-clamp-1 mb-1">{businessName}</h3>
+                <Badge variant="secondary" className="text-xs">
+                  {businessCategory}
+                </Badge>
+              </div>
+              
+              {description && (
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                  {description}
+                </p>
+              )}
+              
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span className="line-clamp-2">{address}</span>
+                </div>
+              </div>
+            </CardContent>
+          </>
+        ) : (
+          <CardContent className="p-4">
+            <div className="mb-2">
+              <h3 className="font-semibold text-lg line-clamp-1 mb-1">{businessName}</h3>
+              <Badge variant="secondary" className="text-xs">
+                {businessCategory}
+              </Badge>
+            </div>
+            
+            {description && (
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                {description}
+              </p>
+            )}
+            
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span className="line-clamp-2">{address}</span>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    </Link>
   )
 }
