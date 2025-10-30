@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { CheckCircle, XCircle, Ban, PlayCircle, Building2, Loader2 } from "lucide-react"
+import { CheckCircle, XCircle, Ban, PlayCircle, Building2, Loader2, Eye } from "lucide-react"
 import { toast } from "sonner"
 import type { Admin, BusinessAnalytics } from "@/lib/types/database"
 
@@ -26,6 +27,7 @@ export default function AdminBusinessesPage() {
   const [actionReason, setActionReason] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
+  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
@@ -188,6 +190,11 @@ export default function AdminBusinessesPage() {
                     </div>
                     
                     <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" className="flex-1 h-9 text-xs md:text-sm" onClick={() => router.push(`/admin/businesses/${business.id}`)}>
+                        <Eye className="mr-1.5 h-3.5 w-3.5" />
+                        <span className="hidden xs:inline">View & Manage</span>
+                        <span className="xs:hidden">Manage</span>
+                      </Button>
                       {business.approval_status === 'pending' && (
                         <>
                           <Button size="sm" className="flex-1 h-9 text-xs md:text-sm" onClick={() => { setSelectedBusiness(business); setActionType('approve'); setShowActionDialog(true) }}>
