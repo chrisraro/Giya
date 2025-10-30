@@ -1,6 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic'
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"

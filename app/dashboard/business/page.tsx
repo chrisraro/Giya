@@ -2,6 +2,9 @@
 
 // Business Dashboard Page
 import { useEffect, useState } from "react"
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic'
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
