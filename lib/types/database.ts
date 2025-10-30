@@ -24,6 +24,17 @@ export interface Business {
   description: string | null
   phone_number: string | null
   social_media_links: any | null
+  // Approval workflow fields
+  approval_status?: 'pending' | 'approved' | 'rejected' | 'suspended'
+  approved_by?: string | null
+  approved_at?: string | null
+  rejection_reason?: string | null
+  is_active?: boolean
+  can_access_dashboard?: boolean
+  admin_notes?: string | null
+  verification_documents?: any[]
+  last_reviewed_at?: string | null
+  reviewed_by?: string | null
 }
 
 export interface Influencer {
@@ -207,4 +218,103 @@ export interface BusinessPoints {
   profile_pic_url: string | null
   total_points: number
   available_rewards: number
+}
+
+// Admin types
+export interface Admin {
+  id: string
+  created_at: string
+  email: string
+  full_name: string
+  role: 'super_admin' | 'admin' | 'moderator'
+  is_active: boolean
+  profile_pic_url: string | null
+  last_login_at: string | null
+  permissions: {
+    can_approve_businesses?: boolean
+    can_manage_users?: boolean
+    can_view_analytics?: boolean
+    [key: string]: boolean | undefined
+  }
+  updated_at: string
+}
+
+export interface BusinessWithApproval extends Business {
+  approval_status: 'pending' | 'approved' | 'rejected' | 'suspended'
+  approved_by: string | null
+  approved_at: string | null
+  rejection_reason: string | null
+  is_active: boolean
+  can_access_dashboard: boolean
+  admin_notes: string | null
+  verification_documents: any[]
+  last_reviewed_at: string | null
+  reviewed_by: string | null
+}
+
+export interface PlatformStats {
+  total_customers: number
+  total_approved_businesses: number
+  pending_businesses: number
+  suspended_businesses: number
+  total_admins: number
+  total_rewards: number
+  total_deals: number
+  total_menu_items: number
+  total_transactions: number
+  total_points_issued: number
+  total_points_redeemed: number
+  total_validated_redemptions: number
+  total_deal_redemptions: number
+}
+
+export interface BusinessAnalytics {
+  id: string
+  business_name: string
+  business_category: string
+  approval_status: string
+  is_active: boolean
+  created_at: string
+  approved_at: string | null
+  transaction_count: number
+  total_points_issued: number
+  rewards_count: number
+  deals_count: number
+  menu_items_count: number
+  redemptions_count: number
+  avg_transaction_value: number
+}
+
+export interface CustomerAnalytics {
+  id: string
+  full_name: string
+  email: string
+  total_points: number
+  created_at: string
+  transaction_count: number
+  lifetime_points_earned: number
+  redemptions_count: number
+  lifetime_points_redeemed: number
+  businesses_visited: number
+  last_transaction_date: string
+}
+
+export interface GrowthMetric {
+  date: string
+  new_customers: number
+  new_businesses: number
+  transactions: number
+  total_revenue: number
+}
+
+export interface TopBusiness {
+  business_id: string
+  business_name: string
+  metric_value: number
+}
+
+export interface ActivityFeed {
+  activity_type: 'new_customer' | 'new_business' | 'transaction' | 'redemption'
+  activity_data: any
+  created_at: string
 }
