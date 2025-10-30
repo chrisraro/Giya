@@ -1,9 +1,6 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-
-// Force dynamic rendering to prevent build-time errors
-export const dynamic = 'force-dynamic'
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,6 +24,9 @@ import type { CustomerData, BusinessPoints, Transaction, Redemption } from "@/ho
 
 // Import new components
 import { MobileCustomerBottomNav } from "@/components/mobile-customer-bottom-nav"
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic'
 
 interface BusinessDiscovery {
   id: string

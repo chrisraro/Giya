@@ -47,8 +47,8 @@ export default function SignupPage() {
       businessCategory: "",
       address: "",
       gmapsLink: "",
-      // Influencer fields
-      influencerFullName: "",
+      // Influencer fields (commented out - feature disabled)
+      // influencerFullName: "",
       influencerAddress: "",
       facebookLink: "",
       tiktokLink: "",
@@ -133,9 +133,8 @@ export default function SignupPage() {
       isValid = await form.trigger(['fullName'])
     } else if (selectedRole === "business") {
       isValid = await form.trigger(['businessName', 'businessCategory', 'address'])
-    } else if (selectedRole === "influencer") {
-      isValid = await form.trigger(['influencerFullName', 'influencerAddress'])
     }
+    // Influencer validation removed - feature disabled
 
     if (!isValid) {
       setError("Please fill in all required fields")
@@ -209,9 +208,8 @@ export default function SignupPage() {
       isValid = await form.trigger(['fullName'])
     } else if (selectedRole === "business") {
       isValid = await form.trigger(['businessName', 'businessCategory', 'address'])
-    } else if (selectedRole === "influencer") {
-      isValid = await form.trigger(['influencerFullName', 'influencerAddress'])
     }
+    // Influencer validation removed - feature disabled
 
     if (!isValid) {
       setError("Please fill in all required fields")
@@ -284,9 +282,8 @@ export default function SignupPage() {
       isValid = await form.trigger(['email', 'password', 'confirmPassword', 'fullName'])
     } else if (selectedRole === "business") {
       isValid = await form.trigger(['email', 'password', 'confirmPassword', 'businessName', 'businessCategory', 'address'])
-    } else if (selectedRole === "influencer") {
-      isValid = await form.trigger(['email', 'password', 'confirmPassword', 'influencerFullName', 'influencerAddress'])
     }
+    // Influencer validation removed - feature disabled
 
     if (!isValid) {
       setError("Please fix validation errors")
@@ -321,17 +318,8 @@ export default function SignupPage() {
           address: formData.address,
           gmaps_link: formData.gmapsLink,
         }
-      } else if (selectedRole === "influencer") {
-        signupData.options.data = {
-          role: "influencer",
-          full_name: formData.influencerFullName,
-          address: formData.influencerAddress,
-          facebook_link: formData.facebookLink,
-          tiktok_link: formData.tiktokLink,
-          twitter_link: formData.twitterLink,
-          youtube_link: formData.youtubeLink,
-        }
       }
+      // Influencer signup data removed - feature disabled
 
       const { data, error: signUpError } = await supabase.auth.signUp(signupData)
 
@@ -403,8 +391,9 @@ export default function SignupPage() {
               </CardContent>
             </Card>
 
-            {/* Influencer Hub - Coming Soon */}
-            {/* <Card>
+            {/* Influencer Hub - Coming Soon (Temporarily Disabled) */}
+            {/* Uncomment when ready to launch influencer feature
+            <Card>
               <CardHeader className="text-center">
                 <div className="flex justify-center mb-3">
                   <div className="bg-primary/10 p-3 rounded-full">
@@ -424,7 +413,8 @@ export default function SignupPage() {
                   Coming Soon
                 </Button>
               </CardContent>
-            </Card> */}
+            </Card>
+            */}
           </div>
           <div className="mt-6 text-center text-sm">
             Already have an account?{" "}
@@ -593,68 +583,7 @@ export default function SignupPage() {
                     </>
                   )}
                   
-                  {selectedRole === "influencer" && (
-                    <>
-                      <div className="grid gap-2">
-                        <Label htmlFor="influencerFullName">Full Name</Label>
-                        <Input
-                          id="influencerFullName"
-                          type="text"
-                          {...form.register("influencerFullName", { required: selectedRole === "influencer" })}
-                        />
-                        {form.formState.errors.influencerFullName && (
-                          <p className="text-sm text-destructive">{form.formState.errors.influencerFullName.message}</p>
-                        )}
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="influencerAddress">Address</Label>
-                        <Input
-                          id="influencerAddress"
-                          type="text"
-                          {...form.register("influencerAddress", { required: selectedRole === "influencer" })}
-                        />
-                        {form.formState.errors.influencerAddress && (
-                          <p className="text-sm text-destructive">{form.formState.errors.influencerAddress.message}</p>
-                        )}
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="facebookLink">Facebook Link (Optional)</Label>
-                        <Input
-                          id="facebookLink"
-                          type="url"
-                          placeholder="https://facebook.com/..."
-                          {...form.register("facebookLink")}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="tiktokLink">TikTok Link (Optional)</Label>
-                        <Input
-                          id="tiktokLink"
-                          type="url"
-                          placeholder="https://tiktok.com/..."
-                          {...form.register("tiktokLink")}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="twitterLink">Twitter Link (Optional)</Label>
-                        <Input
-                          id="twitterLink"
-                          type="url"
-                          placeholder="https://twitter.com/..."
-                          {...form.register("twitterLink")}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="youtubeLink">YouTube Link (Optional)</Label>
-                        <Input
-                          id="youtubeLink"
-                          type="url"
-                          placeholder="https://youtube.com/..."
-                          {...form.register("youtubeLink")}
-                        />
-                      </div>
-                    </>
-                  )}
+                  {/* Influencer fields removed - feature disabled */}
                   
                   {/* Common fields */}
                   <div className="grid gap-2">

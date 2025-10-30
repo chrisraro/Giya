@@ -63,8 +63,9 @@ export async function updateSession(request: NextRequest) {
               console.log("[Middleware] Redirecting to business dashboard");
               return NextResponse.redirect(url)
             case "influencer":
-              url.pathname = "/dashboard/influencer"
-              console.log("[Middleware] Redirecting to influencer dashboard");
+              // Influencer feature temporarily disabled - redirect to homepage
+              url.pathname = "/"
+              console.log("[Middleware] Influencer feature disabled, redirecting to homepage");
               return NextResponse.redirect(url)
             default:
               // If no role found, redirect to customer dashboard as default
@@ -92,8 +93,9 @@ export async function updateSession(request: NextRequest) {
                 console.log("[Middleware] Redirecting to business setup");
                 return NextResponse.redirect(url)
               case "influencer":
-                url.pathname = "/auth/setup/influencer"
-                console.log("[Middleware] Redirecting to influencer setup");
+                // Influencer feature temporarily disabled - redirect to homepage
+                url.pathname = "/"
+                console.log("[Middleware] Influencer feature disabled, redirecting to homepage");
                 return NextResponse.redirect(url)
               default:
                 // If no role found, redirect to role selection

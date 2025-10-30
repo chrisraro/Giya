@@ -130,6 +130,8 @@ export function RoleSelectionWizard({ onRoleSelected }: RoleSelectionWizardProps
               </div>
             </Button>
 
+            {/* Influencer Option - Temporarily Disabled */}
+            {/* Uncomment when ready to launch influencer feature
             <Button
               variant={selectedRole === "influencer" ? "default" : "outline"}
               className="justify-start h-auto py-4 px-4"
@@ -147,6 +149,7 @@ export function RoleSelectionWizard({ onRoleSelected }: RoleSelectionWizardProps
                 </div>
               </div>
             </Button>
+            */}
 
             {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 
