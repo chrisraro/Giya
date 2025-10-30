@@ -121,7 +121,7 @@ export default function AdminAnalyticsPage() {
               </CardHeader>
               <CardContent className="p-4 md:p-6 pt-0">
                 <div className="text-xl md:text-2xl font-bold">
-                  {(stats.total_points_issued / 10).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                  ₱{(stats.total_points_issued / 10).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   From {stats.total_transactions} transactions

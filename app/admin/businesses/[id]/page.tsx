@@ -279,7 +279,7 @@ export default function BusinessManagementPage() {
                         <CardTitle className="text-base md:text-lg">{item.name}</CardTitle>
                         <CardDescription className="text-xs md:text-sm mt-1">{item.category}</CardDescription>
                       </div>
-                      <Badge variant="outline">${item.base_price}</Badge>
+                      <Badge variant="outline">₱{item.base_price}</Badge>
                     </div>
                   </CardHeader>
                   {item.description && (
@@ -316,7 +316,7 @@ export default function BusinessManagementPage() {
                       <Badge variant="outline" className="capitalize">{deal.deal_type}</Badge>
                       {deal.deal_type === 'discount' && deal.discount_value && (
                         <Badge variant="outline">
-                          {deal.discount_type === 'percentage' ? `${deal.discount_value}% off` : `$${deal.discount_value} off`}
+                          {deal.discount_type === 'percentage' ? `${deal.discount_value}% off` : `₱${deal.discount_value} off`}
                         </Badge>
                       )}
                       {deal.deal_type === 'exclusive' && deal.menu_items && (
@@ -327,7 +327,7 @@ export default function BusinessManagementPage() {
                   <CardContent className="p-4 md:p-6 pt-0">
                     {deal.menu_items && (
                       <p className="text-xs md:text-sm text-muted-foreground mb-3">
-                        Exclusive offer: {deal.menu_items.name} (${deal.menu_items.base_price})
+                        Exclusive offer: {deal.menu_items.name} (₱{deal.menu_items.base_price})
                       </p>
                     )}
                     <div className="flex gap-2">
