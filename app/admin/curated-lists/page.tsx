@@ -160,7 +160,7 @@ export default function AdminCuratedListsPage() {
 
   return (
     <DashboardLayout
-      userRole="business"
+      userRole="admin"
       userName={admin.full_name}
       userAvatar={admin.profile_pic_url}
       breadcrumbs={[{ label: "Admin" }, { label: "Curated Lists" }]}

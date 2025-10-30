@@ -88,7 +88,7 @@ export default function AdminDashboardPage() {
 
   return (
     <DashboardLayout
-      userRole="business"
+      userRole="admin"
       userName={admin.full_name}
       userEmail={admin.email}
       userAvatar={admin.profile_pic_url}

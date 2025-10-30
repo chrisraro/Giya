@@ -14,7 +14,10 @@ import {
   User,
   LogOut,
   Package,
-  Percent
+  Percent,
+  Shield,
+  Building2,
+  List
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -41,7 +44,7 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 
 interface AppSidebarProps {
-  userRole: "customer" | "business"
+  userRole: "customer" | "business" | "admin"
   userName: string
   userEmail?: string
   userAvatar?: string | null
@@ -161,11 +164,35 @@ export function AppSidebar({
     },
   ]
 
+  const adminItems = [
+    {
+      title: "Dashboard",
+      url: "/admin/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Businesses",
+      url: "/admin/businesses",
+      icon: Building2,
+    },
+    {
+      title: "Curated Lists",
+      url: "/admin/curated-lists",
+      icon: List,
+    },
+    {
+      title: "Analytics",
+      url: "/admin/analytics",
+      icon: BarChart3,
+    },
+  ]
+
   // Removed influencer navigation items - feature disabled
 
   const navItems = {
     customer: customerItems,
     business: businessItems,
+    admin: adminItems,
   }
 
   const currentNavItems = navItems[userRole]

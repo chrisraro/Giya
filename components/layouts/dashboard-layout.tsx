@@ -23,7 +23,7 @@ import { toast } from "sonner";
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  userRole: "customer" | "business";
+  userRole: "customer" | "business" | "admin";
   userName: string;
   userEmail?: string;
   userAvatar?: string | null;

@@ -40,8 +40,14 @@ interface Deal {
   id: string
   title: string
   deal_type: string
+  discount_type?: string | null
   discount_value: number | null
   is_active: boolean
+  menu_items?: {
+    id: string
+    name: string
+    base_price: number
+  } | null
 }
 
 interface Reward {
@@ -90,6 +96,7 @@ export default function BusinessManagementPage() {
 
   const fetchBusinessData = async () => {
     try {
+
       // Fetch business details
       const { data: businessData, error: businessError } = await supabase
         .from("businesses")
@@ -101,30 +108,49 @@ export default function BusinessManagementPage() {
       setBusiness(businessData)
 
       // Fetch menu items
-      const { data: menuData } = await supabase
+      const { data: menuData, error: menuError } = await supabase
         .from("menu_items")
         .select("*")
         .eq("business_id", businessId)
         .order("category", { ascending: true })
 
+      if (menuError) {
+        console.error("Menu items error:", menuError)
+      }
+      console.log("Menu items fetched:", menuData?.length || 0, menuData)
       setMenuItems(menuData || [])
 
-      // Fetch deals
-      const { data: dealsData } = await supabase
+      // Fetch deals (both discount and exclusive types)
+      const { data: dealsData, error: dealsError } = await supabase
         .from("deals")
-        .select("*")
+        .select(`
+          *,
+          menu_items (
+            id,
+            name,
+            base_price
+          )
+        `)
         .eq("business_id", businessId)
         .order("created_at", { ascending: false })
 
+      if (dealsError) {
+        console.error("Deals error:", dealsError)
+      }
+      console.log("Deals fetched:", dealsData?.length || 0, dealsData)
       setDeals(dealsData || [])
 
       // Fetch rewards
-      const { data: rewardsData } = await supabase
+      const { data: rewardsData, error: rewardsError } = await supabase
         .from("rewards")
         .select("*")
         .eq("business_id", businessId)
         .order("points_required", { ascending: true })
 
+      if (rewardsError) {
+        console.error("Rewards error:", rewardsError)
+      }
+      console.log("Rewards fetched:", rewardsData?.length || 0, rewardsData)
       setRewards(rewardsData || [])
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -188,7 +214,7 @@ export default function BusinessManagementPage() {
 
   return (
     <DashboardLayout
-      userRole="business"
+      userRole="admin"
       userName={admin.full_name}
       userAvatar={admin.profile_pic_url}
       breadcrumbs={[
@@ -286,12 +312,24 @@ export default function BusinessManagementPage() {
                         {deal.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
-                    <div className="flex gap-2 mt-2">
-                      <Badge variant="outline">{deal.deal_type}</Badge>
-                      {deal.discount_value && <Badge variant="outline">{deal.discount_value}% off</Badge>}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Badge variant="outline" className="capitalize">{deal.deal_type}</Badge>
+                      {deal.deal_type === 'discount' && deal.discount_value && (
+                        <Badge variant="outline">
+                          {deal.discount_type === 'percentage' ? `${deal.discount_value}% off` : `$${deal.discount_value} off`}
+                        </Badge>
+                      )}
+                      {deal.deal_type === 'exclusive' && deal.menu_items && (
+                        <Badge variant="outline">{deal.menu_items.name}</Badge>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="p-4 md:p-6 pt-0">
+                    {deal.menu_items && (
+                      <p className="text-xs md:text-sm text-muted-foreground mb-3">
+                        Exclusive offer: {deal.menu_items.name} (${deal.menu_items.base_price})
+                      </p>
+                    )}
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="flex-1 h-9 text-xs md:text-sm">
                         <Edit className="mr-1.5 h-3.5 w-3.5" />
