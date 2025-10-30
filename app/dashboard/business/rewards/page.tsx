@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,24 +9,33 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Plus, Edit, Trash2, Gift, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
-import { OfferImageUpload } from "@/components/offer-image-upload";
+import { OfferImageUpload } from "@/components/offer-image-upload"
+import { OptimizedImage } from "@/components/optimized-image"
+import type { MenuItem } from "@/lib/types/database"
+
+export const dynamic = 'force-dynamic'
 
 interface Reward {
   id: string
   business_id: string
-  reward_name: string
+  reward_name: string | null
   description: string
   points_required: number
   image_url: string | null
   is_active: boolean
   created_at: string
+  use_menu_item: boolean
+  menu_item_id: string | null
+  menu_items?: MenuItem | null
 }
 
 export default function BusinessRewardsPage() {
   const [rewards, setRewards] = useState<Reward[]>([])
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showDialog, setShowDialog] = useState(false)
   const [editingReward, setEditingReward] = useState<Reward | null>(null)
@@ -36,10 +45,12 @@ export default function BusinessRewardsPage() {
     reward_name: "",
     description: "",
     points_required: "",
-    image_url: ""
+    image_url: "",
+    use_menu_item: false,
+    menu_item_id: ""
   })
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     fetchBusinessId()
@@ -78,7 +89,15 @@ export default function BusinessRewardsPage() {
 
       const { data, error } = await supabase
         .from("rewards")
-        .select("*")
+        .select(`
+          *,
+          menu_items (
+            id,
+            name,
+            image_url,
+            base_price
+          )
+        `)
         .eq("business_id", businessId)
         .order("points_required", { ascending: true })
 
@@ -92,14 +111,34 @@ export default function BusinessRewardsPage() {
     }
   }
 
+  const fetchMenuItems = async () => {
+    try {
+      if (!businessId) return
+
+      const { data, error } = await supabase
+        .from("menu_items")
+        .select("*")
+        .eq("business_id", businessId)
+        .eq("is_available", true)
+        .order("name")
+
+      if (error) throw error
+      setMenuItems(data || [])
+    } catch (error) {
+      console.error("Error fetching menu items:", error)
+    }
+  }
+
   const handleOpenDialog = (reward?: Reward) => {
     if (reward) {
       setEditingReward(reward)
       setFormData({
-        reward_name: reward.reward_name,
+        reward_name: reward.reward_name || "",
         description: reward.description,
         points_required: reward.points_required.toString(),
-        image_url: reward.image_url || ""
+        image_url: reward.image_url || "",
+        use_menu_item: reward.use_menu_item,
+        menu_item_id: reward.menu_item_id || ""
       })
     } else {
       setEditingReward(null)
@@ -107,7 +146,9 @@ export default function BusinessRewardsPage() {
         reward_name: "",
         description: "",
         points_required: "",
-        image_url: ""
+        image_url: "",
+        use_menu_item: false,
+        menu_item_id: ""
       })
     }
     setShowDialog(true)
@@ -118,9 +159,17 @@ export default function BusinessRewardsPage() {
   }
 
   const handleSaveReward = async () => {
-    if (!formData.reward_name || !formData.description || !formData.points_required) {
-      toast.error("Please fill in all fields")
-      return
+    // Validation
+    if (formData.use_menu_item) {
+      if (!formData.menu_item_id || !formData.points_required) {
+        toast.error("Please select a menu item and set points required")
+        return
+      }
+    } else {
+      if (!formData.reward_name || !formData.description || !formData.points_required) {
+        toast.error("Please fill in all fields")
+        return
+      }
     }
 
     const pointsRequired = Number.parseInt(formData.points_required)
@@ -134,30 +183,35 @@ export default function BusinessRewardsPage() {
     try {
       if (!businessId) throw new Error("Business ID not available")
 
+      const rewardData: any = {
+        business_id: businessId,
+        description: formData.description,
+        points_required: pointsRequired,
+        image_url: formData.image_url || null,
+        is_active: true,
+        use_menu_item: formData.use_menu_item
+      }
+
+      if (formData.use_menu_item) {
+        rewardData.menu_item_id = formData.menu_item_id
+        rewardData.reward_name = null
+      } else {
+        rewardData.reward_name = formData.reward_name
+        rewardData.menu_item_id = null
+      }
+
       if (editingReward) {
         // Update existing reward
         const { error } = await supabase
           .from("rewards")
-          .update({
-            reward_name: formData.reward_name,
-            description: formData.description,
-            points_required: pointsRequired,
-            image_url: formData.image_url || null
-          })
+          .update(rewardData)
           .eq("id", editingReward.id)
 
         if (error) throw error
         toast.success("Reward updated successfully")
       } else {
         // Create new reward
-        const { error } = await supabase.from("rewards").insert({
-          business_id: businessId,
-          reward_name: formData.reward_name,
-          description: formData.description,
-          points_required: pointsRequired,
-          image_url: formData.image_url || null,
-          is_active: true,
-        })
+        const { error } = await supabase.from("rewards").insert(rewardData)
 
         if (error) throw error
         toast.success("Reward created successfully")
@@ -246,48 +300,71 @@ export default function BusinessRewardsPage() {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {rewards.map((reward) => (
-              <Card key={reward.id} className={!reward.is_active ? "opacity-60" : ""}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{reward.reward_name}</CardTitle>
-                      <CardDescription className="mt-1">{reward.description}</CardDescription>
+            {rewards.map((reward) => {
+              const displayName = reward.use_menu_item && reward.menu_items
+                ? reward.menu_items.name
+                : reward.reward_name
+              const displayImage = reward.image_url || (reward.menu_items as any)?.image_url
+              
+              return (
+                <Card key={reward.id} className={!reward.is_active ? "opacity-60" : ""}>
+                  {displayImage && (
+                    <div className="relative h-48 w-full rounded-t-lg overflow-hidden">
+                      <OptimizedImage
+                        src={displayImage}
+                        alt={displayName || "Reward"}
+                        width={400}
+                        height={192}
+                        className="object-cover w-full h-full"
+                      />
                     </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(reward)}>
-                        <Edit className="h-4 w-4" />
+                  )}
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg">{displayName}</CardTitle>
+                        <CardDescription className="mt-1">{reward.description}</CardDescription>
+                        {reward.use_menu_item && (
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded mt-2 inline-block">
+                            Menu Item
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(reward)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteReward(reward.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-2xl font-bold text-primary">{reward.points_required}</p>
+                        <p className="text-xs text-muted-foreground">points required</p>
+                      </div>
+                      <Button
+                        variant={reward.is_active ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleToggleActive(reward)}
+                      >
+                        {reward.is_active ? "Active" : "Inactive"}
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteReward(reward.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-2xl font-bold text-primary">{reward.points_required}</p>
-                      <p className="text-xs text-muted-foreground">points required</p>
-                    </div>
-                    <Button
-                      variant={reward.is_active ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handleToggleActive(reward)}
-                    >
-                      {reward.is_active ? "Active" : "Inactive"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
       </main>
 
       {/* Create/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingReward ? "Edit Reward" : "Create New Reward"}</DialogTitle>
             <DialogDescription>
@@ -296,14 +373,67 @@ export default function BusinessRewardsPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="reward_name">Reward Name</Label>
-              <Input
-                id="reward_name"
-                placeholder="e.g., Free Coffee"
-                value={formData.reward_name}
-                onChange={(e) => setFormData({ ...formData, reward_name: e.target.value })}
-              />
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="use_menu_item"
+                  checked={formData.use_menu_item}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    use_menu_item: e.target.checked,
+                    reward_name: e.target.checked ? "" : formData.reward_name
+                  })}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="use_menu_item" className="cursor-pointer">
+                  Use existing menu item
+                </Label>
+              </div>
             </div>
+
+            {formData.use_menu_item ? (
+              <div className="space-y-2">
+                <Label htmlFor="menu_item">Select Menu Item *</Label>
+                {menuItems.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No menu items available. Please add menu items first.
+                  </p>
+                ) : (
+                  <Select
+                    value={formData.menu_item_id}
+                    onValueChange={(value) => {
+                      const selectedItem = menuItems.find(item => item.id === value)
+                      setFormData({ 
+                        ...formData, 
+                        menu_item_id: value,
+                        image_url: selectedItem?.image_url || formData.image_url
+                      })
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a menu item" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {menuItems.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name} {item.base_price && `(₱${item.base_price})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="reward_name">Reward Name *</Label>
+                <Input
+                  id="reward_name"
+                  placeholder="e.g., Free Coffee"
+                  value={formData.reward_name}
+                  onChange={(e) => setFormData({ ...formData, reward_name: e.target.value })}
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
@@ -317,7 +447,7 @@ export default function BusinessRewardsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="points_required">Points Required</Label>
+              <Label htmlFor="points_required">Points Required *</Label>
               <Input
                 id="points_required"
                 type="number"

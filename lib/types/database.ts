@@ -46,17 +46,34 @@ export interface PointsTransaction {
   transaction_date: string
 }
 
+export interface MenuItem {
+  id: string
+  business_id: string
+  name: string
+  description: string | null
+  category: string | null
+  base_price: number | null
+  image_url: string | null
+  is_available: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Reward {
   id: string
   created_at: string
   business_id: string
-  reward_name: string
+  reward_name: string | null
   description: string
   points_required: number
   redemption_limit: number | null
   redemption_count: number
   is_active: boolean
   image_url: string | null
+  menu_item_id: string | null
+  use_menu_item: boolean
+  // For joined data
+  menu_items?: MenuItem | null
 }
 
 export interface Redemption {
@@ -73,6 +90,63 @@ export interface Redemption {
   redemption_qr_code: string
 }
 
+export interface Deal {
+  id: string
+  business_id: string
+  title: string
+  description: string | null
+  deal_type: 'discount' | 'exclusive'
+  // Discount deal fields
+  discount_percentage: number | null
+  discount_value: number | null
+  // Exclusive deal fields
+  menu_item_id: string | null
+  original_price: number | null
+  exclusive_price: number | null
+  // Common fields
+  points_required: number
+  image_url: string | null
+  terms_and_conditions: string | null
+  redemption_limit: number | null
+  redemption_count: number
+  is_active: boolean
+  validity_start: string
+  validity_end: string | null
+  qr_code_data: string | null
+  created_at: string
+  updated_at: string
+  // For joined data
+  menu_items?: MenuItem | null
+  businesses?: {
+    business_name: string
+    profile_pic_url: string | null
+  } | null
+}
+
+export interface DealUsage {
+  id: string
+  deal_id: string
+  customer_id: string
+  business_id: string
+  points_used: number
+  used_at: string
+  validated: boolean
+  validated_at: string | null
+  validated_by: string | null
+  // For joined data
+  deals?: Deal | null
+  customers?: {
+    full_name: string
+    profile_pic_url: string | null
+  } | null
+  businesses?: {
+    business_name: string
+    profile_pic_url: string | null
+  } | null
+}
+
+// Keep legacy types for backwards compatibility during migration
+/** @deprecated Use Deal with deal_type='discount' instead */
 export interface DiscountOffer {
   id: string
   created_at: string
@@ -89,6 +163,7 @@ export interface DiscountOffer {
   terms_and_conditions: string | null
 }
 
+/** @deprecated Use Deal with deal_type='exclusive' instead */
 export interface ExclusiveOffer {
   id: string
   created_at: string

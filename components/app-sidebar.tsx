@@ -12,7 +12,9 @@ import {
   Wallet,
   BarChart3,
   User,
-  LogOut
+  LogOut,
+  Package,
+  Percent
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -133,14 +135,14 @@ export function AppSidebar({
       icon: LayoutDashboard,
     },
     {
-      title: "Discounts",
-      url: "/dashboard/business/discounts",
-      icon: Tag,
+      title: "Menu",
+      url: "/dashboard/business/menu",
+      icon: Package,
     },
     {
-      title: "Exclusive Offers",
-      url: "/dashboard/business/exclusive-offers",
-      icon: Gift,
+      title: "Deals",
+      url: "/dashboard/business/deals",
+      icon: Percent,
     },
     {
       title: "Rewards",

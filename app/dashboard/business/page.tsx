@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Loader2, Settings, Check, QrCode, Gift, Tag, Star } from "lucide-react"
+import { Loader2, Settings, Check, QrCode, Gift, Tag, Star, Package, Percent } from "lucide-react"
 import { toast } from "sonner"
 import { handleApiError, handleDatabaseError } from "@/lib/error-handler"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -154,7 +154,7 @@ export default function BusinessDashboard() {
         return
       }
 
-      // If we have a scanned customer, use their ID for offer redemptions
+      // If we have a scanned customer, use their ID for deal redemptions
       let customerIdToUse: string | null = null;
       if (scannedCustomer?.id) {
         customerIdToUse = scannedCustomer.id;
@@ -162,31 +162,15 @@ export default function BusinessDashboard() {
         customerIdToUse = (redemption as any).customer_id;
       }
 
-      // Try to find a discount offer redemption
-      const discountResult = await supabase.rpc('redeem_discount_offer', {
+      // Try to redeem a deal (replaces separate discount/exclusive offer redemptions)
+      const dealResult = await supabase.rpc('redeem_deal', {
         p_qr_code: qrData,
         p_customer_id: customerIdToUse,
         p_business_id: user.id
       })
 
-      if (discountResult.data?.success) {
-        toast.success(discountResult.data.message)
-        // Refresh data to update usage counts
-        fetchDiscounts()
-        return
-      }
-
-      // Try to find an exclusive offer redemption
-      const exclusiveResult = await supabase.rpc('redeem_exclusive_offer', {
-        p_qr_code: qrData,
-        p_customer_id: customerIdToUse,
-        p_business_id: user.id
-      })
-
-      if (exclusiveResult.data?.success) {
-        toast.success(exclusiveResult.data.message)
-        // Refresh data to update usage counts
-        fetchExclusiveOffers()
+      if (dealResult.data?.success) {
+        toast.success(dealResult.data.message)
         return
       }
 
@@ -196,49 +180,6 @@ export default function BusinessDashboard() {
       handleApiError(error, "Failed to process QR code", "BusinessDashboard.handleScanSuccess")
     } finally {
       setIsProcessing(false)
-    }
-  }
-
-  // Add new functions to fetch discounts and exclusive offers for usage count updates
-  const fetchDiscounts = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from("discount_offers")
-        .select("*")
-        .eq("business_id", user.id)
-        .order("created_at", { ascending: false })
-
-      if (error) throw error
-      // We don't need to set state here since this is just for refreshing data
-    } catch (error) {
-      handleDatabaseError(error, "fetch discounts")
-    }
-  }
-
-  const fetchExclusiveOffers = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
-      const { data, error } = await supabase
-        .from("exclusive_offers")
-        .select("*")
-        .eq("business_id", user.id)
-        .order("created_at", { ascending: false })
-
-      if (error) throw error
-      // We don't need to set state here since this is just for refreshing data
-    } catch (error) {
-      handleDatabaseError(error, "fetch exclusive offers")
     }
   }
 
@@ -509,26 +450,26 @@ export default function BusinessDashboard() {
             <Button 
               variant="outline" 
               className="h-auto flex-col gap-2 p-4"
+              onClick={() => router.push("/dashboard/business/menu")}
+            >
+              <Package className="h-6 w-6" />
+              <span>Manage Menu</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto flex-col gap-2 p-4"
+              onClick={() => router.push("/dashboard/business/deals")}
+            >
+              <Percent className="h-6 w-6" />
+              <span>Manage Deals</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto flex-col gap-2 p-4"
               onClick={() => router.push("/dashboard/business/rewards")}
             >
               <Gift className="h-6 w-6" />
               <span>Manage Rewards</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto flex-col gap-2 p-4"
-              onClick={() => router.push("/dashboard/business/discounts")}
-            >
-              <Tag className="h-6 w-6" />
-              <span>Manage Discounts</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-auto flex-col gap-2 p-4"
-              onClick={() => router.push("/dashboard/business/exclusive-offers")}
-            >
-              <Star className="h-6 w-6" />
-              <span>Manage Exclusive</span>
             </Button>
           </CardContent>
         </Card>
