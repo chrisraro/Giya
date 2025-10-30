@@ -41,7 +41,7 @@ export async function GET(request: Request) {
             return NextResponse.redirect(new URL("/auth/signup?error=influencer_disabled", request.url))
           }
           
-          // User already has a role, redirect to appropriate setup page
+          // Redirect to appropriate setup page
           let redirectPath = "/"
           switch (user.user_metadata.role) {
             case "customer":
@@ -53,7 +53,11 @@ export async function GET(request: Request) {
             default:
               redirectPath = "/"
           }
-          return NextResponse.redirect(new URL(redirectPath, request.url))
+          const response = NextResponse.redirect(new URL(redirectPath, request.url))
+          response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+          response.headers.set('Pragma', 'no-cache')
+          response.headers.set('Expires', '0')
+          return response
         } else {
           // Check if this is a Google or Facebook signup with form data
           // Try to get form data from cookies
@@ -121,6 +125,10 @@ export async function GET(request: Request) {
               const response = NextResponse.redirect(new URL(redirectPath, request.url))
               // Set the expired cookie to clean up
               response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' })
+              // Add cache control headers
+              response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+              response.headers.set('Pragma', 'no-cache')
+              response.headers.set('Expires', '0')
               return response
             } catch (parseError) {
               console.error("Error parsing OAuth signup data:", parseError)
@@ -149,10 +157,19 @@ export async function GET(request: Request) {
               case "business":
                 redirectPath = "/dashboard/business"
                 break
+              case "admin":
+                redirectPath = "/admin/dashboard"
+                break
               default:
                 redirectPath = "/"
             }
-            return NextResponse.redirect(new URL(redirectPath, request.url))
+            
+            // Use forceRefresh to clear any cached redirects
+            const response = NextResponse.redirect(new URL(redirectPath, request.url))
+            response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+            response.headers.set('Pragma', 'no-cache')
+            response.headers.set('Expires', '0')
+            return response
           } else {
             // User doesn't have a role yet and no form data, redirect to signup
             return NextResponse.redirect(new URL("/auth/signup", request.url))
