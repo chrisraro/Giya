@@ -42,13 +42,13 @@ export function Footer1() {
 
           {/* Legal Navigation */}
           <nav className="flex flex-col items-center gap-6 text-sm md:flex-row md:gap-8" aria-label="Legal links">
-            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
               Terms of Service
             </Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
               Contact Us
             </Link>
           </nav>
