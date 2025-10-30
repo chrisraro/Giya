@@ -37,7 +37,7 @@ export function Footer1() {
         {/* Bottom Section */}
         <div className="flex w-full flex-col-reverse items-center gap-12 text-sm lg:flex-row lg:justify-between lg:gap-6">
           <p className="text-muted-foreground text-center lg:text-left">
-            © {new Date().getFullYear()} Giya. All rights reserved.
+            © {new Date().getFullYear()} Naga Perks by Giya. All rights reserved.
           </p>
 
           {/* Legal Navigation */}

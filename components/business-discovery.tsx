@@ -143,15 +143,11 @@ export async function BusinessDiscovery() {
                     >
                       <CarouselContent className="-ml-2 md:-ml-4">
                         {businesses.map((business: any) => (
-                          <CarouselItem key={business.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                          <CarouselItem key={business.id} className="pl-2 md:pl-4 basis-[85%] sm:basis-1/2 lg:basis-1/3 xl:basis-1/4">
                             <CuratedBusinessCard business={business} />
                           </CarouselItem>
                         ))}
                       </CarouselContent>
-                      <div className="hidden md:block">
-                        <CarouselPrevious className="-left-4" />
-                        <CarouselNext className="-right-4" />
-                      </div>
                     </Carousel>
                   </div>
                 )
@@ -161,8 +157,8 @@ export async function BusinessDiscovery() {
 
           {/* All Businesses Section */}
           <div className="mb-8 md:mb-12">
-            <h2 className="heading-lg mb-2">Discover Local Businesses in <span className="text-primary">Naga City</span></h2>
-            <p className="text-muted-foreground">Explore amazing local spots and earn rewards with every visit</p>
+            <h2 className="heading-lg mb-2">All Businesses in <span className="text-primary">Naga City</span></h2>
+            <p className="text-muted-foreground">Explore amazing local spots and earn rewards with every visit through Naga Perks</p>
           </div>
 
           {!processedBusinesses || processedBusinesses.length === 0 ? (

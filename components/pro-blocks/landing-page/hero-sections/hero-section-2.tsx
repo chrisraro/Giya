@@ -15,12 +15,12 @@ export function HeroSection2() {
         <div className="flex flex-1 flex-col gap-6 lg:gap-8">
           {/* Section Title */}
           <div className="section-title-gap-xl flex flex-col">
-            <Tagline>Giya - Hyperlocal Discovery</Tagline>
+            <Tagline>Naga Perks by Giya</Tagline>
             <h1 id="hero-heading" className="heading-xl">
                Unlock new experiences and perks in <span className="text-primary">Naga City</span>
             </h1>
             <p className="text-muted-foreground text-base lg:text-lg">
-              Discover local businesses, earn rewards, and enjoy exclusive privileges with Giya's QR-based loyalty
+              Discover local businesses, earn rewards, and enjoy exclusive privileges with Naga Perks' QR-based loyalty
               system
             </p>
           </div>
@@ -71,7 +71,7 @@ export function HeroSection2() {
           <AspectRatio ratio={1 / 1}>
             <Image
               src="/hero.jpg"
-              alt="Giya - Hyperlocal discovery and privilege app"
+              alt="Naga Perks - Hyperlocal discovery and rewards in Naga City"
               fill
               priority
               className="h-full w-full rounded-xl object-cover"

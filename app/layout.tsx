@@ -13,11 +13,11 @@ const onest = Onest({
 })
 
 export const metadata: Metadata = {
-  title: "Giya - Hyperlocal Discovery & Privilege App",
-  description: "Giya is a hyperlocal discovery and privilege app that unlocks new experiences and perks for locals.",
+  title: "Naga Perks by Giya - Hyperlocal Discovery & Rewards",
+  description: "Naga Perks powered by Giya is a hyperlocal discovery and privilege app that unlocks new experiences and perks for locals in Naga City.",
   generator: 'v0.app',
   icons: {
-    icon: '/giya-logo.png',
+    icon: '/Naga Perks Logo.png',
   }
 }
 
