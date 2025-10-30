@@ -155,8 +155,8 @@ export async function BusinessDiscovery() {
             </div>
           )}
 
-          {/* All Businesses Section */}
-          <div className="mb-8 md:mb-12">
+          {/* All Businesses Section - Temporarily Hidden */}
+          {/* <div className="mb-8 md:mb-12">
             <h2 className="heading-lg mb-2">All Businesses in <span className="text-primary">Naga City</span></h2>
             <p className="text-muted-foreground">Explore amazing local spots and earn rewards with every visit through Naga Perks</p>
           </div>
@@ -169,7 +169,7 @@ export async function BusinessDiscovery() {
                 <BusinessCard key={business.id} business={business} />
               ))}
             </div>
-          )}
+          )} */}
         </div>
       </section>
     )
