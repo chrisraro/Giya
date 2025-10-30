@@ -23,7 +23,7 @@ import { toast } from "sonner";
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  userRole: "customer" | "business" | "influencer";
+  userRole: "customer" | "business";
   userName: string;
   userEmail?: string;
   userAvatar?: string | null;
@@ -150,24 +150,24 @@ export function DashboardLayout({
         userAvatar={userAvatar}
       />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center justify-between border-b px-4 relative">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+        <header className="flex h-14 md:h-16 shrink-0 items-center justify-between border-b px-3 md:px-4 relative">
+          <div className="flex items-center gap-1 md:gap-2 flex-1 min-w-0">
+            <SidebarTrigger className="-ml-1 h-9 w-9 md:h-10 md:w-10" />
+            <Separator orientation="vertical" className="mr-1 md:mr-2 h-4" />
             {breadcrumbs && breadcrumbs.length > 0 && (
-              <Breadcrumb>
+              <Breadcrumb className="hidden sm:block">
                 <BreadcrumbList>
                   <BreadcrumbItem>
-                    <BreadcrumbLink href="/">Home</BreadcrumbLink>
+                    <BreadcrumbLink href="/" className="text-xs md:text-sm">Home</BreadcrumbLink>
                   </BreadcrumbItem>
                   {breadcrumbs.map((crumb, index) => (
                     <Fragment key={index}>
                       <BreadcrumbSeparator />
                       <BreadcrumbItem isCurrent={!crumb.href}>
                         {crumb.href ? (
-                          <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
+                          <BreadcrumbLink href={crumb.href} className="text-xs md:text-sm">{crumb.label}</BreadcrumbLink>
                         ) : (
-                          crumb.label
+                          <span className="text-xs md:text-sm">{crumb.label}</span>
                         )}
                       </BreadcrumbItem>
                     </Fragment>
@@ -179,21 +179,21 @@ export function DashboardLayout({
           {/* Profile Avatar and Name */}
           <div className="relative" ref={profileMenuRef}>
             <div 
-              className="flex items-center gap-3 cursor-pointer"
+              className="flex items-center gap-2 md:gap-3 cursor-pointer touch-target"
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
             >
-              <div className="text-right hidden sm:block">
+              <div className="text-right hidden md:block">
                 <p className="text-sm font-medium leading-none">{userName}</p>
                 {userEmail && (
                   <p className="text-xs text-muted-foreground mt-1">{userEmail}</p>
                 )}
               </div>
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-9 w-9 md:h-10 md:w-10">
                 {userAvatar ? (
                   <AvatarImage src={userAvatar} alt={`${userName}'s profile picture`} />
                 ) : (
                   <AvatarFallback className="bg-primary/10">
-                    <User className="h-5 w-5 text-primary" />
+                    <User className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                   </AvatarFallback>
                 )}
               </Avatar>
@@ -201,11 +201,11 @@ export function DashboardLayout({
             
             {/* Custom Dropdown Menu */}
             {isProfileMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-background border rounded-md shadow-lg z-50">
+              <div className="absolute right-0 mt-2 w-48 md:w-56 bg-background border rounded-md shadow-lg z-50">
                 <div className="py-1">
                   <Button
                     variant="ghost"
-                    className="w-full justify-start px-4 py-2 text-left hover:bg-muted"
+                    className="w-full justify-start px-4 py-3 md:py-2 text-left hover:bg-muted text-sm md:text-base"
                     onClick={handleSettings}
                   >
                     <Settings className="mr-2 h-4 w-4" />
@@ -213,7 +213,7 @@ export function DashboardLayout({
                   </Button>
                   <Button
                     variant="ghost"
-                    className="w-full justify-start px-4 py-2 text-left hover:bg-muted"
+                    className="w-full justify-start px-4 py-3 md:py-2 text-left hover:bg-muted text-sm md:text-base"
                     onClick={handleLogout}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
@@ -224,13 +224,13 @@ export function DashboardLayout({
             )}
           </div>
         </header>
-        <main className="flex-1 container-padding-x container mx-auto py-6">
+        <main className="flex-1 px-4 md:px-6 lg:px-8 container mx-auto py-4 md:py-6">
           {/* Greeting Section */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold flex items-center">
+          <div className="mb-4 md:mb-6">
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold flex items-center">
               <span className={wave ? "inline-block animate-wave" : "inline-block"}>👋</span>
               <span className="ml-2">
-                {greeting}, {userName}!
+                {greeting}, <span className="hidden sm:inline">{userName}</span><span className="sm:hidden truncate max-w-[150px]">{userName}</span>!
               </span>
             </h1>
             <style jsx>{`
@@ -247,7 +247,7 @@ export function DashboardLayout({
             `}</style>
           </div>
           
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4 md:gap-6 mb-16 md:mb-0">
             {children}
           </div>
         </main>

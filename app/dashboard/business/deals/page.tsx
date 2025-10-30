@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Pencil, Trash2, Tag, Percent, Loader2, Star } from "lucide-react"
+import { Plus, Pencil, Trash2, Tag, Percent, Loader2, Star, Clock, Calendar } from "lucide-react"
 import { toast } from "sonner"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { OptimizedImage } from "@/components/optimized-image"
@@ -45,7 +45,12 @@ export default function DealsManagementPage() {
     redemption_limit: "",
     validity_start: new Date().toISOString().slice(0, 16),
     validity_end: "",
-    is_active: true
+    is_active: true,
+    // Scheduling fields
+    schedule_type: "always_available" as 'always_available' | 'time_based' | 'day_based' | 'time_and_day',
+    start_time: "",
+    end_time: "",
+    active_days: [0, 1, 2, 3, 4, 5, 6] as number[]
   })
 
   useEffect(() => {
@@ -142,7 +147,18 @@ export default function DealsManagementPage() {
         validity_start: formData.validity_start,
         validity_end: formData.validity_end || null,
         is_active: formData.is_active,
-        qr_code_data: qrCodeData
+        qr_code_data: qrCodeData,
+        // Scheduling fields
+        schedule_type: formData.schedule_type,
+        start_time: (formData.schedule_type === 'time_based' || formData.schedule_type === 'time_and_day') 
+          ? formData.start_time || null 
+          : null,
+        end_time: (formData.schedule_type === 'time_based' || formData.schedule_type === 'time_and_day') 
+          ? formData.end_time || null 
+          : null,
+        active_days: (formData.schedule_type === 'day_based' || formData.schedule_type === 'time_and_day') 
+          ? formData.active_days 
+          : [0, 1, 2, 3, 4, 5, 6]
       }
 
       if (formData.deal_type === 'discount') {
@@ -202,7 +218,12 @@ export default function DealsManagementPage() {
       redemption_limit: deal.redemption_limit?.toString() || "",
       validity_start: deal.validity_start.slice(0, 16),
       validity_end: deal.validity_end ? deal.validity_end.slice(0, 16) : "",
-      is_active: deal.is_active
+      is_active: deal.is_active,
+      // Scheduling fields
+      schedule_type: deal.schedule_type || 'always_available',
+      start_time: deal.start_time || "",
+      end_time: deal.end_time || "",
+      active_days: deal.active_days || [0, 1, 2, 3, 4, 5, 6]
     })
     setActiveTab(deal.deal_type)
     setShowDialog(true)
@@ -244,7 +265,12 @@ export default function DealsManagementPage() {
       redemption_limit: "",
       validity_start: new Date().toISOString().slice(0, 16),
       validity_end: "",
-      is_active: true
+      is_active: true,
+      // Scheduling fields
+      schedule_type: "always_available",
+      start_time: "",
+      end_time: "",
+      active_days: [0, 1, 2, 3, 4, 5, 6]
     })
     setEditingDeal(null)
   }
@@ -292,55 +318,65 @@ export default function DealsManagementPage() {
       userAvatar={businessData?.profile_pic_url}
       breadcrumbs={[{ label: "Deals Management" }]}
     >
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">Deals Management</h2>
-            <p className="text-muted-foreground">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex-1">
+            <h2 className="text-xl md:text-2xl font-bold">Deals Management</h2>
+            <p className="text-sm md:text-base text-muted-foreground mt-0.5">
               Create and manage discount deals and exclusive product offers
             </p>
           </div>
-          <Button onClick={() => {
-            setFormData({ ...formData, deal_type: activeTab })
-            setShowDialog(true)
-          }}>
+          <Button 
+            onClick={() => {
+              setFormData({ ...formData, deal_type: activeTab })
+              setShowDialog(true)
+            }}
+            className="w-full sm:w-auto h-11 md:h-10"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Deal
           </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'discount' | 'exclusive')}>
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="discount">
-              <Percent className="mr-2 h-4 w-4" />
-              Discounts ({discountDeals.length})
+          <TabsList className="grid w-full sm:max-w-md grid-cols-2 h-11 md:h-10">
+            <TabsTrigger value="discount" className="text-xs md:text-sm">
+              <Percent className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden xs:inline">Discounts</span>
+              <span className="xs:hidden">%</span>
+              <span className="ml-1">({discountDeals.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="exclusive">
-              <Star className="mr-2 h-4 w-4" />
-              Exclusive Offers ({exclusiveDeals.length})
+            <TabsTrigger value="exclusive" className="text-xs md:text-sm">
+              <Star className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden xs:inline">Exclusive</span>
+              <span className="xs:hidden">★</span>
+              <span className="ml-1">({exclusiveDeals.length})</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="discount" className="mt-6">
+          <TabsContent value="discount" className="mt-4 md:mt-6">
             {discountDeals.length === 0 ? (
               <Card>
-                <CardContent className="flex flex-col items-center justify-center p-12">
-                  <Percent className="h-16 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No discount deals yet</h3>
-                  <p className="text-muted-foreground text-center mb-4">
+                <CardContent className="flex flex-col items-center justify-center p-8 md:p-12">
+                  <Percent className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground mb-3 md:mb-4" />
+                  <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">No discount deals yet</h3>
+                  <p className="text-sm md:text-base text-muted-foreground text-center mb-3 md:mb-4">
                     Create percentage or fixed amount discounts for your customers
                   </p>
-                  <Button onClick={() => {
-                    setFormData({ ...formData, deal_type: 'discount' })
-                    setShowDialog(true)
-                  }}>
+                  <Button 
+                    onClick={() => {
+                      setFormData({ ...formData, deal_type: 'discount' })
+                      setShowDialog(true)
+                    }}
+                    className="w-full sm:w-auto h-11 md:h-10"
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Add Discount Deal
                   </Button>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {discountDeals.map((deal) => (
                   <DealCard
                     key={deal.id}
@@ -353,26 +389,29 @@ export default function DealsManagementPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="exclusive" className="mt-6">
+          <TabsContent value="exclusive" className="mt-4 md:mt-6">
             {exclusiveDeals.length === 0 ? (
               <Card>
-                <CardContent className="flex flex-col items-center justify-center p-12">
-                  <Star className="h-16 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No exclusive offers yet</h3>
-                  <p className="text-muted-foreground text-center mb-4">
+                <CardContent className="flex flex-col items-center justify-center p-8 md:p-12">
+                  <Star className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground mb-3 md:mb-4" />
+                  <h3 className="text-base md:text-lg font-semibold mb-1 md:mb-2">No exclusive offers yet</h3>
+                  <p className="text-sm md:text-base text-muted-foreground text-center mb-3 md:mb-4">
                     Create special deals on your menu items with exclusive pricing
                   </p>
-                  <Button onClick={() => {
-                    setFormData({ ...formData, deal_type: 'exclusive' })
-                    setShowDialog(true)
-                  }}>
+                  <Button 
+                    onClick={() => {
+                      setFormData({ ...formData, deal_type: 'exclusive' })
+                      setShowDialog(true)
+                    }}
+                    className="w-full sm:w-auto h-11 md:h-10"
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     Add Exclusive Offer
                   </Button>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {exclusiveDeals.map((deal) => (
                   <DealCard
                     key={deal.id}
@@ -390,46 +429,48 @@ export default function DealsManagementPage() {
           setShowDialog(open)
           if (!open) resetForm()
         }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-lg md:text-xl">
                 {editingDeal ? "Edit Deal" : `Add ${formData.deal_type === 'discount' ? 'Discount' : 'Exclusive'} Deal`}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-sm md:text-base">
                 {editingDeal ? "Update your deal details" : 
                   formData.deal_type === 'discount' 
                     ? "Create a percentage or fixed amount discount" 
                     : "Create an exclusive offer on a menu item"}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Deal Title *</Label>
+                <Label htmlFor="title" className="text-sm md:text-base">Deal Title *</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="e.g., 20% Off All Beverages, Buy 1 Take 1 Burger"
+                  className="h-11 md:h-10 text-base"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="text-sm md:text-base">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe your deal..."
                   rows={3}
+                  className="text-base min-h-[88px]"
                 />
               </div>
 
               {formData.deal_type === 'discount' ? (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="discount_percentage">Discount Percentage (%)</Label>
+                      <Label htmlFor="discount_percentage" className="text-sm md:text-base">Discount Percentage (%)</Label>
                       <Input
                         id="discount_percentage"
                         type="number"
@@ -443,10 +484,11 @@ export default function DealsManagementPage() {
                           discount_value: "" 
                         })}
                         placeholder="e.g., 15"
+                        className="h-11 md:h-10 text-base"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="discount_value">Fixed Discount (₱)</Label>
+                      <Label htmlFor="discount_value" className="text-sm md:text-base">Fixed Discount (₱)</Label>
                       <Input
                         id="discount_value"
                         type="number"
@@ -459,10 +501,11 @@ export default function DealsManagementPage() {
                           discount_percentage: "" 
                         })}
                         placeholder="e.g., 50"
+                        className="h-11 md:h-10 text-base"
                       />
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     Enter either percentage OR fixed amount, not both
                   </p>
                 </>
@@ -605,6 +648,105 @@ export default function DealsManagementPage() {
                 </p>
               </div>
 
+              {/* Scheduling Options */}
+              <div className="space-y-4 border-t pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="schedule_type">Deal Availability Schedule</Label>
+                  <Select
+                    value={formData.schedule_type}
+                    onValueChange={(value: any) => setFormData({ ...formData, schedule_type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="always_available">Always Available</SelectItem>
+                      <SelectItem value="time_based">Happy Hour (Specific Times)</SelectItem>
+                      <SelectItem value="day_based">Weekly Recurring (Specific Days)</SelectItem>
+                      <SelectItem value="time_and_day">Time & Day Combination</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Control when customers can redeem this deal
+                  </p>
+                </div>
+
+                {/* Time-based scheduling */}
+                {(formData.schedule_type === 'time_based' || formData.schedule_type === 'time_and_day') && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="start_time">Start Time *</Label>
+                      <Input
+                        id="start_time"
+                        type="time"
+                        value={formData.start_time}
+                        onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="end_time">End Time *</Label>
+                      <Input
+                        id="end_time"
+                        type="time"
+                        value={formData.end_time}
+                        onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground col-span-2">
+                      e.g., 14:00 to 17:00 for 2pm-5pm Happy Hour
+                    </p>
+                  </div>
+                )}
+
+                {/* Day-based scheduling */}
+                {(formData.schedule_type === 'day_based' || formData.schedule_type === 'time_and_day') && (
+                  <div className="space-y-2">
+                    <Label>Active Days *</Label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { value: 0, label: 'Sun' },
+                        { value: 1, label: 'Mon' },
+                        { value: 2, label: 'Tue' },
+                        { value: 3, label: 'Wed' },
+                        { value: 4, label: 'Thu' },
+                        { value: 5, label: 'Fri' },
+                        { value: 6, label: 'Sat' },
+                      ].map((day) => (
+                        <div key={day.value} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`day-${day.value}`}
+                            checked={formData.active_days.includes(day.value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({ 
+                                  ...formData, 
+                                  active_days: [...formData.active_days, day.value].sort() 
+                                })
+                              } else {
+                                setFormData({ 
+                                  ...formData, 
+                                  active_days: formData.active_days.filter(d => d !== day.value) 
+                                })
+                              }
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <Label htmlFor={`day-${day.value}`} className="cursor-pointer text-sm">
+                            {day.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Select which days this deal is available
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="validity_start">Valid From *</Label>
@@ -627,20 +769,20 @@ export default function DealsManagementPage() {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 py-1">
                 <input
                   type="checkbox"
                   id="is_active"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="rounded border-gray-300 h-5 w-5 md:h-4 md:w-4"
                 />
-                <Label htmlFor="is_active" className="cursor-pointer">
+                <Label htmlFor="is_active" className="cursor-pointer text-sm md:text-base">
                   Active (visible to customers)
                 </Label>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 md:pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -648,11 +790,14 @@ export default function DealsManagementPage() {
                     setShowDialog(false)
                     resetForm()
                   }}
-                  className="flex-1"
+                  className="flex-1 h-11 md:h-10 text-sm md:text-base"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1">
+                <Button 
+                  type="submit" 
+                  className="flex-1 h-11 md:h-10 text-sm md:text-base"
+                >
                   {editingDeal ? "Update Deal" : "Create Deal"}
                 </Button>
               </div>
@@ -674,11 +819,50 @@ function DealCard({ deal, onEdit, onDelete }: {
 
   const displayImage = deal.image_url || (deal.menu_items as any)?.image_url
 
+  // Format schedule display
+  const getScheduleDisplay = () => {
+    if (deal.schedule_type === 'always_available') return null
+    
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    
+    switch (deal.schedule_type) {
+      case 'time_based':
+        return (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            <span>{deal.start_time} - {deal.end_time}</span>
+          </div>
+        )
+      case 'day_based':
+        return (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            <span>{deal.active_days?.map(d => dayNames[d]).join(', ')}</span>
+          </div>
+        )
+      case 'time_and_day':
+        return (
+          <div className="space-y-1">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span>{deal.active_days?.map(d => dayNames[d]).join(', ')}</span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span>{deal.start_time} - {deal.end_time}</span>
+            </div>
+          </div>
+        )
+      default:
+        return null
+    }
+  }
+
   return (
     <Card className={!deal.is_active || isExpired || limitReached ? "opacity-60" : ""}>
-      <CardHeader className={displayImage ? "p-0" : ""}>
+      <CardHeader className={displayImage ? "p-0" : "p-4 md:p-6"}>
         {displayImage && (
-          <div className="relative h-48 w-full rounded-t-lg overflow-hidden">
+          <div className="relative h-40 md:h-48 w-full rounded-t-lg overflow-hidden">
             <OptimizedImage
               src={displayImage}
               alt={deal.title}
@@ -688,36 +872,38 @@ function DealCard({ deal, onEdit, onDelete }: {
             />
           </div>
         )}
-        <div className={displayImage ? "p-4" : ""}>
+        <div className={displayImage ? "p-3 md:p-4" : ""}>
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="flex-1">{deal.title}</CardTitle>
-            <div className="flex gap-1">
+            <CardTitle className="flex-1 text-base md:text-lg">{deal.title}</CardTitle>
+            <div className="flex gap-1 flex-shrink-0">
               {deal.deal_type === 'discount' ? (
-                <Tag className="h-4 w-4 text-primary" />
+                <Tag className="h-4 w-4 md:h-5 md:w-5 text-primary" />
               ) : (
-                <Star className="h-4 w-4 text-primary" />
+                <Star className="h-4 w-4 md:h-5 md:w-5 text-primary" />
               )}
             </div>
           </div>
-          {!deal.is_active && (
-            <span className="text-xs bg-muted px-2 py-1 rounded">Inactive</span>
-          )}
-          {isExpired && (
-            <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded ml-2">Expired</span>
-          )}
-          {limitReached && (
-            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded ml-2">Limit Reached</span>
-          )}
+          <div className="flex flex-wrap gap-1 md:gap-2 mt-2">
+            {!deal.is_active && (
+              <span className="text-[10px] md:text-xs bg-muted px-2 py-1 rounded">Inactive</span>
+            )}
+            {isExpired && (
+              <span className="text-[10px] md:text-xs bg-destructive/10 text-destructive px-2 py-1 rounded">Expired</span>
+            )}
+            {limitReached && (
+              <span className="text-[10px] md:text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">Limit Reached</span>
+            )}
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2 md:space-y-3 p-3 md:p-6">
         {deal.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">{deal.description}</p>
+          <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">{deal.description}</p>
         )}
         
-        <div className="space-y-2">
+        <div className="space-y-1.5 md:space-y-2">
           {deal.deal_type === 'discount' ? (
-            <p className="text-lg font-bold text-primary">
+            <p className="text-base md:text-lg font-bold text-primary">
               {deal.discount_percentage 
                 ? `${deal.discount_percentage}% OFF`
                 : `₱${deal.discount_value} OFF`}
@@ -725,43 +911,47 @@ function DealCard({ deal, onEdit, onDelete }: {
           ) : (
             <div className="flex items-center gap-2">
               {deal.original_price && (
-                <span className="text-sm line-through text-muted-foreground">
+                <span className="text-xs md:text-sm line-through text-muted-foreground">
                   ₱{deal.original_price}
                 </span>
               )}
-              <span className="text-lg font-bold text-primary">
+              <span className="text-base md:text-lg font-bold text-primary">
                 ₱{deal.exclusive_price}
               </span>
             </div>
           )}
           
           {deal.points_required > 0 && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs md:text-sm text-muted-foreground">
               {deal.points_required} points required
             </p>
           )}
           
-          <p className="text-xs text-muted-foreground">
+          {/* Schedule display */}
+          {getScheduleDisplay()}
+          
+          <p className="text-[10px] md:text-xs text-muted-foreground">
             Redeemed: {deal.redemption_count}
             {deal.redemption_limit && ` / ${deal.redemption_limit}`}
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onEdit(deal)}
-            className="flex-1"
+            className="flex-1 h-10 md:h-9 text-sm touch-target"
           >
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
+            <Pencil className="mr-1.5 md:mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+            <span className="hidden xs:inline">Edit</span>
+            <span className="xs:hidden">✏️</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => onDelete(deal.id)}
-            className="text-destructive hover:text-destructive"
+            className="h-10 md:h-9 w-10 md:w-9 text-destructive hover:text-destructive touch-target"
           >
             <Trash2 className="h-4 w-4" />
           </Button>

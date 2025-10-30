@@ -172,9 +172,9 @@ export function AppSidebar({
 
   return (
     <Sidebar>
-      <SidebarHeader>
+      <SidebarHeader className="px-3 md:px-4 py-3 md:py-4">
         <div className="flex items-center gap-2">
-          <div className="relative h-8 w-8">
+          <div className="relative h-7 w-7 md:h-8 md:w-8">
             <Image 
               src="/giya-logo.png" 
               alt="Giya" 
@@ -182,10 +182,10 @@ export function AppSidebar({
               className="object-contain" 
             />
           </div>
-          <span className="font-semibold text-lg">Giya</span>
+          <span className="font-semibold text-base md:text-lg">Giya</span>
         </div>
-        <div className="flex items-center gap-3 py-4">
-          <div className="relative h-10 w-10 rounded-full overflow-hidden">
+        <div className="flex items-center gap-2 md:gap-3 py-3 md:py-4">
+          <div className="relative h-9 w-9 md:h-10 md:w-10 rounded-full overflow-hidden flex-shrink-0">
             {userAvatar ? (
               <Image 
                 src={userAvatar} 
@@ -195,21 +195,21 @@ export function AppSidebar({
               />
             ) : (
               <div className="bg-muted rounded-full w-full h-full flex items-center justify-center">
-                <User className="h-5 w-5" />
+                <User className="h-4 w-4 md:h-5 md:w-5" />
               </div>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium truncate">{userName}</p>
+            <p className="font-medium truncate text-sm md:text-base">{userName}</p>
             {userEmail && (
-              <p className="text-sm text-sidebar-foreground/70 truncate">{userEmail}</p>
+              <p className="text-xs md:text-sm text-sidebar-foreground/70 truncate">{userEmail}</p>
             )}
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs md:text-sm px-3 md:px-4">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {currentNavItems.map((item) => {
@@ -221,9 +221,10 @@ export function AppSidebar({
                       asChild 
                       isActive={isActive}
                       tooltip={item.title}
+                      className="h-11 md:h-10 px-3 md:px-4 text-sm md:text-base"
                     >
                       <Link href={item.url}>
-                        <Icon />
+                        <Icon className="h-5 w-5 md:h-4 md:w-4" />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -234,11 +235,14 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="px-2 md:px-3 py-2 md:py-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout}>
-              <LogOut />
+            <SidebarMenuButton 
+              onClick={handleLogout}
+              className="h-11 md:h-10 px-3 md:px-4 text-sm md:text-base"
+            >
+              <LogOut className="h-5 w-5 md:h-4 md:w-4" />
               <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

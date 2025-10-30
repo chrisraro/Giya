@@ -115,6 +115,11 @@ export interface Deal {
   qr_code_data: string | null
   created_at: string
   updated_at: string
+  // Scheduling fields
+  schedule_type: 'always_available' | 'time_based' | 'day_based' | 'time_and_day'
+  start_time: string | null // HH:MM format
+  end_time: string | null // HH:MM format
+  active_days: number[] | null // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
   // For joined data
   menu_items?: MenuItem | null
   businesses?: {
