@@ -944,8 +944,7 @@ function DealCard({ deal, onEdit, onDelete }: {
             className="flex-1 h-10 md:h-9 text-sm touch-target"
           >
             <Pencil className="mr-1.5 md:mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
-            <span className="hidden xs:inline">Edit</span>
-            <span className="xs:hidden">✏️</span>
+            <span>Edit</span>
           </Button>
           <Button
             variant="outline"

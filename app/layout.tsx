@@ -8,7 +8,7 @@ import UniversalForceRefreshFix from "@/components/shared/universal-force-refres
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import { InstallPrompt } from "@/components/install-prompt"
 import { OfflineIndicator } from "@/components/offline-indicator"
-import { PostHogProvider } from "@/components/PostHogProvider"
+
 
 const onest = Onest({
   subsets: ["latin"],
@@ -72,16 +72,14 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/Naga Perks Logo.png" />
       </head>
       <body className={`${onest.variable} relative antialiased`}>
-        <PostHogProvider>
-          <DomErrorBoundary>
-            <ServiceWorkerRegistration />
-            <InstallPrompt />
-            <OfflineIndicator />
-            <UniversalForceRefreshFix />
-            {children}
-            <Toaster />
-          </DomErrorBoundary>
-        </PostHogProvider>
+        <DomErrorBoundary>
+          <ServiceWorkerRegistration />
+          <InstallPrompt />
+          <OfflineIndicator />
+          <UniversalForceRefreshFix />
+          {children}
+          <Toaster />
+        </DomErrorBoundary>
       </body>
     </html>
   )

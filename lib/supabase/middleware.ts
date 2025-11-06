@@ -50,6 +50,28 @@ export async function updateSession(request: NextRequest) {
         console.log("[Middleware] Profile query result:", { profile, profileError });
 
         if (profile && !profileError) {
+          // If user is a business, check their approval status before allowing dashboard access
+          if (profile.role === "business") {
+            // Query the businesses table to check approval status
+            const { data: businessProfile, error: businessError } = await supabase
+              .from("businesses")
+              .select("approval_status, is_active, can_access_dashboard")
+              .eq("id", user.id)
+              .single()
+            
+            if (businessProfile && !businessError) {
+              // If business is not approved or not allowed to access dashboard
+              if (businessProfile.approval_status !== "approved" || !businessProfile.can_access_dashboard) {
+                // Redirect to pending approval page if they try to access dashboard
+                if (request.nextUrl.pathname.startsWith("/dashboard/business")) {
+                  const url = request.nextUrl.clone()
+                  url.pathname = "/auth/pending-approval"
+                  return NextResponse.redirect(url)
+                }
+              }
+            }
+          }
+
           // Redirect to appropriate dashboard based on role
           const url = request.nextUrl.clone()
           console.log("[Middleware] Redirecting user with role:", profile.role);

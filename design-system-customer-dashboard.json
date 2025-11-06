@@ -1,0 +1,73 @@
+{
+  "app_name": "MyM Mobile App",
+  "design_focus": "Structural Layout, Spacing, and Component Sizing",
+  "layout_primitives": {
+    "rounding": {
+      "level": "High Radius",
+      "tailwind_class": "rounded-xl for major cards, rounded-full for pills/badges"
+    },
+    "padding": {
+      "description": "Generous vertical and horizontal internal padding.",
+      "tailwind_class_estimate": "p-4 to p-6"
+    },
+    "gaps_and_margins": {
+      "description": "Consistent large vertical spacing between main sections.",
+      "tailwind_class_estimate": "space-y-6 or my-8"
+    },
+    "shadows": {
+      "description": "Subtle elevation used to lift cards.",
+      "tailwind_class_estimate": "shadow-md or shadow-lg"
+    }
+  },
+  "typography_hierarchy": [
+    {
+      "role": "Major Headers (e.g., 'Deals', 'Rewards')",
+      "size_estimate": "text-3xl",
+      "weight_estimate": "font-bold"
+    },
+    {
+      "role": "Pill/Badge Text (e.g., points, price)",
+      "size_estimate": "text-base",
+      "weight_estimate": "font-semibold"
+    },
+    {
+      "role": "Body/Description Text",
+      "size_estimate": "text-sm",
+      "weight_estimate": "font-normal"
+    }
+  ],
+  "components": [
+    {
+      "name": "Bottom Navigation Bar",
+      "structure": "Fixed footer",
+      "layout": "Grid with 5 equal columns (grid grid-cols-5). Each item stacks icon over text (text-xs label)."
+    },
+    {
+      "name": "QR Code Card",
+      "shadcn_mapping": "Card",
+      "layout": "Full width, rounded-xl. Content is center-aligned (flex flex-col items-center). Info icon is absolutely positioned in the top-right corner (absolute top-4 right-4)."
+    },
+    {
+      "name": "Category Tabs/Filters",
+      "shadcn_mapping": "Button (custom style)",
+      "layout": "Horizontal flex container (overflow-x-auto, whitespace-nowrap). Buttons use rounded-full and fixed internal padding (px-4 py-2)."
+    },
+    {
+      "name": "Reward/Points Card (Grid Item)",
+      "shadcn_mapping": "Card",
+      "layout": "Used in a two-column grid (grid grid-cols-2). The image area must be a relative container. Price/Points badges (rounded-full) are absolutely positioned at the bottom-center of the image.",
+      "text_position": "Description (text-sm) is padded and left-aligned below the image."
+    },
+    {
+      "name": "Deal Banner Card (Featured)",
+      "shadcn_mapping": "Card",
+      "layout": "Full width. Main product image with a large, highly stylized price graphic (magnifying glass effect) overlaid using absolute positioning. Text description is large (text-base or text-lg font-semibold) and left-aligned below the visual area.",
+      "price_layout": "Old price is line-through (text-lg). New price is large and bold (text-2xl font-extrabold)."
+    },
+    {
+      "name": "Status Badges (Unavailable/Locked)",
+      "shadcn_mapping": "Badge",
+      "layout": "Pill-shaped (rounded-full), absolutely positioned over the center-bottom of the product image. Includes the 'Lock' icon when applicable."
+    }
+  ]
+}

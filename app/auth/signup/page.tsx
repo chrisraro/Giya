@@ -325,7 +325,12 @@ export default function SignupPage() {
 
       if (signUpError) throw signUpError
 
-      router.push("/auth/verify-email")
+      // For business users, don't redirect to verify-email, instead show pending approval message
+      if (selectedRole === "business") {
+        router.push("/auth/pending-approval")
+      } else {
+        router.push("/auth/verify-email")
+      }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")
     } finally {

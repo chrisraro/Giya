@@ -126,7 +126,7 @@ export default function BusinessSetupPage() {
         if (profileError) throw profileError
       }
 
-      // Create business record
+      // Create business record with pending approval status
       const { error: businessError } = await supabase.from("businesses").insert({
         id: user.id,
         business_name: user.user_metadata?.business_name || "Business Name",
@@ -136,6 +136,9 @@ export default function BusinessSetupPage() {
         business_hours: businessHoursJson,
         profile_pic_url: profilePicUrl,
         points_per_currency: Number.parseInt(formData.pointsPerCurrency) || 100,
+        approval_status: 'pending',
+        is_active: false,
+        can_access_dashboard: false,
       })
 
       if (businessError) throw businessError
