@@ -72,34 +72,80 @@ export function NewQrScanner({ onScanSuccess, onClose }: QrScannerProps) {
   // Request camera access and start scanning
   const startCamera = useCallback(async () => {
     if (isInitialized) return;
-    
+
     try {
       setCameraError(null);
-      
-      // Request camera access
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: "environment" // Prefer back camera on mobile
+
+      // Get available video devices to potentially select the rear camera by ID
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+      let constraints: MediaStreamConstraints = {
+        video: { facingMode: "environment" } // Prefer back camera on mobile
+      };
+
+      // On some mobile devices, facingMode constraint might not work, so we try to identify rear camera by other means
+      if (videoDevices.length > 1) {
+        // If we have multiple cameras, try using the rear camera by ID if facingMode doesn't work
+        const rearCamera = videoDevices.find(device =>
+          device.label.toLowerCase().includes('back') ||
+          device.label.toLowerCase().includes('rear') ||
+          device.label.toLowerCase().includes('environment')
+        );
+
+        if (rearCamera) {
+          constraints = {
+            video: { deviceId: { exact: rearCamera.deviceId } }
+          };
         }
-      });
-      
+      }
+
+      // Try to get the camera stream
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (facingModeError) {
+        console.warn("Failed to access environment camera, trying with different constraints:", facingModeError);
+        // Fallback to any camera if environment camera fails
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true
+        });
+      }
+
       // Set the stream to the video element
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-        
+
+        // Ensure video plays inline on mobile
+        videoRef.current.playsInline = true;
+        videoRef.current.muted = true;
+        videoRef.current.setAttribute('playsinline', '');
+        videoRef.current.setAttribute('muted', '');
+
         // Wait for video to load metadata
         await new Promise<void>((resolve) => {
           if (videoRef.current) {
-            videoRef.current.onloadedmetadata = () => resolve();
+            // Set up the onloadedmetadata callback before trying to play
+            videoRef.current.onloadedmetadata = () => {
+              console.log("Video metadata loaded, attempting to play");
+              resolve();
+            };
+
+            // Try to play the video - this is needed for proper mobile rendering
+            const playPromise = videoRef.current!.play();
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => console.log("Video play started successfully"))
+                .catch(error => console.error("Video play failed:", error));
+            }
           }
         });
-        
+
         // Start the scan loop
-        videoRef.current.play();
         setIsScanning(true);
         setIsInitialized(true);
-        
+
         // Start scanning loop
         if (requestRef.current) {
           cancelAnimationFrame(requestRef.current);
