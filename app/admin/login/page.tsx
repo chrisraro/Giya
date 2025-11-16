@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -17,19 +17,8 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [isClient, setIsClient] = useState(false)
-  const [imageError, setImageError] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  // Don't render on server to prevent hydration issues
-  if (!isClient) {
-    return null
-  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -107,20 +96,12 @@ export default function AdminLoginPage() {
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <div className="relative h-16 w-16">
-              {imageError ? (
-                <div className="flex items-center justify-center h-full w-full bg-primary text-primary-foreground rounded-full">
-                  <span className="text-2xl font-bold">G</span>
-                </div>
-              ) : (
-                <Image
-                  src="/giya-logo.png"
-                  alt="Giya Admin"
-                  fill
-                  className="object-contain"
-                  priority
-                  onError={() => setImageError(true)}
-                />
-              )}
+              <Image
+                src="/giya-logo.png"
+                alt="Giya Admin"
+                fill
+                className="object-contain"
+              />
             </div>
           </div>
           <CardTitle className="text-2xl md:text-3xl flex items-center justify-center gap-2">
@@ -132,7 +113,7 @@ export default function AdminLoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form key="admin-login-form" onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm md:text-base">Email</Label>
               <Input
@@ -144,9 +125,6 @@ export default function AdminLoginPage() {
                 required
                 className="h-11 md:h-10 text-base"
                 autoComplete="email"
-                data-1p-ignore
-                data-lpignore="true"
-                data-form-type="other"
               />
             </div>
             <div className="space-y-2">
@@ -160,9 +138,6 @@ export default function AdminLoginPage() {
                 required
                 className="h-11 md:h-10 text-base"
                 autoComplete="current-password"
-                data-1p-ignore
-                data-lpignore="true"
-                data-form-type="other"
               />
             </div>
             <Button
