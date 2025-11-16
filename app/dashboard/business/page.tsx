@@ -2,6 +2,7 @@
 
 // Business Dashboard Page
 import { useEffect, useState } from "react"
+import { useIsClient } from "@/hooks/use-is-client"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -17,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { retryWithBackoff } from "@/lib/retry-utils"
-import dynamic from 'next/dynamic'
+import dynamicImport from 'next/dynamic'
 import { BusinessStats } from "@/components/dashboard/business-stats"
 import { QrScannerSection } from "@/components/dashboard/qr-scanner-section"
 import { TransactionHistory } from "@/components/dashboard/transaction-history"
@@ -27,7 +28,7 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 export const dynamic = 'force-dynamic'
 
 // Dynamically import the QR scanner component to avoid SSR issues
-const QrScanner = dynamic(() => import('@/components/qr-scanner').then(mod => mod.QrScanner), {
+const QrScanner = dynamicImport(() => import('@/components/qr-scanner').then(mod => mod.QrScanner), {
   ssr: false, // Disable server-side rendering for QR scanner
   loading: () => <div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>
 })
@@ -79,6 +80,7 @@ export default function BusinessDashboard() {
   const [isValidating, setIsValidating] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const isClient = useIsClient()
   
   const { data, isLoading, error } = useDashboardData({ userType: 'business' })
 
@@ -485,7 +487,7 @@ export default function BusinessDashboard() {
             <DialogTitle>Scan Customer QR Code</DialogTitle>
             <DialogDescription>Position the QR code within the camera frame</DialogDescription>
           </DialogHeader>
-          {showScanner && (
+          {showScanner && isClient && (
             <QrScanner onScanSuccess={handleScanSuccess} onClose={() => setShowScanner(false)} />
           )}
         </DialogContent>
