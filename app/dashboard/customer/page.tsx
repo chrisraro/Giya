@@ -1200,7 +1200,7 @@ export default function CustomerDashboard() {
                   <Card
                     key={deal.id}
                     className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${deal.image_url ? 'p-0' : ''}`}
-                    onClick={() => router.push(`/business/${deal.business_id}`)}
+                    onClick={() => router.push(`/deals/${deal.id}`)}
                   >
                     {deal.image_url ? (
                       <>
@@ -1278,8 +1278,8 @@ export default function CustomerDashboard() {
                             className="w-full mt-4"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Navigate to the business page where deals can be claimed
-                              router.push(`/business/${deal.business_id}`);
+                              // Navigate to the deals page where deals can be viewed and redeemed
+                              router.push(`/deals/${deal.id}`);
                             }}
                           >
                             <Tag className="mr-2 h-4 w-4" />
@@ -1340,7 +1340,7 @@ export default function CustomerDashboard() {
                           className="w-full mt-4"
                           onClick={(e) => {
                             e.stopPropagation();
-                            router.push(`/business/${deal.business_id}`);
+                            router.push(`/deals/${deal.id}`);
                           }}
                         >
                           <Tag className="mr-2 h-4 w-4" />
@@ -1792,7 +1792,7 @@ export default function CustomerDashboard() {
                       <div className="p-1">
                         <Card
                           className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${deal.image_url ? 'p-0' : ''}`}
-                          onClick={() => router.push(`/business/${deal.business_id}`)}
+                          onClick={() => router.push(`/deals/${deal.id}`)}
                         >
                           {deal.image_url ? (
                             <>
@@ -1854,7 +1854,7 @@ export default function CustomerDashboard() {
                                   className="w-full mt-4"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    router.push(`/business/${deal.business_id}`);
+                                    router.push(`/deals/${deal.id}`);
                                   }}
                                 >
                                   <Tag className="mr-2 h-4 w-4" />
@@ -1912,7 +1912,7 @@ export default function CustomerDashboard() {
                                 className="w-full mt-4"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  router.push(`/business/${deal.business_id}`);
+                                  router.push(`/deals/${deal.id}`);
                                 }}
                               >
                                 <Tag className="mr-2 h-4 w-4" />
