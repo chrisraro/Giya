@@ -24,119 +24,94 @@ export function NewQrScanner({ onScanSuccess, onClose }: QrScannerProps) {
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const mountedRef = useRef(false); // Track if component is mounted
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Function to decode QR code from canvas
   const decodeQrCode = useCallback(() => {
     if (!canvasRef.current || !videoRef.current) return;
-
+    
     const canvas = canvasRef.current;
     const video = videoRef.current;
     const context = canvas.getContext("2d");
-
+    
     if (!context) return;
+    
+    // Draw current video frame to canvas
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Get image data from canvas
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    
+    // Try to decode QR code
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-    // Ensure video has proper dimensions before drawing
-    if (video.videoWidth > 0 && video.videoHeight > 0) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Get image data from canvas
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-      // Try to decode QR code
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-      if (code) {
-        // QR code detected
-        onScanSuccess(code.data);
-        return true;
-      }
+    if (code) {
+      // QR code detected
+      onScanSuccess(code.data);
+      return true;
     }
     return false;
   }, [onScanSuccess]);
 
   // Scan function that runs in animation loop
   const scan = useCallback(() => {
-    // Only scan if video is loaded and playing and component is mounted
-    if (mountedRef.current &&
-        videoRef.current &&
-        videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+    // Only scan if video is loaded and playing
+    if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
       if (decodeQrCode()) {
         // Stop scanning when QR code is found
         return;
       }
     }
-
-    // Continue scanning if component is still mounted
-    if (mountedRef.current) {
-      requestRef.current = requestAnimationFrame(scan);
-    }
+    
+    // Continue scanning
+    requestRef.current = requestAnimationFrame(scan);
   }, [decodeQrCode]);
 
   // Request camera access and start scanning
   const startCamera = useCallback(async () => {
-    if (streamRef.current) {
-      // Camera already active, no need to start again
-      return;
-    }
-
+    if (isInitialized) return;
+    
     try {
       setCameraError(null);
-
+      
       // Request camera access
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment", // Prefer back camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+        video: { 
+          facingMode: "environment" // Prefer back camera on mobile
         }
       });
-
-      // Only proceed if component is still mounted
-      if (!mountedRef.current) {
-        // If not mounted, stop the stream immediately
-        stream.getTracks().forEach(track => track.stop());
-        return;
-      }
-
+      
       // Set the stream to the video element
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-
+        
         // Wait for video to load metadata
-        await new Promise<void>((resolve, reject) => {
+        await new Promise<void>((resolve) => {
           if (videoRef.current) {
             videoRef.current.onloadedmetadata = () => resolve();
-            videoRef.current.onerror = () => reject(new Error('Video loading error'));
-
-            // Timeout after 2 seconds if metadata doesn't load
-            setTimeout(() => reject(new Error('Video metadata timeout')), 2000);
           }
         });
-
-        // Start the scan loop only if component is still mounted
-        if (mountedRef.current) {
-          videoRef.current.play();
-          setIsScanning(true);
-
-          // Start scanning loop
-          if (requestRef.current) {
-            cancelAnimationFrame(requestRef.current);
-          }
-          requestRef.current = requestAnimationFrame(scan);
+        
+        // Start the scan loop
+        videoRef.current.play();
+        setIsScanning(true);
+        setIsInitialized(true);
+        
+        // Start scanning loop
+        if (requestRef.current) {
+          cancelAnimationFrame(requestRef.current);
         }
+        requestRef.current = requestAnimationFrame(scan);
       }
     } catch (error) {
-      if (!mountedRef.current) return; // Don't update state if unmounted
-
       console.error("Camera error:", error);
       const errorMessage = handleQrScanError(error);
       setCameraError(errorMessage);
     }
-  }, [scan]);
+  }, [isInitialized, scan]);
 
   // Stop camera and scanning
   const stopCamera = useCallback(() => {
@@ -145,7 +120,7 @@ export function NewQrScanner({ onScanSuccess, onClose }: QrScannerProps) {
       cancelAnimationFrame(requestRef.current);
       requestRef.current = undefined;
     }
-
+    
     // Stop all tracks in the stream
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => {
@@ -153,12 +128,12 @@ export function NewQrScanner({ onScanSuccess, onClose }: QrScannerProps) {
       });
       streamRef.current = null;
     }
-
+    
     // Clear video element
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-
+    
     setIsScanning(false);
   }, []);
 
@@ -178,15 +153,18 @@ export function NewQrScanner({ onScanSuccess, onClose }: QrScannerProps) {
     startCamera();
   };
 
-  // Set mounted ref on mount and cleanup on unmount
+  // Cleanup on unmount
   useEffect(() => {
-    mountedRef.current = true;
-
-    // Start camera when component mounts
-    startCamera();
-
     return () => {
-      mountedRef.current = false;
+      stopCamera();
+    };
+  }, [stopCamera]);
+
+  // Start camera when component mounts
+  useEffect(() => {
+    startCamera();
+    
+    return () => {
       stopCamera();
     };
   }, [startCamera, stopCamera]);
