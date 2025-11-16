@@ -122,6 +122,11 @@ export function Sidebar({
       icon: Gift,
     },
     {
+      title: "Punch Cards",
+      href: "/dashboard/customer/punch-cards",
+      icon: QrCode,
+    },
+    {
       title: "Discover",
       href: "/",
       icon: TrendingUp,
@@ -138,6 +143,11 @@ export function Sidebar({
       title: "Overview",
       href: "/dashboard/business",
       icon: LayoutDashboard,
+    },
+    {
+      title: "Punch Cards",
+      href: "/dashboard/business/punch-cards",
+      icon: QrCode,
     },
     {
       title: "Discounts",

@@ -1,0 +1,418 @@
+// app/dashboard/business/punch-cards/page.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { CalendarIcon, Plus, QrCode, Edit, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { PunchCard, createPunchCard, getPunchCardsForBusiness, updatePunchCard, deletePunchCard } from '@/lib/punch-cards';
+import { useAuth } from '@/hooks/use-auth';
+import { toast } from 'sonner';
+
+export default function BusinessPunchCardsPage() {
+  const [punchCards, setPunchCards] = useState<PunchCard[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingPunchCard, setEditingPunchCard] = useState<PunchCard | null>(null);
+  
+  // Form state
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [punchesRequired, setPunchesRequired] = useState<number>(10);
+  const [rewardDescription, setRewardDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [isActive, setIsActive] = useState(true);
+  const [validFrom, setValidFrom] = useState<string>('');
+  const [validUntil, setValidUntil] = useState<string>('');
+
+  const router = useRouter();
+  const { user, userRole } = useAuth();
+
+  const handleGoBack = () => {
+    router.back();
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchPunchCards();
+    }
+  }, [user]);
+
+  const fetchPunchCards = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      const data = await getPunchCardsForBusiness(user.id);
+      setPunchCards(data);
+    } catch (error) {
+      console.error('Error fetching punch cards:', error);
+      toast.error('Failed to fetch punch cards');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      if (editingPunchCard) {
+        // Update existing punch card
+        await updatePunchCard(editingPunchCard.id, {
+          title,
+          description,
+          punches_required: punchesRequired,
+          reward_description: rewardDescription,
+          image_url: imageUrl,
+          is_active: isActive,
+          valid_from: validFrom,
+          valid_until: validUntil
+        });
+        toast.success('Punch card updated successfully');
+      } else {
+        // Create new punch card
+        await createPunchCard({
+          business_id: user!.id,
+          title,
+          description,
+          punches_required: punchesRequired,
+          reward_description: rewardDescription,
+          image_url: imageUrl,
+          is_active: isActive,
+          valid_from: validFrom || new Date().toISOString(),
+          valid_until: validUntil
+        });
+        toast.success('Punch card created successfully');
+      }
+      
+      resetForm();
+      fetchPunchCards();
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving punch card:', error);
+      toast.error('Failed to save punch card');
+    }
+  };
+
+  const handleEdit = (punchCard: PunchCard) => {
+    setEditingPunchCard(punchCard);
+    setTitle(punchCard.title);
+    setDescription(punchCard.description || '');
+    setPunchesRequired(punchCard.punches_required);
+    setRewardDescription(punchCard.reward_description);
+    setImageUrl(punchCard.image_url || '');
+    setIsActive(punchCard.is_active);
+    setValidFrom(punchCard.valid_from);
+    setValidUntil(punchCard.valid_until || '');
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this punch card?')) return;
+    
+    try {
+      await deletePunchCard(id);
+      toast.success('Punch card deleted successfully');
+      fetchPunchCards();
+    } catch (error) {
+      console.error('Error deleting punch card:', error);
+      toast.error('Failed to delete punch card');
+    }
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setPunchesRequired(10);
+    setRewardDescription('');
+    setImageUrl('');
+    setIsActive(true);
+    setValidFrom('');
+    setValidUntil('');
+    setEditingPunchCard(null);
+  };
+
+  const handleCreateNew = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
+  // Show loading state while auth is being determined
+  if (userRole === null) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  if (userRole !== 'business') {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>
+              Only business users can access this page
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-10">
+      <div className="mb-8">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={handleGoBack}
+              className="flex items-center gap-2"
+            >
+              ← Back
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Punch Cards</h1>
+              <p className="text-muted-foreground">
+                Create and manage punch card loyalty programs
+              </p>
+            </div>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleCreateNew}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Punch Card
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingPunchCard ? 'Edit Punch Card' : 'Create New Punch Card'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingPunchCard
+                    ? 'Update the details of your punch card program'
+                    : 'Create a new punch card loyalty program'}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe your punch card program..."
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="punchesRequired">Punches Required</Label>
+                  <Input
+                    id="punchesRequired"
+                    type="number"
+                    value={punchesRequired}
+                    onChange={(e) => setPunchesRequired(Number(e.target.value))}
+                    min="1"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="rewardDescription">Reward Description</Label>
+                  <Input
+                    id="rewardDescription"
+                    value={rewardDescription}
+                    onChange={(e) => setRewardDescription(e.target.value)}
+                    required
+                    placeholder="e.g., Free coffee after 10 purchases"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="imageUrl">Image URL (Optional)</Label>
+                <Input
+                  id="imageUrl"
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="validFrom">Valid From</Label>
+                  <Input
+                    id="validFrom"
+                    type="datetime-local"
+                    value={validFrom.replace('Z', '')}
+                    onChange={(e) => setValidFrom(e.target.value + 'Z')}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="validUntil">Valid Until</Label>
+                  <Input
+                    id="validUntil"
+                    type="datetime-local"
+                    value={validUntil?.replace('Z', '') || ''}
+                    onChange={(e) => setValidUntil(e.target.value ? e.target.value + 'Z' : '')}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  id="isActive"
+                  type="checkbox"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="isActive">Active</Label>
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsDialogOpen(false);
+                    resetForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingPunchCard ? 'Update' : 'Create'}
+                </Button>
+              </div>
+            </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+      ) : punchCards.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <QrCode className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">No Punch Cards Yet</h3>
+            <p className="text-muted-foreground mb-4">
+              Create your first punch card loyalty program to start rewarding customers
+            </p>
+            <Button onClick={handleCreateNew}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Punch Card
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {punchCards.map((punchCard) => (
+            <Card key={punchCard.id} className="flex flex-col">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      {punchCard.title}
+                      {punchCard.is_active ? (
+                        <Badge variant="default">Active</Badge>
+                      ) : (
+                        <Badge variant="secondary">Inactive</Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      {punchCard.punches_required} punches for {punchCard.reward_description}
+                    </CardDescription>
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(punchCard)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(punchCard.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                {punchCard.image_url && (
+                  <div className="mt-2">
+                    <img 
+                      src={punchCard.image_url} 
+                      alt={punchCard.title}
+                      className="w-full h-32 object-cover rounded-md"
+                    />
+                  </div>
+                )}
+              </CardHeader>
+              <CardContent className="flex-1">
+                <p className="text-sm text-muted-foreground mb-2">
+                  {punchCard.description}
+                </p>
+                
+                <div className="space-y-2 mt-4">
+                  <div className="flex justify-between text-sm">
+                    <span>Validity:</span>
+                    <span>
+                      {format(new Date(punchCard.valid_from), 'MMM d, yyyy')} 
+                      {punchCard.valid_until && ` - ${format(new Date(punchCard.valid_until), 'MMM d, yyyy')}`}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between text-sm">
+                    <span>Created:</span>
+                    <span>{format(new Date(punchCard.created_at), 'MMM d, yyyy')}</span>
+                  </div>
+                </div>
+                
+                <div className="mt-4 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                    <span className="text-sm">Punches: 0/10</span>
+                  </div>
+                  <Badge variant="outline">0 customers</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
