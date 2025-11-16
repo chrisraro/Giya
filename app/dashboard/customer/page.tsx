@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { useIsClient } from "@/hooks/use-is-client"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,13 +17,10 @@ import { OptimizedImage } from "@/components/optimized-image"
 import { toast } from "sonner"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog"
-import dynamicImport from 'next/dynamic'
+import { NewQrScanner } from "@/components/new-qr-scanner";
 
-// Dynamically import the QR scanner component to avoid SSR issues
-const QrScanner = dynamicImport(() => import('@/components/qr-scanner').then(mod => mod.QrScanner), {
-  ssr: false, // Disable server-side rendering for QR scanner
-  loading: () => <div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>
-})
+// Use the new QR scanner component directly - it handles client-side rendering internally
+const QrScanner = NewQrScanner;
 
 // Import types from the hook
 import type { CustomerData, BusinessPoints, Transaction, Redemption } from "@/hooks/use-dashboard-data"
@@ -384,7 +380,6 @@ export default function CustomerDashboard() {
   const [redemptionDetails, setRedemptionDetails] = useState<any>(null)
   const [showRedeemDialog, setShowRedeemDialog] = useState(false)
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
-  const isClient = useIsClient()
 
   const handleQrScan = () => {
     setIsQrScannerOpen(true)
@@ -1633,7 +1628,7 @@ export default function CustomerDashboard() {
       <Dialog open={isQrScannerOpen} onOpenChange={setIsQrScannerOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogTitle>Scan QR Code</DialogTitle>
-          {isQrScannerOpen && isClient && (
+          {isQrScannerOpen && (
             <QrScanner
               onScanSuccess={handleQrScanSuccess}
               onClose={() => setIsQrScannerOpen(false)}
