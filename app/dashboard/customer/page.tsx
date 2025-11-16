@@ -17,7 +17,13 @@ import { OptimizedImage } from "@/components/optimized-image"
 import { toast } from "sonner"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog"
-import { QrScanner } from "@/components/qr-scanner"
+import dynamic from 'next/dynamic'
+
+// Dynamically import the QR scanner component to avoid SSR issues
+const QrScanner = dynamic(() => import('@/components/qr-scanner').then(mod => mod.QrScanner), {
+  ssr: false, // Disable server-side rendering for QR scanner
+  loading: () => <div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>
+})
 
 // Import types from the hook
 import type { CustomerData, BusinessPoints, Transaction, Redemption } from "@/hooks/use-dashboard-data"

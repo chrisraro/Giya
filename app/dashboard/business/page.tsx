@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { retryWithBackoff } from "@/lib/retry-utils"
-import dynamicImport from 'next/dynamic'
+import dynamic from 'next/dynamic'
 import { BusinessStats } from "@/components/dashboard/business-stats"
 import { QrScannerSection } from "@/components/dashboard/qr-scanner-section"
 import { TransactionHistory } from "@/components/dashboard/transaction-history"
@@ -26,9 +26,9 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 // Force dynamic rendering to prevent build-time errors
 export const dynamic = 'force-dynamic'
 
-// Dynamically import the QR scanner component
-const QrScanner = dynamicImport(() => import('@/components/qr-scanner').then(mod => mod.QrScanner), {
-  ssr: false,
+// Dynamically import the QR scanner component to avoid SSR issues
+const QrScanner = dynamic(() => import('@/components/qr-scanner').then(mod => mod.QrScanner), {
+  ssr: false, // Disable server-side rendering for QR scanner
   loading: () => <div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>
 })
 
