@@ -75,11 +75,30 @@ interface ExclusiveOffer {
   image_url: string | null
 }
 
+interface Deal {
+  id: string
+  title: string
+  business_id: string
+  business_name: string
+  business_profile_pic?: string | null
+  deal_type: string // 'discount' | 'exclusive'
+  discount_percentage: number | null
+  discount_value: number | null
+  original_price: number | null
+  exclusive_price: number | null
+  image_url: string | null
+  description: string | null
+  is_active: boolean
+  validity_start: string | null
+  validity_end: string | null
+}
+
 export default function CustomerDashboard() {
   const [discoveredBusinesses, setDiscoveredBusinesses] = useState<any[]>([])
   const [rewards, setRewards] = useState<Reward[]>([])
   const [discounts, setDiscounts] = useState<Discount[]>([])
   const [exclusiveOffers, setExclusiveOffers] = useState<ExclusiveOffer[]>([])
+  const [deals, setDeals] = useState<Deal[]>([])
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   
@@ -230,7 +249,7 @@ export default function CustomerDashboard() {
         const { data: exclusiveOffersData, error: exclusiveOffersError } = await supabase
           .from("exclusive_offers")
           .select(`
-            id, 
+            id,
             title,
             product_name,
             original_price,
@@ -261,12 +280,60 @@ export default function CustomerDashboard() {
           }))
           setExclusiveOffers(formattedExclusiveOffers)
         }
+
+        // Fetch unified deals from businesses where customer has transactions
+        const { data: dealsData, error: dealsError } = await supabase
+          .from("deals")
+          .select(`
+            id,
+            title,
+            description,
+            deal_type,
+            discount_percentage,
+            discount_value,
+            original_price,
+            exclusive_price,
+            image_url,
+            is_active,
+            validity_start,
+            validity_end,
+            business_id,
+            businesses!inner (business_name, profile_pic_url)
+          `)
+          .in("business_id", businessIds)
+          .eq("is_active", true)
+          .or("validity_end.is.null,validity_end.gt.now()")
+          .limit(10)
+
+        if (dealsError) {
+          console.error("Error fetching deals:", dealsError)
+        } else if (dealsData) {
+          const formattedDeals = dealsData.map((deal: any) => ({
+            id: deal.id,
+            title: deal.title,
+            description: deal.description,
+            deal_type: deal.deal_type,
+            discount_percentage: deal.discount_percentage,
+            discount_value: deal.discount_value,
+            original_price: deal.original_price,
+            exclusive_price: deal.exclusive_price,
+            image_url: deal.image_url,
+            is_active: deal.is_active,
+            validity_start: deal.validity_start,
+            validity_end: deal.validity_end,
+            business_id: deal.business_id,
+            business_name: deal.businesses?.business_name || 'Unknown Business',
+            business_profile_pic: deal.businesses?.profile_pic_url || null
+          }))
+          setDeals(formattedDeals)
+        }
       } catch (error) {
         console.error("Error fetching businesses with transactions and offers:", error)
         setDiscoveredBusinesses([])
         setRewards([])
         setDiscounts([])
         setExclusiveOffers([])
+        setDeals([])
       }
     }
 
@@ -584,6 +651,7 @@ export default function CustomerDashboard() {
             setRewards([])
             setDiscounts([])
             setExclusiveOffers([])
+            setDeals([])
             return
           }
 
@@ -1121,6 +1189,175 @@ export default function CustomerDashboard() {
             )}
           </div>
 
+          {/* Deals Section */}
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Deals & Promotions</h2>
+            </div>
+            {deals.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {deals.map((deal) => (
+                  <Card
+                    key={deal.id}
+                    className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${deal.image_url ? 'p-0' : ''}`}
+                    onClick={() => router.push(`/business/${deal.business_id}`)}
+                  >
+                    {deal.image_url ? (
+                      <>
+                        <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                          <OptimizedImage
+                            src={deal.image_url}
+                            alt={deal.title || "Deal"}
+                            width={400}
+                            height={160}
+                            className="object-cover w-full h-full"
+                          />
+                        </div>
+                        <CardHeader className="p-4 bg-transparent">
+                          <div className="flex items-center gap-3">
+                            {deal.business_profile_pic ? (
+                              <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                <OptimizedImage
+                                  src={deal.business_profile_pic}
+                                  alt={deal.business_name || "Business"}
+                                  width={48}
+                                  height={48}
+                                  className="object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                <Building2 className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{deal.business_name}</p>
+                              <p className="text-sm text-muted-foreground capitalize">{deal.deal_type} Deal</p>
+                            </div>
+                          </div>
+                          <CardTitle className="mt-3 text-lg truncate">{deal.title}</CardTitle>
+                          {deal.description && (
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{deal.description}</p>
+                          )}
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <div className="mt-4 space-y-3">
+                            {deal.deal_type === 'discount' && (
+                              <>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-muted-foreground">Discount</span>
+                                  <span className="font-medium">
+                                    {deal.discount_percentage ? `${deal.discount_percentage}%` : `${deal.discount_value}`}
+                                  </span>
+                                </div>
+                                {deal.original_price && deal.exclusive_price && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">Price</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="line-through text-sm text-muted-foreground">${deal.original_price}</span>
+                                      <span className="font-medium text-red-600">${deal.exclusive_price}</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            {deal.deal_type === 'exclusive' && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Special Price</span>
+                                <span className="font-medium">${deal.exclusive_price}</span>
+                              </div>
+                            )}
+                            {deal.validity_end && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Valid until</span>
+                                <span className="font-medium text-xs">{new Date(deal.validity_end).toLocaleDateString()}</span>
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            className="w-full mt-4"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Navigate to the business page where deals can be claimed
+                              router.push(`/business/${deal.business_id}`);
+                            }}
+                          >
+                            <Tag className="mr-2 h-4 w-4" />
+                            View Deal
+                          </Button>
+                        </CardContent>
+                      </>
+                    ) : (
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          {deal.business_profile_pic ? (
+                            <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                              <OptimizedImage
+                                src={deal.business_profile_pic}
+                                alt={deal.business_name || "Business"}
+                                width={48}
+                                height={48}
+                                className="object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                              <Building2 className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{deal.business_name}</p>
+                            <p className="text-sm text-muted-foreground capitalize">{deal.deal_type} Deal</p>
+                          </div>
+                        </div>
+                        <CardTitle className="mt-3 text-lg truncate">{deal.title}</CardTitle>
+                        {deal.description && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{deal.description}</p>
+                        )}
+                        <div className="mt-4 space-y-2">
+                          {deal.deal_type === 'discount' && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Discount</span>
+                              <span className="font-medium">
+                                {deal.discount_percentage ? `${deal.discount_percentage}%` : `${deal.discount_value}`}
+                              </span>
+                            </div>
+                          )}
+                          {deal.deal_type === 'exclusive' && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Special Price</span>
+                              <span className="font-medium">${deal.exclusive_price}</span>
+                            </div>
+                          )}
+                          {deal.validity_end && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Valid until</span>
+                              <span className="font-medium text-xs">{new Date(deal.validity_end).toLocaleDateString()}</span>
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          className="w-full mt-4"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/business/${deal.business_id}`);
+                          }}
+                        >
+                          <Tag className="mr-2 h-4 w-4" />
+                          View Deal
+                        </Button>
+                      </CardContent>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="w-full">
+                <p className="text-muted-foreground text-center py-4">No deals available from your discovered businesses yet.</p>
+              </div>
+            )}
+          </div>
+
           {/* Exclusive Offers Section */}
           <div className="w-full">
             <div className="flex items-center justify-between mb-4">
@@ -1532,6 +1769,166 @@ export default function CustomerDashboard() {
             </div>
           ) : (
             <p className="text-muted-foreground text-center py-4">No discounts available from your discovered businesses yet.</p>
+          )}
+        </div>
+
+        {/* Deals Section - Carousel for mobile */}
+        <div className="w-full">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Deals & Promotions</h2>
+          </div>
+          {deals.length > 0 ? (
+            <div className="md:hidden">
+              <Carousel
+                opts={{
+                  align: "start",
+                  slidesToScroll: 1,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-2">
+                  {deals.map((deal) => (
+                    <CarouselItem key={deal.id} className="basis-[85%] md:basis-1/2 lg:basis-1/3 pl-2">
+                      <div className="p-1">
+                        <Card
+                          className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${deal.image_url ? 'p-0' : ''}`}
+                          onClick={() => router.push(`/business/${deal.business_id}`)}
+                        >
+                          {deal.image_url ? (
+                            <>
+                              <div className="relative h-40 w-full rounded-t-lg overflow-hidden">
+                                <OptimizedImage
+                                  src={deal.image_url}
+                                  alt={deal.title || "Deal"}
+                                  width={400}
+                                  height={160}
+                                  className="object-cover w-full h-full"
+                                />
+                              </div>
+                              <div className="p-4">
+                                <div className="flex items-center gap-3">
+                                  {deal.business_profile_pic ? (
+                                    <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                      <OptimizedImage
+                                        src={deal.business_profile_pic}
+                                        alt={deal.business_name}
+                                        width={48}
+                                        height={48}
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                      <Building2 className="h-6 w-6 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{deal.title}</p>
+                                    <p className="text-sm text-muted-foreground truncate">{deal.business_name}</p>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{deal.description}</p>
+                                <div className="mt-4 space-y-2">
+                                  {deal.deal_type === 'discount' && (
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-muted-foreground">Discount</span>
+                                      <span className="font-medium">
+                                        {deal.discount_percentage ? `${deal.discount_percentage}%` : `${deal.discount_value}`}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {deal.deal_type === 'exclusive' && (
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-muted-foreground">Special Price</span>
+                                      <span className="font-medium">${deal.exclusive_price}</span>
+                                    </div>
+                                  )}
+                                  {deal.validity_end && (
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-muted-foreground">Valid until</span>
+                                      <span className="font-medium text-xs">{new Date(deal.validity_end).toLocaleDateString()}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <Button
+                                  className="w-full mt-4"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/business/${deal.business_id}`);
+                                  }}
+                                >
+                                  <Tag className="mr-2 h-4 w-4" />
+                                  View Deal
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                {deal.business_profile_pic ? (
+                                  <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                                    <OptimizedImage
+                                      src={deal.business_profile_pic}
+                                      alt={deal.business_name || "Business"}
+                                      width={48}
+                                      height={48}
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center">
+                                    <Building2 className="h-6 w-6 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{deal.title}</p>
+                                  <p className="text-sm text-muted-foreground truncate">{deal.business_name}</p>
+                                </div>
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{deal.description}</p>
+                              <div className="mt-4 space-y-2">
+                                {deal.deal_type === 'discount' && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">Discount</span>
+                                    <span className="font-medium">
+                                      {deal.discount_percentage ? `${deal.discount_percentage}%` : `${deal.discount_value}`}
+                                    </span>
+                                  </div>
+                                )}
+                                {deal.deal_type === 'exclusive' && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">Special Price</span>
+                                    <span className="font-medium">${deal.exclusive_price}</span>
+                                  </div>
+                                )}
+                                {deal.validity_end && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">Valid until</span>
+                                    <span className="font-medium text-xs">{new Date(deal.validity_end).toLocaleDateString()}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                className="w-full mt-4"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/business/${deal.business_id}`);
+                                }}
+                              >
+                                <Tag className="mr-2 h-4 w-4" />
+                                View Deal
+                              </Button>
+                            </CardContent>
+                          )}
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-4">No deals available from your discovered businesses yet.</p>
           )}
         </div>
 

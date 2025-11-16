@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { getAuth } from '@/.auth/web/api';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -11,8 +10,12 @@ const supabase = createClient(
 
 // Helper function to get session
 async function getSession() {
-  const auth = await getAuth();
-  return auth.session;
+  // Get the session from Supabase
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  return session;
 }
 
 // GET: Fetch punch cards for a business or customer

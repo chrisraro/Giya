@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getAuth } from '@/.auth/web/api';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -10,8 +9,11 @@ const supabase = createClient(
 
 // Helper function to get session
 async function getSession() {
-  const auth = await getAuth();
-  return auth.session;
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  return session;
 }
 
 // GET: Fetch punches for a customer or business
