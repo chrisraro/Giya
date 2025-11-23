@@ -40,14 +40,14 @@ export default function BusinessPunchCardsPage() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && userRole === 'business') {
       fetchPunchCards();
     }
-  }, [user]);
+  }, [user, userRole]);
 
   const fetchPunchCards = async () => {
-    if (!user) return;
-    
+    if (!user || userRole !== 'business') return;
+
     try {
       setIsLoading(true);
       const data = await getPunchCardsForBusiness(user.id);
@@ -63,6 +63,20 @@ export default function BusinessPunchCardsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Client-side validation
+    if (!title.trim()) {
+      toast.error('Title is required.');
+      return;
+    }
+    if (!rewardDescription.trim()) {
+      toast.error('Reward Description is required.');
+      return;
+    }
+    if (punchesRequired < 1) {
+      toast.error('Punches Required must be at least 1.');
+      return;
+    }
+
     try {
       if (editingPunchCard) {
         // Update existing punch card
@@ -170,9 +184,9 @@ export default function BusinessPunchCardsPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
+    <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -182,22 +196,22 @@ export default function BusinessPunchCardsPage() {
               ← Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">Punch Cards</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl sm:text-3xl font-bold">Punch Cards</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Create and manage punch card loyalty programs
               </p>
             </div>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={handleCreateNew}>
+              <Button onClick={handleCreateNew} className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Create Punch Card
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-full sm:max-w-2xl w-[95%] sm:w-auto mx-auto">
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className="text-xl sm:text-2xl">
                   {editingPunchCard ? 'Edit Punch Card' : 'Create New Punch Card'}
                 </DialogTitle>
                 <DialogDescription>
@@ -216,7 +230,7 @@ export default function BusinessPunchCardsPage() {
                   required
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -226,8 +240,8 @@ export default function BusinessPunchCardsPage() {
                   placeholder="Describe your punch card program..."
                 />
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="punchesRequired">Punches Required</Label>
                   <Input
@@ -239,7 +253,7 @@ export default function BusinessPunchCardsPage() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="rewardDescription">Reward Description</Label>
                   <Input
@@ -251,7 +265,7 @@ export default function BusinessPunchCardsPage() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="imageUrl">Image URL (Optional)</Label>
                 <Input
@@ -262,8 +276,8 @@ export default function BusinessPunchCardsPage() {
                   placeholder="https://example.com/image.jpg"
                 />
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="validFrom">Valid From</Label>
                   <Input
@@ -273,7 +287,7 @@ export default function BusinessPunchCardsPage() {
                     onChange={(e) => setValidFrom(e.target.value + 'Z')}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="validUntil">Valid Until</Label>
                   <Input
@@ -284,7 +298,7 @@ export default function BusinessPunchCardsPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <input
                   id="isActive"
@@ -295,8 +309,8 @@ export default function BusinessPunchCardsPage() {
                 />
                 <Label htmlFor="isActive">Active</Label>
               </div>
-              
-              <div className="flex justify-end space-x-2 pt-4">
+
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -304,10 +318,11 @@ export default function BusinessPunchCardsPage() {
                     setIsDialogOpen(false);
                     resetForm();
                   }}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" className="w-full sm:w-auto">
                   {editingPunchCard ? 'Update' : 'Create'}
                 </Button>
               </div>
@@ -326,7 +341,7 @@ export default function BusinessPunchCardsPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <QrCode className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No Punch Cards Yet</h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground mb-4 text-center">
               Create your first punch card loyalty program to start rewarding customers
             </p>
             <Button onClick={handleCreateNew}>
@@ -336,25 +351,29 @@ export default function BusinessPunchCardsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {punchCards.map((punchCard) => (
             <Card key={punchCard.id} className="flex flex-col">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {punchCard.title}
-                      {punchCard.is_active ? (
-                        <Badge variant="default">Active</Badge>
-                      ) : (
-                        <Badge variant="secondary">Inactive</Badge>
-                      )}
-                    </CardTitle>
-                    <CardDescription>
+              <CardHeader className="pb-3">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                      <CardTitle className="text-lg truncate">
+                        {punchCard.title}
+                      </CardTitle>
+                      <div className="flex gap-2">
+                        {punchCard.is_active ? (
+                          <Badge variant="default">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <CardDescription className="truncate">
                       {punchCard.punches_required} punches for {punchCard.reward_description}
                     </CardDescription>
                   </div>
-                  <div className="flex space-x-1">
+                  <div className="flex space-x-1 self-start sm:self-auto">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -373,38 +392,38 @@ export default function BusinessPunchCardsPage() {
                 </div>
                 {punchCard.image_url && (
                   <div className="mt-2">
-                    <img 
-                      src={punchCard.image_url} 
+                    <img
+                      src={punchCard.image_url}
                       alt={punchCard.title}
                       className="w-full h-32 object-cover rounded-md"
                     />
                   </div>
                 )}
               </CardHeader>
-              <CardContent className="flex-1">
-                <p className="text-sm text-muted-foreground mb-2">
+              <CardContent className="flex-1 pt-3">
+                <p className="text-sm text-muted-foreground mb-4">
                   {punchCard.description}
                 </p>
-                
-                <div className="space-y-2 mt-4">
-                  <div className="flex justify-between text-sm">
-                    <span>Validity:</span>
-                    <span>
-                      {format(new Date(punchCard.valid_from), 'MMM d, yyyy')} 
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Validity:</span>
+                    <div>
+                      {format(new Date(punchCard.valid_from), 'MMM d, yyyy')}
                       {punchCard.valid_until && ` - ${format(new Date(punchCard.valid_until), 'MMM d, yyyy')}`}
-                    </span>
+                    </div>
                   </div>
-                  
-                  <div className="flex justify-between text-sm">
-                    <span>Created:</span>
-                    <span>{format(new Date(punchCard.created_at), 'MMM d, yyyy')}</span>
+
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Created:</span>
+                    <div>{format(new Date(punchCard.created_at), 'MMM d, yyyy')}</div>
                   </div>
                 </div>
-                
-                <div className="mt-4 flex justify-between items-center">
-                  <div className="flex items-center">
+
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-3 border-t border-border">
+                  <div className="flex items-center mb-2 sm:mb-0">
                     <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                    <span className="text-sm">Punches: 0/10</span>
+                    <span className="text-sm">Punches: 0/{punchCard.punches_required}</span>
                   </div>
                   <Badge variant="outline">0 customers</Badge>
                 </div>

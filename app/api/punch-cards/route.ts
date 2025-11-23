@@ -1,16 +1,31 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Helper function to create Supabase client from request
+function createClient(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+  // Extract cookies from the request
+  const cookies = request.headers.get('Cookie') ?? '';
+
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        const cookie = cookies.split(';').find(c => c.trim().startsWith(`${name}=`));
+        if (cookie) {
+          const value = cookie.split('=')[1];
+          return decodeURIComponent(value);
+        }
+        return undefined;
+      },
+    },
+  });
+}
 
 // Helper function to get session
-async function getSession() {
-  // Get the session from Supabase
+async function getSession(request: NextRequest) {
+  const supabase = createClient(request);
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -21,7 +36,7 @@ async function getSession() {
 // GET: Fetch punch cards for a business or customer
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -30,6 +45,9 @@ export async function GET(request: NextRequest) {
     const businessId = url.searchParams.get('businessId');
     const customerId = url.searchParams.get('customerId');
     const punchCardId = url.searchParams.get('punchCardId');
+
+    // Create client with request context for database operations
+    const supabase = createClient(request);
 
     // Fetch all active punch cards for a business
     if (businessId) {
@@ -138,7 +156,7 @@ export async function GET(request: NextRequest) {
 // POST: Create a new punch card
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -159,6 +177,8 @@ export async function POST(request: NextRequest) {
     if (!title || !reward_description || !punches_required) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    const supabase = createClient(request);
 
     const { data, error } = await supabase
       .from('punch_cards')
@@ -191,7 +211,7 @@ export async function POST(request: NextRequest) {
 // PUT: Update an existing punch card
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -202,6 +222,8 @@ export async function PUT(request: NextRequest) {
     if (!id) {
       return Response.json({ error: 'Missing punch card ID' }, { status: 400 });
     }
+
+    const supabase = createClient(request);
 
     // Check if the user owns this punch card
     const { data: punchCard, error: fetchError } = await supabase
@@ -250,7 +272,7 @@ export async function PUT(request: NextRequest) {
 // DELETE: Delete a punch card
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -261,6 +283,8 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return Response.json({ error: 'Missing punch card ID' }, { status: 400 });
     }
+
+    const supabase = createClient(request);
 
     // Check if the user owns this punch card
     const { data: punchCard, error: fetchError } = await supabase

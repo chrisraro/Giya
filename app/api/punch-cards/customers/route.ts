@@ -1,14 +1,31 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Helper function to create Supabase client from request
+function createClient(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+  // Extract cookies from the request
+  const cookies = request.headers.get('Cookie') ?? '';
+
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        const cookie = cookies.split(';').find(c => c.trim().startsWith(`${name}=`));
+        if (cookie) {
+          const value = cookie.split('=')[1];
+          return decodeURIComponent(value);
+        }
+        return undefined;
+      },
+    },
+  });
+}
 
 // Helper function to get session
-async function getSession() {
+async function getSession(request: NextRequest) {
+  const supabase = createClient(request);
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -19,7 +36,7 @@ async function getSession() {
 // GET: Fetch customer's punch card participation
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -27,6 +44,9 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const customerId = url.searchParams.get('customerId');
     const punchCardId = url.searchParams.get('punchCardId');
+
+    // Create client with request context for database operations
+    const supabase = createClient(request);
 
     // Fetch all punch card participations for a customer
     if (customerId) {
@@ -155,7 +175,7 @@ export async function GET(request: NextRequest) {
 // POST: Join/subscribe to a punch card
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -166,6 +186,8 @@ export async function POST(request: NextRequest) {
     if (!punch_card_id) {
       return Response.json({ error: 'Missing punch card ID' }, { status: 400 });
     }
+
+    const supabase = createClient(request);
 
     // Verify that the punch card exists and is active
     const { data: punchCard, error: cardError } = await supabase
@@ -226,7 +248,7 @@ export async function POST(request: NextRequest) {
 // PUT: Update a punch card participation (e.g., reset punches)
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -237,6 +259,8 @@ export async function PUT(request: NextRequest) {
     if (!id) {
       return Response.json({ error: 'Missing participation ID' }, { status: 400 });
     }
+
+    const supabase = createClient(request);
 
     // Get the participation record to check permissions
     const { data: participation, error: fetchError } = await supabase
@@ -256,7 +280,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if the requesting user is the customer or business owner
-    if (session.user.id !== participation.customer_id && 
+    if (session.user.id !== participation.customer_id &&
         session.user.id !== participation.punch_cards.business_id) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -285,7 +309,7 @@ export async function PUT(request: NextRequest) {
 // DELETE: Leave a punch card
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -296,6 +320,8 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return Response.json({ error: 'Missing participation ID' }, { status: 400 });
     }
+
+    const supabase = createClient(request);
 
     // Get the participation record to check permissions
     const { data: participation, error: fetchError } = await supabase

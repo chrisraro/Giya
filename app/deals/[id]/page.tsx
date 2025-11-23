@@ -74,6 +74,7 @@ export default function DealDetailPage() {
           is_active,
           validity_start,
           validity_end,
+          points_required,
           business_id,
           businesses!inner (
             business_name,

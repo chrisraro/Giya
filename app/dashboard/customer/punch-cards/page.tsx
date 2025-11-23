@@ -24,14 +24,14 @@ export default function CustomerPunchCardsPage() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && userRole === 'customer') {
       fetchParticipatingCards();
     }
-  }, [user]);
+  }, [user, userRole]);
 
   const fetchParticipatingCards = async () => {
-    if (!user) return;
-    
+    if (!user || userRole !== 'customer') return;
+
     try {
       setIsLoading(true);
       const data = await getPunchCardParticipationForCustomer(user.id);
@@ -73,9 +73,9 @@ export default function CustomerPunchCardsPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="mb-8">
-        <div className="flex items-center gap-4">
+    <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <Button
             variant="ghost"
             onClick={handleGoBack}
@@ -84,8 +84,8 @@ export default function CustomerPunchCardsPage() {
             ← Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">My Punch Cards</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold">My Punch Cards</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Track your progress in punch card loyalty programs
             </p>
           </div>
@@ -112,32 +112,36 @@ export default function CustomerPunchCardsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-4 sm:space-y-6">
           {participatingCards.map((participation) => (
             <Card key={participation.id} className="overflow-hidden">
               <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {participation.punch_card.title}
-                      {participation.is_completed ? (
-                        <Badge variant="default" className="bg-green-600">
-                          Completed
-                        </Badge>
-                      ) : participation.punch_card.is_active ? (
-                        <Badge variant="default">Active</Badge>
-                      ) : (
-                        <Badge variant="secondary">Inactive</Badge>
-                      )}
-                    </CardTitle>
-                    <CardDescription>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                      <CardTitle className="text-lg truncate">
+                        {participation.punch_card.title}
+                      </CardTitle>
+                      <div className="flex gap-2 mt-1 sm:mt-0">
+                        {participation.is_completed ? (
+                          <Badge variant="default" className="bg-green-600">
+                            Completed
+                          </Badge>
+                        ) : participation.punch_card.is_active ? (
+                          <Badge variant="default">Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <CardDescription className="truncate">
                       {participation.punch_card.business_name}
                     </CardDescription>
                   </div>
                   {participation.punch_card.image_url && (
-                    <div className="h-16 w-16 rounded-md overflow-hidden flex-shrink-0">
-                      <img 
-                        src={participation.punch_card.image_url} 
+                    <div className="h-16 w-16 rounded-md overflow-hidden flex-shrink-0 self-start sm:self-auto">
+                      <img
+                        src={participation.punch_card.image_url}
                         alt={participation.punch_card.title}
                         className="w-full h-full object-cover"
                       />
@@ -148,38 +152,38 @@ export default function CustomerPunchCardsPage() {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <div className="flex justify-between mb-1">
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-2 mb-1">
                       <span className="text-sm font-medium">
                         {participation.punches_count}/{participation.punch_card.punches_required} punches
                       </span>
                       <span className="text-sm font-medium">
-                        {participation.is_completed ? 'Completed!' : 
+                        {participation.is_completed ? 'Completed!' :
                           `${participation.punch_card.punches_required - participation.punches_count} more to go!`}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
+                      <div
                         className={`h-2.5 rounded-full ${
                           participation.is_completed ? 'bg-green-600' : 'bg-blue-600'
-                        }`} 
-                        style={{ 
-                          width: `${progressPercentage(participation.punches_count, participation.punch_card.punches_required)}%` 
+                        }`}
+                        style={{
+                          width: `${progressPercentage(participation.punches_count, participation.punch_card.punches_required)}%`
                         }}
                       ></div>
                     </div>
                   </div>
-                  
+
                   <Separator />
-                  
-                  <div className="grid grid-cols-2 gap-4">
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <h3 className="font-medium mb-1">Reward</h3>
                       <p className="text-sm">{participation.punch_card.reward_description}</p>
                     </div>
-                    
+
                     <div>
                       <h3 className="font-medium mb-1">Status</h3>
-                      <div className="flex items-center">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                         {participation.is_completed ? (
                           <span className="flex items-center text-green-600">
                             <Award className="h-4 w-4 mr-1" />

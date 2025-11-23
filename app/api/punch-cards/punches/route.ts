@@ -1,14 +1,31 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Helper function to create Supabase client from request
+function createClient(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+  // Extract cookies from the request
+  const cookies = request.headers.get('Cookie') ?? '';
+
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        const cookie = cookies.split(';').find(c => c.trim().startsWith(`${name}=`));
+        if (cookie) {
+          const value = cookie.split('=')[1];
+          return decodeURIComponent(value);
+        }
+        return undefined;
+      },
+    },
+  });
+}
 
 // Helper function to get session
-async function getSession() {
+async function getSession(request: NextRequest) {
+  const supabase = createClient(request);
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -19,7 +36,7 @@ async function getSession() {
 // GET: Fetch punches for a customer or business
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -28,6 +45,9 @@ export async function GET(request: NextRequest) {
     const customerId = url.searchParams.get('customerId');
     const businessId = url.searchParams.get('businessId');
     const punchCardId = url.searchParams.get('punchCardId');
+
+    // Create client with request context for database operations
+    const supabase = createClient(request);
 
     // Fetch punches for a customer
     if (customerId) {
@@ -108,7 +128,7 @@ export async function GET(request: NextRequest) {
             is_completed
           )
         `)
-        .eq('punch_card_customer_id', punchCardId)
+        .eq('punch_card_id', punchCardId)
         .order('punch_at', { ascending: false });
 
       if (error) {
@@ -128,15 +148,56 @@ export async function GET(request: NextRequest) {
 // POST: Add a new punch
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { punch_card_customer_id, transaction_id } = body;
+    // Support both the existing punch_card_customer_id format and the new format
+    const { punch_card_customer_id, transaction_id, punch_card_id, business_id, customer_id } = body;
 
-    if (!punch_card_customer_id) {
+    const supabase = createClient(request);
+
+    let actualPunchCardCustomerId = punch_card_customer_id;
+
+    // If we have punch_card_id instead of punch_card_customer_id, we need to get or create the customer record
+    if (punch_card_id && business_id && customer_id) {
+      // First, get or create the punch card customer record
+      let punchCardCustomer;
+      const { data: existingCustomer, error: fetchError } = await supabase
+        .from('punch_card_customers')
+        .select('*')
+        .eq('punch_card_id', punch_card_id)
+        .eq('customer_id', customer_id)
+        .single();
+
+      if (fetchError) {
+        // Create a new punch card customer record
+        const { data: newCustomer, error: createError } = await supabase
+          .from('punch_card_customers')
+          .insert([{
+            punch_card_id: punch_card_id,
+            customer_id: customer_id,
+            punches_count: 0,
+            created_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating punch card customer:', createError);
+          return Response.json({ error: createError.message }, { status: 500 });
+        }
+        punchCardCustomer = newCustomer;
+        actualPunchCardCustomerId = newCustomer.id;
+      } else {
+        punchCardCustomer = existingCustomer;
+        actualPunchCardCustomerId = existingCustomer.id;
+      }
+    }
+
+    if (!actualPunchCardCustomerId) {
       return Response.json({ error: 'Missing punch card customer ID' }, { status: 400 });
     }
 
@@ -154,7 +215,7 @@ export async function POST(request: NextRequest) {
           punches_required
         )
       `)
-      .eq('id', punch_card_customer_id)
+      .eq('id', actualPunchCardCustomerId)
       .single();
 
     if (fetchError || !customerPunchCard) {
@@ -175,7 +236,7 @@ export async function POST(request: NextRequest) {
     const { data: newPunch, error: punchError } = await supabase
       .from('punch_card_punches')
       .insert([{
-        punch_card_customer_id,
+        punch_card_customer_id: actualPunchCardCustomerId,
         business_id: customerPunchCard.punch_cards.business_id,
         customer_id: customerPunchCard.customer_id,
         transaction_id: transaction_id || null,
@@ -192,7 +253,7 @@ export async function POST(request: NextRequest) {
     // Update the customer's punch count
     const newPunchCount = customerPunchCard.punches_count + 1;
     const isCompleted = newPunchCount >= customerPunchCard.punch_cards.punches_required;
-    
+
     const { error: updateError } = await supabase
       .from('punch_card_customers')
       .update({
@@ -201,7 +262,7 @@ export async function POST(request: NextRequest) {
         completed_at: isCompleted ? new Date().toISOString() : null,
         is_completed: isCompleted
       })
-      .eq('id', punch_card_customer_id);
+      .eq('id', actualPunchCardCustomerId);
 
     if (updateError) {
       console.error('Error updating punch count:', updateError);
@@ -210,11 +271,11 @@ export async function POST(request: NextRequest) {
         .from('punch_card_punches')
         .delete()
         .eq('id', newPunch.id);
-      
+
       return Response.json({ error: updateError.message }, { status: 500 });
     }
 
-    return Response.json({ 
+    return Response.json({
       data: newPunch,
       message: isCompleted ? 'Punch card completed! Reward unlocked.' : 'Punch added successfully.'
     }, { status: 201 });
@@ -234,7 +295,7 @@ export async function PUT(request: NextRequest) {
 // DELETE: Delete a punch (for administrative purposes)
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -245,6 +306,8 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return Response.json({ error: 'Missing punch ID' }, { status: 400 });
     }
+
+    const supabase = createClient(request);
 
     // Get the punch record to check permissions
     const { data: punch, error: fetchError } = await supabase
