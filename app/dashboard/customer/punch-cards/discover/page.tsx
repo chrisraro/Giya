@@ -10,12 +10,14 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { CheckCircle, Clock, QrCode, Award, MapPin, Plus } from 'lucide-react';
+import { CheckCircle, Clock, QrCode, Award, MapPin, Plus, Scan } from 'lucide-react';
+import { PunchCardScanner } from '@/components/punch-card-scanner';
 
 export default function CustomerDiscoverPunchCardsPage() {
   const [availableCards, setAvailableCards] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [joiningCardId, setJoiningCardId] = useState<string | null>(null);
+  const [showPunchCardScanner, setShowPunchCardScanner] = useState(false);
   const router = useRouter();
   const { user, userRole } = useAuth();
 
@@ -122,12 +124,16 @@ export default function CustomerDiscoverPunchCardsPage() {
           >
             ← Back
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold">Discover Punch Cards</h1>
             <p className="text-sm sm:text-base text-muted-foreground">
               Find and join punch card loyalty programs from businesses
             </p>
           </div>
+          <Button onClick={() => setShowPunchCardScanner(true)}>
+            <Scan className="mr-2 h-4 w-4" />
+            Scan Punch Card
+          </Button>
         </div>
       </div>
 
@@ -245,6 +251,16 @@ export default function CustomerDiscoverPunchCardsPage() {
           ))}
         </div>
       )}
+      
+      {/* Punch Card Scanner */}
+      <PunchCardScanner 
+        isOpen={showPunchCardScanner} 
+        onClose={() => setShowPunchCardScanner(false)} 
+        onPunchAdded={() => {
+          // Refresh the available cards list when a punch is added
+          fetchAvailableCards();
+        }} 
+      />
     </div>
   );
 }
