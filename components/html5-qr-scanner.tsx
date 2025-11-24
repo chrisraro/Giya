@@ -72,8 +72,7 @@ export function Html5QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
         experimentalFeatures: {
           useBarCodeDetectorIfSupported: true,
         },
-        rememberLastUsedCamera: false,
-        showTorchButtonIfSupported: true,
+        verbose: false, // Only valid property in Html5QrcodeFullConfig
       });
 
       // Configure scanner
