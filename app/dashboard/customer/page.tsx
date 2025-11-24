@@ -17,10 +17,10 @@ import { OptimizedImage } from "@/components/optimized-image"
 import { toast } from "sonner"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog"
-import { NewQrScanner } from "@/components/new-qr-scanner";
+import { Html5QrScanner } from "@/components/html5-qr-scanner";
 
-// Use the new QR scanner component directly - it handles client-side rendering internally
-const QrScanner = NewQrScanner;
+// Use the HTML5 QR scanner component with proper error handling
+const QrScanner = Html5QrScanner;
 
 // Import types from the hook
 import type { CustomerData, BusinessPoints, Transaction, Redemption } from "@/hooks/use-dashboard-data"

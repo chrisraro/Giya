@@ -18,7 +18,7 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout"
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { retryWithBackoff } from "@/lib/retry-utils"
 import dynamicImport from 'next/dynamic'
-import { NewQrScanner } from "@/components/new-qr-scanner";
+import { Html5QrScanner } from "@/components/html5-qr-scanner";
 import { BusinessStats } from "@/components/dashboard/business-stats"
 import { QrScannerSection } from "@/components/dashboard/qr-scanner-section"
 import { TransactionHistory } from "@/components/dashboard/transaction-history"
@@ -27,8 +27,8 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 // Force dynamic rendering to prevent build-time errors
 export const dynamic = 'force-dynamic'
 
-// Use the new QR scanner component directly - it handles client-side rendering internally
-const QrScanner = NewQrScanner;
+// Use the HTML5 QR scanner component with proper error handling
+const QrScanner = Html5QrScanner;
 
 interface BusinessData {
   id: string
