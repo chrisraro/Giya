@@ -66,18 +66,43 @@ export function QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
         }
       }
 
+      // Define camera constraints with fallback options for mobile
+      let qrCodeConstraints = { facingMode: "environment" }; // Prefer back camera on mobile
+
+      try {
+        // Try to get video devices to see if we can select rear camera by ID
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+        if (videoDevices.length > 1) {
+          // If we have multiple cameras, try to find the rear camera by label
+          const rearCamera = videoDevices.find(device =>
+            device.label.toLowerCase().includes('back') ||
+            device.label.toLowerCase().includes('rear') ||
+            device.label.toLowerCase().includes('environment')
+          );
+
+          if (rearCamera) {
+            qrCodeConstraints = { deviceId: { exact: rearCamera.deviceId } };
+          }
+        }
+      } catch (deviceEnumError) {
+        console.warn("Could not enumerate devices, using default constraints:", deviceEnumError);
+        // Continue with default constraints
+      }
+
       // Start scanning with retry
       await retryWithBackoff(
         async () => {
           if (!isComponentMounted.current) return
-          
+
           await html5QrCodeRef.current!.start(
-            { facingMode: "environment" },
+            qrCodeConstraints,
             config,
             (decodedText, decodedResult) => {
               // Check if component is still mounted
               if (!isComponentMounted.current) return
-              
+
               // QR code detected
               console.log("QR Code detected:", decodedText)
               stopCamera()

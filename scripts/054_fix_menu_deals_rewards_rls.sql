@@ -13,6 +13,9 @@ DROP POLICY IF EXISTS "Businesses can delete their own menu items" ON public.men
 DROP POLICY IF EXISTS "Customers can view available menu items" ON public.menu_items;
 DROP POLICY IF EXISTS "Admins can view all menu items" ON public.menu_items;
 DROP POLICY IF EXISTS "Admins can manage all menu items" ON public.menu_items;
+DROP POLICY IF EXISTS "business_full_access_own_menu_items" ON public.menu_items;
+DROP POLICY IF EXISTS "customers_view_available_menu_items" ON public.menu_items;
+DROP POLICY IF EXISTS "admins_full_access_all_menu_items" ON public.menu_items;
 
 -- Create new consolidated policies for menu_items
 
@@ -57,6 +60,9 @@ DROP POLICY IF EXISTS "Businesses can delete their own deals" ON public.deals;
 DROP POLICY IF EXISTS "Customers can view active deals" ON public.deals;
 DROP POLICY IF EXISTS "Admins can view all deals" ON public.deals;
 DROP POLICY IF EXISTS "Admins can manage all deals" ON public.deals;
+DROP POLICY IF EXISTS "business_full_access_own_deals" ON public.deals;
+DROP POLICY IF EXISTS "customers_view_active_deals" ON public.deals;
+DROP POLICY IF EXISTS "admins_full_access_all_deals" ON public.deals;
 
 -- Create new consolidated policies for deals
 
@@ -68,14 +74,13 @@ CREATE POLICY "business_full_access_own_deals"
   USING (business_id = auth.uid())
   WITH CHECK (business_id = auth.uid());
 
--- Policy 2: Customers can view active and valid deals
+-- Policy 2: Customers can view active deals
 CREATE POLICY "customers_view_active_deals"
   ON public.deals
   FOR SELECT
   TO authenticated
   USING (
     is_active = true
-    AND (validity_end IS NULL OR validity_end > NOW())
     AND EXISTS (
       SELECT 1 FROM public.profiles
       WHERE id = auth.uid() AND role = 'customer'
@@ -102,6 +107,10 @@ DROP POLICY IF EXISTS "Businesses can update their own rewards" ON public.reward
 DROP POLICY IF EXISTS "Businesses can delete their own rewards" ON public.rewards;
 DROP POLICY IF EXISTS "Admins can view all rewards" ON public.rewards;
 DROP POLICY IF EXISTS "Admins can manage all rewards" ON public.rewards;
+DROP POLICY IF EXISTS "business_full_access_own_rewards" ON public.rewards;
+DROP POLICY IF EXISTS "customers_view_active_rewards" ON public.rewards;
+DROP POLICY IF EXISTS "public_view_active_rewards" ON public.rewards;
+DROP POLICY IF EXISTS "admins_full_access_all_rewards" ON public.rewards;
 
 -- Create new consolidated policies for rewards
 

@@ -10,60 +10,83 @@ interface GoogleMapProps {
   apiKey?: string
 }
 
-export function GoogleMap({ url, address }: GoogleMapProps) {
+export function GoogleMap({ url, address, apiKey }: GoogleMapProps) {
   const [isValidUrl, setIsValidUrl] = useState(false)
   const [embedUrl, setEmbedUrl] = useState<string | null>(null)
   const isComponentMounted = useRef(true)
 
   useEffect(() => {
     isComponentMounted.current = true;
-    
+
     // Check if URL is valid and create embed URL
     try {
       if (url) {
         // Check if it's a valid Google Maps URL
         const valid = url.includes('google.com/maps') || url.includes('maps.app.goo.gl');
         if (isComponentMounted.current) {
-          setIsValidUrl(!!valid)
+          setIsValidUrl(valid)
         }
-        
+
         if (valid) {
-          // Convert URL to embed format
-          let embedUrl = url;
-          
-          // Handle different Google Maps URL formats
-          if (url.includes('maps.app.goo.gl')) {
-            // For short URLs, we'll just link to them
-            if (isComponentMounted.current) {
-              setEmbedUrl(null); // We can't embed short URLs directly
-            }
-          } else if (url.includes('/place/')) {
-            // Extract place ID and create embed URL
-            const placeIdMatch = url.match(/\/place\/([^\/\?]+)/);
-            if (placeIdMatch && placeIdMatch[1]) {
-              embedUrl = `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d30000!2d0!3d0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x${encodeURIComponent(placeIdMatch[1])}!2z${encodeURIComponent(address || '')}!5e0!3m2!1sen!2s!4v1234567890123!5m2!1sen!2s`;
-            } else {
-              // Fallback to basic embed
-              embedUrl = `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d30000!2d0!3d0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z${encodeURIComponent(address || '')}!5e0!3m2!1sen!2s!4v1234567890123!5m2!1sen!2s`;
-            }
-          } else if (url.includes('/@')) {
-            // Extract coordinates from URL like /@lat,lng,zoom
-            const coordMatch = url.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+),(\d+)z/);
-            if (coordMatch) {
-              const [, lat, lng] = coordMatch;
-              embedUrl = `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d30000!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z${encodeURIComponent(address || '')}!5e0!3m2!1sen!2s!4v1234567890123!5m2!1sen!2s`;
+          // Check if URL is embeddable using the utility function
+          const isEmbeddable = url.includes('google.com/maps/place/') ||
+                               url.includes('google.com/maps/search/') ||
+                               url.includes('google.com/maps/dir/') ||
+                               url.includes('/maps/@');
+
+          if (isEmbeddable) {
+            // Use the utility function but without importing in useEffect
+            // Instead, recreate the logic inline for the most common cases
+            let embedUrl = null;
+            try {
+              const googleMapsApiKey = apiKey || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+
+              if (url.includes('google.com/maps/place/')) {
+                // Extract coordinates or place identifier from URL
+                const match = url.match(/\/maps\/place\/([^\/]+)\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                if (match) {
+                  const [, placeId, lat, lng] = match;
+                  embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${lat},${lng}`;
+                } else {
+                  // If no coordinates found, try to use the place name
+                  const placeNameMatch = url.match(/\/maps\/place\/([^\/]+)/);
+                  if (placeNameMatch) {
+                    const placeName = placeNameMatch[1].replace(/%20/g, ' ').replace(/\+/g, ' ');
+                    embedUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(placeName)}`;
+                  }
+                }
+              } else if (url.includes('google.com/maps/search/')) {
+                const queryParams = new URLSearchParams(new URL(url).search);
+                const searchQuery = queryParams.get('q');
+                if (searchQuery) {
+                  embedUrl = `https://www.google.com/maps/embed/v1/search?key=${googleMapsApiKey}&q=${encodeURIComponent(searchQuery)}`;
+                }
+              } else if (url.includes('google.com/maps/dir/')) {
+                // Directions URL - difficult to embed, so skip
+                embedUrl = null;
+              } else if (url.includes('/maps/@')) {
+                // Extract coordinates from URL like /@lat,lng,zoom
+                const coordMatch = url.match(/\/@(-?\d+\.\d+),(-?\d+\.\d+),(\d+)z/);
+                if (coordMatch) {
+                  const [, lat, lng] = coordMatch;
+                  embedUrl = `https://www.google.com/maps/embed/v1/view?key=${googleMapsApiKey}&center=${lat},${lng}&zoom=15`;
+                }
+              }
+
+              if (embedUrl && isComponentMounted.current) {
+                setEmbedUrl(embedUrl);
+              }
+            } catch (err) {
+              console.error("Error creating embed URL:", err);
+              if (isComponentMounted.current) {
+                setEmbedUrl(null);
+              }
             }
           } else {
-            // For other URLs, try to extract query parameters
-            const urlObj = new URL(url);
-            const qParam = urlObj.searchParams.get('q');
-            if (qParam) {
-              embedUrl = `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d30000!2d0!3d0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z${encodeURIComponent(qParam)}!5e0!3m2!1sen!2s!4v1234567890123!5m2!1sen!2s`;
+            // If not embeddable, set to null so we use the fallback
+            if (isComponentMounted.current) {
+              setEmbedUrl(null);
             }
-          }
-          
-          if (isComponentMounted.current) {
-            setEmbedUrl(embedUrl);
           }
         }
       } else {
@@ -79,7 +102,7 @@ export function GoogleMap({ url, address }: GoogleMapProps) {
         setEmbedUrl(null);
       }
     }
-    
+
     // Cleanup function
     return () => {
       isComponentMounted.current = false;

@@ -77,57 +77,40 @@ export function NewQrScanner({ onScanSuccess, onClose }: QrScannerProps) {
 
   // Request camera access and start scanning
   const startCamera = useCallback(async () => {
-    if (streamRef.current) {
-      // Camera already active, no need to start again
-      return;
-    }
-
+    if (isInitialized) return;
+    
     try {
       setCameraError(null);
-
+      
       // Request camera access
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment", // Prefer back camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+        video: { 
+          facingMode: "environment" // Prefer back camera on mobile
         }
       });
-
-      // Only proceed if component is still mounted
-      if (!mountedRef.current) {
-        // If not mounted, stop the stream immediately
-        stream.getTracks().forEach(track => track.stop());
-        return;
-      }
-
+      
       // Set the stream to the video element
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
-
+        
         // Wait for video to load metadata
         await new Promise<void>((resolve, reject) => {
           if (videoRef.current) {
             videoRef.current.onloadedmetadata = () => resolve();
-            videoRef.current.onerror = () => reject(new Error('Video loading error'));
-
-            // Timeout after 2 seconds if metadata doesn't load
-            setTimeout(() => reject(new Error('Video metadata timeout')), 2000);
           }
         });
-
-        // Start the scan loop only if component is still mounted
-        if (mountedRef.current) {
-          videoRef.current.play();
-          setIsScanning(true);
-
-          // Start scanning loop
-          if (requestRef.current) {
-            cancelAnimationFrame(requestRef.current);
-          }
-          requestRef.current = requestAnimationFrame(scan);
+        
+        // Start the scan loop
+        videoRef.current.play();
+        setIsScanning(true);
+        setIsInitialized(true);
+        
+        // Start scanning loop
+        if (requestRef.current) {
+          cancelAnimationFrame(requestRef.current);
         }
+        requestRef.current = requestAnimationFrame(scan);
       }
     } catch (error) {
       if (!mountedRef.current) return; // Don't update state if unmounted

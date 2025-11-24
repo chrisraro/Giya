@@ -29,6 +29,11 @@ export function DashboardNav({ userRole, userName, userAvatar }: DashboardNavPro
       icon: Gift,
     },
     {
+      title: "Punch Cards",
+      href: "/dashboard/customer/punch-cards",
+      icon: QrCode,
+    },
+    {
       title: "Discover",
       href: "/",
       icon: TrendingUp,
@@ -47,6 +52,11 @@ export function DashboardNav({ userRole, userName, userAvatar }: DashboardNavPro
       icon: LayoutDashboard,
     },
     {
+      title: "Punch Cards",
+      href: "/dashboard/business/punch-cards",
+      icon: QrCode,
+    },
+    {
       title: "Discounts",
       href: "/dashboard/business/discounts",
       icon: Tag,
@@ -61,7 +71,6 @@ export function DashboardNav({ userRole, userName, userAvatar }: DashboardNavPro
       href: "/dashboard/business/rewards",
       icon: Gift,
     },
-
     {
       title: "Settings",
       href: "/dashboard/business/settings",

@@ -115,6 +115,11 @@ export function AppSidebar({
       icon: Gift,
     },
     {
+      title: "Punch Cards",
+      url: "/dashboard/customer/punch-cards",
+      icon: QrCode,
+    },
+    {
       title: "Transactions",
       url: "/dashboard/customer/transactions",
       icon: Wallet,
@@ -136,6 +141,11 @@ export function AppSidebar({
       title: "Overview",
       url: "/dashboard/business",
       icon: LayoutDashboard,
+    },
+    {
+      title: "Punch Cards",
+      url: "/dashboard/business/punch-cards",
+      icon: QrCode,
     },
     {
       title: "Menu",
