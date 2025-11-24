@@ -227,135 +227,134 @@ export default function BusinessPunchCardsPage() {
               onOperationComplete={fetchPunchCards}
             />
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleCreateNew} className="w-full sm:w-auto">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Punch Card
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-full sm:max-w-2xl w-[95%] sm:w-auto mx-auto">
-              <DialogHeader>
-                <DialogTitle className="text-xl sm:text-2xl">
-                  {editingPunchCard ? 'Edit Punch Card' : 'Create New Punch Card'}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingPunchCard
-                    ? 'Update the details of your punch card program'
-                    : 'Create a new punch card loyalty program'}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe your punch card program..."
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="punchesRequired">Punches Required</Label>
-                  <Input
-                    id="punchesRequired"
-                    type="number"
-                    value={punchesRequired}
-                    onChange={(e) => setPunchesRequired(Number(e.target.value))}
-                    min="1"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="rewardDescription">Reward Description</Label>
-                  <Input
-                    id="rewardDescription"
-                    value={rewardDescription}
-                    onChange={(e) => setRewardDescription(e.target.value)}
-                    required
-                    placeholder="e.g., Free coffee after 10 purchases"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="imageUrl">Image URL (Optional)</Label>
-                <Input
-                  id="imageUrl"
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="validFrom">Valid From</Label>
-                  <Input
-                    id="validFrom"
-                    type="datetime-local"
-                    value={validFrom.replace('Z', '')}
-                    onChange={(e) => setValidFrom(e.target.value + 'Z')}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="validUntil">Valid Until</Label>
-                  <Input
-                    id="validUntil"
-                    type="datetime-local"
-                    value={validUntil?.replace('Z', '') || ''}
-                    onChange={(e) => setValidUntil(e.target.value ? e.target.value + 'Z' : '')}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  id="isActive"
-                  type="checkbox"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                <Label htmlFor="isActive">Active</Label>
-              </div>
-
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setIsDialogOpen(false);
-                    resetForm();
-                  }}
-                  className="w-full sm:w-auto"
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" className="w-full sm:w-auto">
-                  {editingPunchCard ? 'Update' : 'Create'}
-                </Button>
-              </div>
-            </form>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={handleCreateNew} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Punch Card
+          </Button>
         </div>
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-full sm:max-w-2xl w-[95%] sm:w-auto mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl sm:text-2xl">
+              {editingPunchCard ? 'Edit Punch Card' : 'Create New Punch Card'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingPunchCard
+                ? 'Update the details of your punch card program'
+                : 'Create a new punch card loyalty program'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe your punch card program..."
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="punchesRequired">Punches Required</Label>
+              <Input
+                id="punchesRequired"
+                type="number"
+                value={punchesRequired}
+                onChange={(e) => setPunchesRequired(Number(e.target.value))}
+                min="1"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="rewardDescription">Reward Description</Label>
+              <Input
+                id="rewardDescription"
+                value={rewardDescription}
+                onChange={(e) => setRewardDescription(e.target.value)}
+                required
+                placeholder="e.g., Free coffee after 10 purchases"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="imageUrl">Image URL (Optional)</Label>
+            <Input
+              id="imageUrl"
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="validFrom">Valid From</Label>
+              <Input
+                id="validFrom"
+                type="datetime-local"
+                value={validFrom.replace('Z', '')}
+                onChange={(e) => setValidFrom(e.target.value + 'Z')}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="validUntil">Valid Until</Label>
+              <Input
+                id="validUntil"
+                type="datetime-local"
+                value={validUntil?.replace('Z', '') || ''}
+                onChange={(e) => setValidUntil(e.target.value ? e.target.value + 'Z' : '')}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              id="isActive"
+              type="checkbox"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <Label htmlFor="isActive">Active</Label>
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsDialogOpen(false);
+                resetForm();
+              }}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" className="w-full sm:w-auto">
+              {editingPunchCard ? 'Update' : 'Create'}
+            </Button>
+          </div>
+        </form>
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">

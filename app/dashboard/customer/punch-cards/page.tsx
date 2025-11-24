@@ -89,9 +89,9 @@ export default function CustomerPunchCardsPage() {
               Track your progress in punch card loyalty programs
             </p>
           </div>
-          <Button onClick={() => router.push('/dashboard/customer/punch-cards/discover')}>
+          <Button onClick={() => router.push('/dashboard/customer/discover')}>
             <Plus className="mr-2 h-4 w-4" />
-            Discover More
+            Discover Businesses
           </Button>
         </div>
       </div>
@@ -109,7 +109,7 @@ export default function CustomerPunchCardsPage() {
               You're not participating in any punch card programs yet. 
               Visit businesses to start collecting punches!
             </p>
-            <Button>
+            <Button onClick={() => router.push('/dashboard/customer/discover')}>
               <MapPin className="mr-2 h-4 w-4" />
               Discover Businesses
             </Button>

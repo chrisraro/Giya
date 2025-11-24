@@ -42,7 +42,7 @@ export default function CustomerDiscoverPage() {
     if (scannerRef.current) return
 
     const scanner = new Html5QrcodeScanner(
-      "reader",
+      "qr-reader",
       { fps: 10, qrbox: { width: 250, height: 250 } },
       false
     )
@@ -184,7 +184,7 @@ export default function CustomerDiscoverPage() {
           <CardContent>
             <div className="flex flex-col items-center gap-4">
               <div className="relative w-full max-w-md aspect-square bg-muted rounded-lg flex items-center justify-center">
-                <QrCode className="h-16 w-16 text-muted-foreground" />
+                <div id="qr-reader" className="w-full h-full rounded-lg overflow-hidden"></div>
               </div>
               
               <Button 
