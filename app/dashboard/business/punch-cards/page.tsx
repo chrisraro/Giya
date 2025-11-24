@@ -10,9 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { CalendarIcon, Plus, QrCode, Edit, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { CalendarIcon, Plus, QrCode, Edit, Trash2, CheckCircle, Clock, XCircle, User, TrendingUp, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { PunchCard, createPunchCard, getPunchCardsForBusiness, updatePunchCard, deletePunchCard } from '@/lib/punch-cards';
+import { PunchCardQrGenerator } from '@/components/punch-card-qr-generator';
+import { BulkPunchCardOperations } from '@/components/bulk-punch-card-operations';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 
@@ -201,6 +203,29 @@ export default function BusinessPunchCardsPage() {
                 Create and manage punch card loyalty programs
               </p>
             </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/dashboard/business/punch-cards/customers')}
+              className="w-full sm:w-auto"
+            >
+              <User className="mr-2 h-4 w-4" />
+              View Customers
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/dashboard/business/punch-cards/analytics')}
+              className="w-full sm:w-auto"
+            >
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Analytics
+            </Button>
+            <BulkPunchCardOperations 
+              businessId={user!.id}
+              punchCards={punchCards}
+              onOperationComplete={fetchPunchCards}
+            />
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -399,6 +424,15 @@ export default function BusinessPunchCardsPage() {
                     />
                   </div>
                 )}
+                
+                {/* Punch Card QR Code */}
+                <div className="mt-4">
+                  <PunchCardQrGenerator 
+                    punchCardId={punchCard.id}
+                    title={punchCard.title}
+                    businessName="Your Business"
+                  />
+                </div>
               </CardHeader>
               <CardContent className="flex-1 pt-3">
                 <p className="text-sm text-muted-foreground mb-4">

@@ -16,8 +16,14 @@ BEGIN
     -- Optional: Update business stats or add any other business logic
     -- For example, track completion in a separate analytics table
     
-    -- You can add a notification or reward here
+    -- Send notification to customer
+    -- This would typically be handled by a separate notification service
+    -- For now, we'll just log it
     RAISE NOTICE 'Punch card completed for customer %', NEW.customer_id;
+    
+    -- In a real implementation, you might insert into a notifications table here
+    -- INSERT INTO notifications (user_id, message, type, created_at)
+    -- VALUES (NEW.customer_id, 'Congratulations! You completed a punch card and earned a reward!', 'punch_card_completion', NOW());
   END IF;
 
   RETURN NEW;
@@ -25,7 +31,7 @@ END;
 $$ language 'plpgsql';
 
 -- Create the trigger on punch_card_customers table
-CREATE TRIGGER trigger_punch_card_completion
+CREATE OR REPLACE TRIGGER trigger_punch_card_completion
   AFTER UPDATE OF is_completed ON punch_card_customers
   FOR EACH ROW
   EXECUTE FUNCTION handle_punch_card_completion();
@@ -71,7 +77,7 @@ END;
 $$ language 'plpgsql';
 
 -- Create the trigger on punch_card_punches table
-CREATE TRIGGER trigger_sync_punch_with_transaction
+CREATE OR REPLACE TRIGGER trigger_sync_punch_with_transaction
   AFTER INSERT ON punch_card_punches
   FOR EACH ROW
   EXECUTE FUNCTION sync_punch_with_transaction();
@@ -102,7 +108,7 @@ END;
 $$ language 'plpgsql';
 
 -- Trigger to update customer stats when punch card status changes
-CREATE TRIGGER trigger_update_customer_punch_card_stats
+CREATE OR REPLACE TRIGGER trigger_update_customer_punch_card_stats
   AFTER UPDATE OF is_completed ON punch_card_customers
   FOR EACH ROW
   EXECUTE FUNCTION update_customer_punch_card_stats();
@@ -138,7 +144,7 @@ END;
 $$ language 'plpgsql';
 
 -- Trigger to verify consistency when punch card customer record is updated
-CREATE TRIGGER trigger_verify_punch_card_consistency
+CREATE OR REPLACE TRIGGER trigger_verify_punch_card_consistency
   AFTER UPDATE ON punch_card_customers
   FOR EACH ROW
   EXECUTE FUNCTION verify_punch_card_consistency();

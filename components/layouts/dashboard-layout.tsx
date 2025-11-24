@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { NotificationBell } from "@/components/notification-bell";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -175,6 +176,10 @@ export function DashboardLayout({
                 </BreadcrumbList>
               </Breadcrumb>
             )}
+          </div>
+          {/* Notification Bell */}
+          <div>
+            <NotificationBell />
           </div>
           {/* Profile Avatar and Name */}
           <div className="relative" ref={profileMenuRef}>

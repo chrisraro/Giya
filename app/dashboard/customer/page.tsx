@@ -18,6 +18,7 @@ import { toast } from "sonner"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog"
 import { Html5QrScanner } from "@/components/html5-qr-scanner";
+import { PunchCardScanner } from "@/components/punch-card-scanner";
 
 // Use the HTML5 QR scanner component with proper error handling
 const QrScanner = Html5QrScanner;
@@ -447,6 +448,7 @@ export default function CustomerDashboard() {
   const [redemptionDetails, setRedemptionDetails] = useState<any>(null)
   const [showRedeemDialog, setShowRedeemDialog] = useState(false)
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
+  const [showPunchCardScanner, setShowPunchCardScanner] = useState(false)
 
   const handleQrScan = () => {
     setIsQrScannerOpen(true)
@@ -873,7 +875,10 @@ export default function CustomerDashboard() {
         </div>
         
         {/* Mobile Bottom Navigation */}
-        <MobileCustomerBottomNav onQrScan={handleQrScan} />
+        <MobileCustomerBottomNav 
+                  onQrScan={handleQrScan} 
+                  onPunchCardScan={() => router.push('/dashboard/customer/punch-cards')}
+                />
       </DashboardLayout>
     )
   }
@@ -906,7 +911,10 @@ export default function CustomerDashboard() {
         </div>
         
         {/* Mobile Bottom Navigation */}
-        <MobileCustomerBottomNav onQrScan={handleQrScan} />
+        <MobileCustomerBottomNav 
+                  onQrScan={handleQrScan} 
+                  onPunchCardScan={() => router.push('/dashboard/customer/punch-cards')}
+                />
       </DashboardLayout>
     )
   }
@@ -2033,6 +2041,16 @@ export default function CustomerDashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Punch Card Scanner */}
+      <PunchCardScanner 
+        isOpen={showPunchCardScanner} 
+        onClose={() => setShowPunchCardScanner(false)} 
+        onPunchAdded={() => {
+          // Refresh dashboard data when a punch is added
+          refetch()
+        }} 
+      />
       
       {/* Redemption QR Code Dialog */}
       <Dialog open={showRedemptionQR} onOpenChange={setShowRedemptionQR}>
@@ -2103,7 +2121,10 @@ export default function CustomerDashboard() {
       </Dialog>
       
       {/* Mobile Bottom Navigation */}
-      <MobileCustomerBottomNav onQrScan={handleQrScan} />
+      <MobileCustomerBottomNav 
+        onQrScan={handleQrScan}
+        onPunchCardScan={() => setShowPunchCardScanner(true)}
+      />
     </DashboardLayout>
   )
 }

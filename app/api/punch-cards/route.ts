@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
     const businessId = url.searchParams.get('businessId');
     const customerId = url.searchParams.get('customerId');
     const punchCardId = url.searchParams.get('punchCardId');
+    const available = url.searchParams.get('available');
 
     // Create client with request context for database operations
     const supabase = createClient(request);
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch punch cards for a customer (their active punch cards)
-    if (customerId) {
+    if (customerId && !available) {
       if (session.user.id !== customerId) {
         return Response.json({ error: 'Forbidden' }, { status: 403 });
       }
@@ -93,7 +94,8 @@ export async function GET(request: NextRequest) {
             image_url,
             is_active,
             valid_from,
-            valid_until
+            valid_until,
+            businesses (business_name)
           )
         `)
         .eq('customer_id', customerId);
@@ -111,19 +113,71 @@ export async function GET(request: NextRequest) {
         last_punch_at: item.last_punch_at,
         completed_at: item.completed_at,
         punch_card: {
-          id: item.punch_cards.id,
-          title: item.punch_cards.title,
-          description: item.punch_cards.description,
-          punches_required: item.punch_cards.punches_required,
-          reward_description: item.punch_cards.reward_description,
-          image_url: item.punch_cards.image_url,
-          is_active: item.punch_cards.is_active,
-          valid_from: item.punch_cards.valid_from,
-          valid_until: item.punch_cards.valid_until
+          id: item.punch_cards[0]?.id,
+          title: item.punch_cards[0]?.title,
+          description: item.punch_cards[0]?.description,
+          punches_required: item.punch_cards[0]?.punches_required,
+          reward_description: item.punch_cards[0]?.reward_description,
+          image_url: item.punch_cards[0]?.image_url,
+          is_active: item.punch_cards[0]?.is_active,
+          valid_from: item.punch_cards[0]?.valid_from,
+          valid_until: item.punch_cards[0]?.valid_until,
+          business_name: item.punch_cards[0]?.businesses?.[0]?.business_name || 'Business'
         }
       }));
 
       return Response.json({ data: formattedData }, { status: 200 });
+    }
+
+    // Fetch available punch cards for a customer (not yet joined)
+    if (customerId && available) {
+      if (session.user.id !== customerId) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      // First, get the IDs of punch cards the customer has already joined
+      const { data: existingParticipations, error: participationError } = await supabase
+        .from('punch_card_customers')
+        .select('punch_card_id')
+        .eq('customer_id', customerId);
+
+      if (participationError) {
+        return Response.json({ error: participationError.message }, { status: 500 });
+      }
+
+      const joinedPunchCardIds = existingParticipations.map(p => p.punch_card_id);
+
+      // Then, fetch all active punch cards that the customer hasn't joined yet
+      let query = supabase
+        .from('punch_cards')
+        .select(`
+          id,
+          title,
+          description,
+          punches_required,
+          reward_description,
+          image_url,
+          is_active,
+          valid_from,
+          valid_until,
+          businesses (business_name)
+        `)
+        .eq('is_active', true)
+        .gte('valid_until', new Date().toISOString())
+        .order('created_at', { ascending: false });
+
+      // Exclude punch cards the customer has already joined
+      if (joinedPunchCardIds.length > 0) {
+        query = query.not('id', 'in', `(${joinedPunchCardIds.join(',')})`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        return Response.json({ error: error.message }, { status: 500 });
+      }
+
+      return Response.json({ data }, { status: 200 });
     }
 
     // Fetch a specific punch card

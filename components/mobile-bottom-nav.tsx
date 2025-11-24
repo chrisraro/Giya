@@ -8,15 +8,17 @@ import {
   Home, 
   Wallet, 
   QrCode, 
-  BarChart3 
+  BarChart3,
+  Ticket
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface MobileBottomNavProps {
   onQrScan: () => void
+  onPunchCardScan?: () => void
 }
 
-export function MobileBottomNav({ onQrScan }: MobileBottomNavProps) {
+export function MobileBottomNav({ onQrScan, onPunchCardScan }: MobileBottomNavProps) {
   const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(true)
   
@@ -83,6 +85,22 @@ export function MobileBottomNav({ onQrScan }: MobileBottomNavProps) {
             <QrCode className="h-7 w-7 text-primary-foreground transition-transform duration-300 group-hover:scale-110" />
           </Button>
         </div>
+        
+        {/* Punch Card Scanner - Center Right */}
+        {onPunchCardScan && (
+          <div className="absolute right-16 flex flex-col items-center gap-0.5 touch-target">
+            <Button
+              onClick={onPunchCardScan}
+              size="icon"
+              className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center group"
+            >
+              <Ticket className="h-6 w-6 text-primary-foreground transition-transform duration-300 group-hover:scale-110" />
+            </Button>
+            <span className="text-[10px] font-medium text-muted-foreground leading-tight">
+              Punch
+            </span>
+          </div>
+        )}
         
         {/* Transactions - Right */}
         <div className="absolute right-4 flex flex-col items-center gap-0.5 touch-target">

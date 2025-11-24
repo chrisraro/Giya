@@ -1,5 +1,6 @@
 // This file exports all UI components for easy importing
 
+export * from './alert'
 export * from './aspect-ratio'
 export * from './avatar'
 export * from './badge'
@@ -10,6 +11,9 @@ export * from './chip'
 export * from './dialog'
 export * from './input'
 export * from './label'
+export * from './popover'
+export * from './progress'
+export * from './scroll-area'
 export * from './select'
 export * from './separator'
 export * from './skeleton'

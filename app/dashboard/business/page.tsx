@@ -365,7 +365,10 @@ export default function BusinessDashboard() {
         </div>
         
         {/* Mobile Bottom Navigation */}
-        <MobileBottomNav onQrScan={() => setShowScanner(true)} />
+        <MobileBottomNav 
+          onQrScan={() => setShowScanner(true)} 
+          onPunchCardScan={() => router.push('/dashboard/business/punch-cards')}
+        />
       </DashboardLayout>
     )
   }
@@ -387,7 +390,10 @@ export default function BusinessDashboard() {
         </div>
         
         {/* Mobile Bottom Navigation */}
-        <MobileBottomNav onQrScan={() => setShowScanner(true)} />
+        <MobileBottomNav 
+          onQrScan={() => setShowScanner(true)} 
+          onPunchCardScan={() => router.push('/dashboard/business/punch-cards')}
+        />
       </DashboardLayout>
     )
   }
@@ -409,7 +415,10 @@ export default function BusinessDashboard() {
         </div>
         
         {/* Mobile Bottom Navigation */}
-        <MobileBottomNav onQrScan={() => setShowScanner(true)} />
+        <MobileBottomNav 
+          onQrScan={() => setShowScanner(true)} 
+          onPunchCardScan={() => router.push('/dashboard/business/punch-cards')}
+        />
       </DashboardLayout>
     )
   }
