@@ -25,7 +25,10 @@ export default function UniversalForceRefreshFix() {
           // Special handling for dashboard navigation to prevent the removeChild error
           if (href.includes('/dashboard/')) {
             event.preventDefault();
-            console.log('🔄 Universal navigation forcing refresh to:', href);
+            // Only log in development environment
+            if (process.env.NODE_ENV === 'development') {
+              console.log('🔄 Universal navigation forcing refresh to:', href);
+            }
             window.location.href = href;
           }
         }
@@ -36,7 +39,10 @@ export default function UniversalForceRefreshFix() {
     const originalPush = router.push;
     router.push = (href: string, options?: any) => {
       if (typeof href === 'string' && href.includes('/dashboard/') && !href.startsWith('http')) {
-        console.log('🔄 Router.push intercepted, forcing refresh:', href);
+        // Only log in development environment
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 Router.push intercepted, forcing refresh:', href);
+        }
         window.location.href = href;
         return;
       }

@@ -48,7 +48,10 @@ export async function retryWithBackoff<T>(
       const jitter = Math.random() * 0.1 * currentDelay;
       const finalDelay = currentDelay + jitter;
       
-      console.warn(`Attempt ${attempt + 1} failed. Retrying in ${finalDelay}ms...`, error);
+      // Only log in development environment
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Attempt ${attempt + 1} failed. Retrying in ${finalDelay}ms...`, error);
+      }
       
       // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, finalDelay));

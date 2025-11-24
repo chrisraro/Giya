@@ -21,7 +21,10 @@ export class DomErrorBoundary extends Component<Props, State> {
   static getDerivedStateFromError(error: Error): State {
     // Check if it's the specific removeChild error
     if (error.message?.includes('removeChild') || error.name === 'NotFoundError') {
-      console.warn('🔧 DOM Error caught by boundary, recovering...', error.message);
+      // Only log in development environment
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🔧 DOM Error caught by boundary, recovering...', error.message);
+      }
       return { hasError: true, error };
     }
     
@@ -30,12 +33,17 @@ export class DomErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('🚨 DOM Error Boundary caught error:', error, errorInfo);
+    // Only log in development environment
+    if (process.env.NODE_ENV === 'development') {
+      console.error('🚨 DOM Error Boundary caught error:', error, errorInfo);
+    }
     
     // Auto-recovery after a brief delay
     setTimeout(() => {
       this.setState({ hasError: false });
-      console.log('✅ DOM Error Boundary recovered');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ DOM Error Boundary recovered');
+      }
     }, 100);
   }
 
