@@ -19,6 +19,11 @@ yarn-error.log*
 # env files
 .env*
 
+# Google Cloud & Firebase credentials (NEVER commit these!)
+giya-ocr-production-00722c03958b.json
+*-service-account*.json
+firebase-service-account.json
+
 # vercel
 .vercel
 

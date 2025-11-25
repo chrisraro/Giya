@@ -12,15 +12,16 @@ import {
   Ticket
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { UnifiedScanner } from "@/components/unified-scanner"
 
 interface MobileBottomNavProps {
-  onQrScan: () => void
-  onPunchCardScan?: () => void
+  onQrScan?: (data: string) => void // Optional callback for QR scan results
 }
 
-export function MobileBottomNav({ onQrScan, onPunchCardScan }: MobileBottomNavProps) {
+export function MobileBottomNav({ onQrScan }: MobileBottomNavProps) {
   const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(true)
+  const [showScanner, setShowScanner] = useState(false)
   
   // Hide bottom nav when scrolling down, show when scrolling up
   useEffect(() => {
@@ -41,10 +42,11 @@ export function MobileBottomNav({ onQrScan, onPunchCardScan }: MobileBottomNavPr
   }
 
   return (
-    <div className={cn(
-      "md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border transition-transform duration-300 safe-area-bottom",
-      isVisible ? "translate-y-0" : "translate-y-full"
-    )}>
+    <>
+      <div className={cn(
+        "md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border transition-transform duration-300 safe-area-bottom",
+        isVisible ? "translate-y-0" : "translate-y-full"
+      )}>
       <div className="relative h-20 flex items-center justify-center px-4 py-2">
         {/* Overview/Home - Left */}
         <div className="absolute left-4 flex flex-col items-center gap-0.5 touch-target">
@@ -78,29 +80,13 @@ export function MobileBottomNav({ onQrScan, onPunchCardScan }: MobileBottomNavPr
         {/* QR Scanner - Center (prominent) */}
         <div className="absolute left-1/2 transform -translate-x-1/2 touch-target">
           <Button
-            onClick={onQrScan}
+            onClick={() => setShowScanner(true)}
             size="icon"
             className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary/90 shadow-lg hover:from-primary/90 hover:to-primary transition-all duration-300 -translate-y-6 flex items-center justify-center group z-10 active:scale-95"
           >
             <QrCode className="h-7 w-7 text-primary-foreground transition-transform duration-300 group-hover:scale-110" />
           </Button>
         </div>
-        
-        {/* Punch Card Scanner - Center Right */}
-        {onPunchCardScan && (
-          <div className="absolute right-16 flex flex-col items-center gap-0.5 touch-target">
-            <Button
-              onClick={onPunchCardScan}
-              size="icon"
-              className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center group"
-            >
-              <Ticket className="h-6 w-6 text-primary-foreground transition-transform duration-300 group-hover:scale-110" />
-            </Button>
-            <span className="text-[10px] font-medium text-muted-foreground leading-tight">
-              Punch
-            </span>
-          </div>
-        )}
         
         {/* Transactions - Right */}
         <div className="absolute right-4 flex flex-col items-center gap-0.5 touch-target">
@@ -136,6 +122,14 @@ export function MobileBottomNav({ onQrScan, onPunchCardScan }: MobileBottomNavPr
           padding-bottom: env(safe-area-inset-bottom);
         }
       `}</style>
-    </div>
+      </div>
+      
+      <UnifiedScanner 
+        open={showScanner}
+        onOpenChange={setShowScanner}
+        userRole="business"
+        onBusinessScan={onQrScan}
+      />
+    </>
   )
 }

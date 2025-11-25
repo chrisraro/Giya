@@ -1,0 +1,14 @@
+# TEMPORARILY HIDDEN
+
+This punch cards module is temporarily hidden from the UI but preserved in the codebase.
+
+## Status
+- Navigation: Hidden from sidebar
+- Pages: Preserved but not accessible via navigation
+- Components: Preserved in /components folder
+- Database: All tables and data intact
+
+## To Re-enable
+1. Add punch cards navigation back to `components/app-sidebar.tsx`
+2. Test all functionality
+3. Remove this file

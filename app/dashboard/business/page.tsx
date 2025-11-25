@@ -619,7 +619,7 @@ export default function BusinessDashboard() {
       </Dialog>
       
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav onQrScan={() => setShowScanner(true)} />
+      <MobileBottomNav onQrScan={handleScanSuccess} />
     </DashboardLayout>
   )
 }

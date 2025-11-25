@@ -120,13 +120,17 @@ export function Html5QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
   const stopCamera = useCallback(async () => {
     try {
       if (html5QrCodeRef.current) {
-        if (html5QrCodeRef.current.getState() !== Html5QrcodeScannerState.NOT_STARTED) {
+        const currentState = html5QrCodeRef.current.getState();
+        if (currentState === Html5QrcodeScannerState.SCANNING || currentState === Html5QrcodeScannerState.PAUSED) {
           await html5QrCodeRef.current.stop();
         }
+        // Clear the reference after stopping
+        html5QrCodeRef.current = null;
       }
     } catch (error) {
-      console.error("Error stopping camera:", error);
-      // We don't show this error to the user as it's not critical
+      console.warn("Error stopping camera:", error);
+      // Force clear the reference even if stop fails
+      html5QrCodeRef.current = null;
     } finally {
       if (isComponentMounted.current) {
         setIsScanning(false);
@@ -178,9 +182,18 @@ export function Html5QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
 
     return () => {
       isComponentMounted.current = false;
-      stopCamera();
+      // Cleanup: stop camera if running
+      if (html5QrCodeRef.current) {
+        const currentState = html5QrCodeRef.current.getState();
+        if (currentState === Html5QrcodeScannerState.SCANNING || currentState === Html5QrcodeScannerState.PAUSED) {
+          html5QrCodeRef.current.stop().catch(err => {
+            console.warn('Cleanup: Error stopping camera:', err);
+          });
+        }
+        html5QrCodeRef.current = null;
+      }
     };
-  }, [startCamera, stopCamera]);
+  }, [startCamera]);
 
   return (
     <div className="space-y-4">
