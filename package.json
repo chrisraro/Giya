@@ -11,6 +11,7 @@
     "test:ocr": "node scripts/test-ocr-config.js"
   },
   "dependencies": {
+    "@google-cloud/vision": "^4.3.3",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -50,6 +51,8 @@
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.1",
     "express-rate-limit": "^8.1.0",
+    "firebase": "^12.6.0",
+    "firebase-admin": "^13.6.0",
     "geist": "^1.3.1",
     "html5-qrcode": "^2.3.8",
     "input-otp": "1.4.1",
