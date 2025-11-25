@@ -22,9 +22,13 @@ export function ReceiptUpload({
   onUploadComplete
 }: ReceiptUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [processingError, setProcessingError] = useState<string | null>(null);
   const [isUploaded, setIsUploaded] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<'idle' | 'processing' | 'success' | 'failed'>('idle');
+  const [pointsEarned, setPointsEarned] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
@@ -34,7 +38,10 @@ export function ReceiptUpload({
 
     // Reset previous states
     setUploadError(null);
+    setProcessingError(null);
     setIsUploaded(false);
+    setProcessingStatus('idle');
+    setPointsEarned(null);
 
     // Validate file using security utility
     const validation = validateImageFile(file);
@@ -88,6 +95,11 @@ export function ReceiptUpload({
       setIsUploaded(true);
       toast.success('Receipt uploaded successfully');
       
+      // Show processing indicator
+      setProcessingStatus('processing');
+      setIsProcessing(true);
+      toast.info('🔍 Scanning receipt...', { duration: 2000 });
+      
       // Automatically trigger OCR processing
       try {
         const response = await fetch('/api/receipts/process', {
@@ -99,14 +111,45 @@ export function ReceiptUpload({
         const result = await response.json();
         
         if (response.ok) {
-          toast.success(result.message || 'Receipt processed successfully!');
+          setProcessingStatus('success');
+          setPointsEarned(result.pointsEarned || 0);
+          toast.success(
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold">✅ Receipt Processed!</span>
+              <span className="text-sm">You earned {result.pointsEarned} points</span>
+              {result.ocrData?.totalAmount && (
+                <span className="text-xs opacity-75">Amount: ₱{result.ocrData.totalAmount.toFixed(2)}</span>
+              )}
+            </div>,
+            { duration: 5000 }
+          );
         } else {
-          console.error('OCR processing failed:', result.error);
-          toast.warning('Receipt uploaded but processing failed. Will retry automatically.');
+          setProcessingStatus('failed');
+          setProcessingError(result.error || 'Processing failed');
+          console.error('OCR processing failed:', result);
+          toast.error(
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold">❌ Processing Failed</span>
+              <span className="text-sm">{result.error || 'Could not read receipt'}</span>
+              <span className="text-xs opacity-75">Please try again with a clearer image</span>
+            </div>,
+            { duration: 6000 }
+          );
         }
       } catch (ocrError) {
+        setProcessingStatus('failed');
+        setProcessingError('Network error during processing');
         console.error('Error triggering OCR:', ocrError);
-        toast.warning('Receipt uploaded. Processing will complete shortly.');
+        toast.error(
+          <div className="flex flex-col gap-1">
+            <span className="font-semibold">⚠️ Connection Error</span>
+            <span className="text-sm">Could not process receipt</span>
+            <span className="text-xs opacity-75">Check your internet connection</span>
+          </div>,
+          { duration: 6000 }
+        );
+      } finally {
+        setIsProcessing(false);
       }
       
       onUploadComplete(receiptData.id);
@@ -133,6 +176,9 @@ export function ReceiptUpload({
     setPreviewUrl(null);
     setIsUploaded(false);
     setUploadError(null);
+    setProcessingError(null);
+    setProcessingStatus('idle');
+    setPointsEarned(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -151,18 +197,25 @@ export function ReceiptUpload({
               className="object-contain rounded-lg border"
             />
             {isUploading && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
-                <Loader2 className="h-8 w-8 animate-spin text-white" />
+              <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center rounded-lg">
+                <Loader2 className="h-8 w-8 animate-spin text-white mb-2" />
+                <span className="text-white text-sm">Uploading...</span>
               </div>
             )}
-            {isUploaded && (
-              <div className="absolute top-2 right-2 bg-green-500 rounded-full p-1">
-                <CheckCircle className="h-5 w-5 text-white" />
+            {isProcessing && (
+              <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center rounded-lg">
+                <Loader2 className="h-8 w-8 animate-spin text-white mb-2" />
+                <span className="text-white text-sm">Scanning receipt...</span>
               </div>
             )}
-            {uploadError && (
-              <div className="absolute top-2 right-2 bg-red-500 rounded-full p-1">
-                <AlertCircle className="h-5 w-5 text-white" />
+            {processingStatus === 'success' && (
+              <div className="absolute top-2 right-2 bg-green-500 rounded-full p-2">
+                <CheckCircle className="h-6 w-6 text-white" />
+              </div>
+            )}
+            {processingStatus === 'failed' && (
+              <div className="absolute top-2 right-2 bg-red-500 rounded-full p-2">
+                <AlertCircle className="h-6 w-6 text-white" />
               </div>
             )}
           </div>
@@ -182,9 +235,33 @@ export function ReceiptUpload({
       </div>
       
       {uploadError && (
-        <div className="text-sm text-red-500 flex items-center gap-2">
-          <AlertCircle className="h-4 w-4" />
-          {uploadError}
+        <div className="text-sm text-red-500 flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Upload Failed</p>
+            <p className="text-xs">{uploadError}</p>
+          </div>
+        </div>
+      )}
+      
+      {processingError && (
+        <div className="text-sm text-red-500 flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Processing Failed</p>
+            <p className="text-xs">{processingError}</p>
+            <p className="text-xs mt-1 opacity-75">Try uploading a clearer image of the receipt</p>
+          </div>
+        </div>
+      )}
+      
+      {processingStatus === 'success' && pointsEarned !== null && (
+        <div className="text-sm text-green-600 flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+          <CheckCircle className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Receipt Processed Successfully!</p>
+            <p className="text-xs">You earned <span className="font-bold">{pointsEarned} points</span></p>
+          </div>
         </div>
       )}
       
@@ -196,7 +273,7 @@ export function ReceiptUpload({
         className="hidden"
         ref={fileInputRef}
         onChange={handleFileChange}
-        disabled={isUploading}
+        disabled={isUploading || isProcessing}
       />
       
       <div className="flex flex-col sm:flex-row gap-2">
@@ -204,7 +281,7 @@ export function ReceiptUpload({
           type="button"
           variant="outline"
           onClick={triggerFileInput}
-          disabled={isUploading}
+          disabled={isUploading || isProcessing}
           className="flex-1"
         >
           {isUploading ? (
@@ -229,7 +306,7 @@ export function ReceiptUpload({
               fileInputRef.current.click();
             }
           }}
-          disabled={isUploading}
+          disabled={isUploading || isProcessing}
           className="flex-1"
         >
           <Camera className="mr-2 h-4 w-4" />
@@ -241,7 +318,7 @@ export function ReceiptUpload({
             type="button"
             variant="destructive"
             onClick={handleRemoveImage}
-            disabled={isUploading}
+            disabled={isUploading || isProcessing}
             className="flex-1"
           >
             Remove
