@@ -2,8 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { 
-  QrCode, 
-  Camera, 
+  Upload, 
   Receipt, 
   Trophy, 
   TrendingUp, 
@@ -28,10 +27,10 @@ interface CustomerDashboardOverviewProps {
       visits: number
     }>
   }
-  onScanTable: () => void
+  onUploadReceipt: () => void
 }
 
-export function CustomerDashboardOverview({ customerData, onScanTable }: CustomerDashboardOverviewProps) {
+export function CustomerDashboardOverview({ customerData, onUploadReceipt }: CustomerDashboardOverviewProps) {
   const router = useRouter()
   
   return (
@@ -42,9 +41,9 @@ export function CustomerDashboardOverview({ customerData, onScanTable }: Custome
           <h1 className="text-2xl font-bold">Welcome back, {customerData.fullName}!</h1>
           <p className="text-muted-foreground">Ready to earn more points today?</p>
         </div>
-        <Button onClick={onScanTable} className="flex items-center gap-2">
-          <QrCode className="h-4 w-4" />
-          Scan Table QR
+        <Button onClick={onUploadReceipt} className="flex items-center gap-2">
+          <Upload className="h-4 w-4" />
+          Upload Receipt
         </Button>
       </div>
       
@@ -98,10 +97,10 @@ export function CustomerDashboardOverview({ customerData, onScanTable }: Custome
             <Button 
               variant="outline" 
               className="h-auto flex-col gap-2 p-4"
-              onClick={onScanTable}
+              onClick={onUploadReceipt}
             >
-              <QrCode className="h-6 w-6" />
-              <span>Scan Table QR</span>
+              <Upload className="h-6 w-6" />
+              <span>Upload Receipt</span>
             </Button>
             
             <Button 
@@ -227,11 +226,11 @@ export function CustomerDashboardOverview({ customerData, onScanTable }: Custome
           <ul className="space-y-2 text-sm">
             <li className="flex items-start gap-2">
               <span className="bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs mt-0.5">1</span>
-              <span>Scan table QR codes to automatically link receipts to businesses</span>
+              <span>Upload your receipts immediately after purchase to earn points</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs mt-0.5">2</span>
-              <span>Upload receipts within 24 hours to earn bonus points</span>
+              <span>Keep receipts clear and readable for faster processing</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="bg-primary text-primary-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs mt-0.5">3</span>
