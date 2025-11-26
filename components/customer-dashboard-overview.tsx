@@ -115,10 +115,10 @@ export function CustomerDashboardOverview({ customerData, onUploadReceipt }: Cus
             <Button 
               variant="outline" 
               className="h-auto flex-col gap-2 p-4"
-              onClick={() => router.push('/dashboard/customer/process-receipt')}
+              onClick={() => router.push('/dashboard/customer/transactions')}
             >
               <Receipt className="h-6 w-6" />
-              <span>Process Receipt</span>
+              <span>Transactions</span>
             </Button>
             
             <Button 

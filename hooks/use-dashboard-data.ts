@@ -127,6 +127,7 @@ export interface DashboardData {
   businesses?: any[];
   affiliateLinks?: AffiliateLink[];
   conversions?: Conversion[];
+  receiptsCount?: number;
 }
 
 export function useDashboardData({ userType }: UseDashboardDataProps) {
@@ -188,7 +189,7 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     // Fetch customer data
     const { data: customer, error: customerError } = await supabase
       .from("customers")
-      .select("id, full_name, nickname, profile_pic_url, qr_code_data, total_points")
+      .select("id, full_name, nickname, profile_pic_url, qr_code_data")
       .eq("id", userId)
       .single();
 
@@ -200,6 +201,30 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     }
     
     console.log("[v0] Customer data result:", customer);
+    
+    // Calculate AVAILABLE points (total earned - total redeemed)
+    const { data: earnedPoints } = await supabase
+      .from("points_transactions")
+      .select("points_earned")
+      .eq("customer_id", userId);
+    
+    const totalEarned = earnedPoints?.reduce((sum, t) => sum + t.points_earned, 0) || 0;
+    
+    const { data: redeemedPoints } = await supabase
+      .from("redemptions")
+      .select("points_redeemed")
+      .eq("customer_id", userId);
+    
+    const totalRedeemed = redeemedPoints?.reduce((sum, r) => sum + r.points_redeemed, 0) || 0;
+    
+    const availablePoints = totalEarned - totalRedeemed;
+    console.log(`[v0] Points calculation: Earned=${totalEarned}, Redeemed=${totalRedeemed}, Available=${availablePoints}`);
+    
+    // Add available points to customer data
+    const customerWithPoints = {
+      ...customer,
+      total_points: availablePoints
+    };
 
     // Fetch transactions - ALL transactions, not just limited
     const { data: transactions, error: transactionsError } = await supabase
@@ -437,11 +462,22 @@ export function useDashboardData({ userType }: UseDashboardDataProps) {
     // Calculate business points for businesses where customer has transactions
     const businessPoints = await calculateBusinessPoints(userId);
 
+    // Fetch receipts count
+    const { data: receiptsData, error: receiptsError } = await supabase
+      .from("receipts")
+      .select("id", { count: 'exact', head: false })
+      .eq("customer_id", userId)
+      .eq("status", "processed");
+    
+    const receiptsCount = receiptsData?.length || 0;
+    console.log(`[v0] Receipts count: ${receiptsCount}`);
+    
     return {
-      customer,
+      customer: customerWithPoints,
       transactions: formattedTransactions,
       redemptions: allRedemptions as Redemption[],
-      businessPoints
+      businessPoints,
+      receiptsCount
     };
   };
 

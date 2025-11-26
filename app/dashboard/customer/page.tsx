@@ -330,10 +330,10 @@ function CustomerDashboardContent() {
             <div className="mt-4 grid grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold">{data?.customer?.total_points || 0}</div>
-                <div className="text-xs opacity-90">Total Points</div>
+                <div className="text-xs opacity-90">Available Points</div>
               </div>
               <div>
-                <div className="text-2xl font-bold">{data?.transactions?.length || 0}</div>
+                <div className="text-2xl font-bold">{data?.receiptsCount || 0}</div>
                 <div className="text-xs opacity-90">Receipts</div>
               </div>
               <div>
@@ -468,7 +468,7 @@ function CustomerDashboardContent() {
                         <TrendingUp className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{transaction.business_name}</p>
+                        <p className="font-medium text-sm">{transaction.businesses?.business_name || 'Unknown Business'}</p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(transaction.transaction_date).toLocaleDateString()}
                         </p>
