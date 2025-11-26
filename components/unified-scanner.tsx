@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Html5QrScanner } from '@/components/html5-qr-scanner'
 import { ReceiptUpload } from '@/components/receipt-upload'
-import { Camera, Upload, QrCode, Receipt, CheckCircle, ArrowLeft } from 'lucide-react'
+import { QrCode, Receipt, CheckCircle, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface UnifiedScannerProps {
@@ -273,7 +272,7 @@ export function UnifiedScanner({
                   {businessName}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {tableQrCode && `Table ${tableQrCode} • `}Upload your receipt
+                  {tableQrCode && `Table ${tableQrCode} • `}Upload your receipt to earn points
                 </p>
               </div>
               <Button
@@ -286,40 +285,14 @@ export function UnifiedScanner({
               </Button>
             </div>
 
-            <Tabs defaultValue="camera" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="camera" className="flex items-center gap-2">
-                  <Camera className="h-4 w-4" />
-                  Take Photo
-                </TabsTrigger>
-                <TabsTrigger value="upload" className="flex items-center gap-2">
-                  <Upload className="h-4 w-4" />
-                  Upload File
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="camera" className="mt-4">
-                {customerId && businessId && (
-                  <ReceiptUpload
-                    businessId={businessId}
-                    customerId={customerId}
-                    tableQrCode={tableQrCode || undefined}
-                    onUploadComplete={handleUploadComplete}
-                  />
-                )}
-              </TabsContent>
-              
-              <TabsContent value="upload" className="mt-4">
-                {customerId && businessId && (
-                  <ReceiptUpload
-                    businessId={businessId}
-                    customerId={customerId}
-                    tableQrCode={tableQrCode || undefined}
-                    onUploadComplete={handleUploadComplete}
-                  />
-                )}
-              </TabsContent>
-            </Tabs>
+            {customerId && businessId && (
+              <ReceiptUpload
+                businessId={businessId}
+                customerId={customerId}
+                tableQrCode={tableQrCode || undefined}
+                onUploadComplete={handleUploadComplete}
+              />
+            )}
           </div>
         )}
       </DialogContent>
