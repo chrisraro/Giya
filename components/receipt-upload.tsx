@@ -57,10 +57,21 @@ export function ReceiptUpload({
       const preview = URL.createObjectURL(file);
       setPreviewUrl(preview);
 
+      console.log('📄 Uploading receipt:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        businessId,
+        customerId,
+        tableQrCode
+      });
+
       // Upload to Supabase storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `receipts/${businessId}/${customerId}/${fileName}`;
+
+      console.log('📂 Uploading to storage path:', filePath);
 
       const { error: uploadError } = await supabase.storage
         .from('receipt-images')
@@ -69,14 +80,22 @@ export function ReceiptUpload({
           upsert: false
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('✅ File uploaded successfully');
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('receipt-images')
         .getPublicUrl(filePath);
 
+      console.log('🔗 Public URL:', publicUrl);
+
       // Save receipt record to database
+      console.log('💾 Saving receipt to database...');
       const { data: receiptData, error: receiptError } = await supabase
         .from('receipts')
         .insert({
@@ -90,7 +109,12 @@ export function ReceiptUpload({
         .select()
         .single();
 
-      if (receiptError) throw receiptError;
+      if (receiptError) {
+        console.error('❌ Database insert error:', receiptError);
+        throw receiptError;
+      }
+
+      console.log('✅ Receipt record saved:', receiptData.id);
 
       setIsUploaded(true);
       toast.success('Receipt uploaded successfully');
@@ -154,10 +178,44 @@ export function ReceiptUpload({
       
       onUploadComplete(receiptData.id);
     } catch (error) {
-      console.error('Error uploading receipt:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload receipt. Please try again.';
+      console.error('❌ Error uploading receipt:', error);
+      
+      let errorMessage = 'Failed to upload receipt. Please try again.';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      }
+      
+      // Check for specific Supabase errors
+      if (typeof error === 'object' && error !== null) {
+        const err = error as any;
+        if (err.error) {
+          console.error('Supabase error object:', err.error);
+          errorMessage = err.error;
+        }
+        if (err.message) {
+          console.error('Error message:', err.message);
+          errorMessage = err.message;
+        }
+        if (err.statusCode) {
+          console.error('Status code:', err.statusCode);
+        }
+      }
+      
       setUploadError(errorMessage);
-      toast.error(errorMessage);
+      toast.error(
+        <div className="flex flex-col gap-1">
+          <span className="font-semibold">❌ Upload Failed</span>
+          <span className="text-sm">{errorMessage}</span>
+          <span className="text-xs opacity-75">Check console for details</span>
+        </div>,
+        { duration: 8000 }
+      );
       // Revert preview
       setPreviewUrl(null);
     } finally {

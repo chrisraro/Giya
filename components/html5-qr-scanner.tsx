@@ -122,14 +122,36 @@ export function Html5QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
       if (html5QrCodeRef.current) {
         const currentState = html5QrCodeRef.current.getState();
         if (currentState === Html5QrcodeScannerState.SCANNING || currentState === Html5QrcodeScannerState.PAUSED) {
+          console.log('📹 Stopping camera...');
           await html5QrCodeRef.current.stop();
+          console.log('✅ Camera stopped successfully');
         }
-        // Clear the reference after stopping
+        // Clear all video elements to prevent play() errors
+        const videoElements = document.querySelectorAll('#qr-scanner-container video');
+        videoElements.forEach(video => {
+          const videoEl = video as HTMLVideoElement;
+          videoEl.pause();
+          videoEl.srcObject = null;
+          videoEl.src = '';
+          videoEl.load();
+        });
+        // Clear the scanner instance
+        html5QrCodeRef.current.clear();
         html5QrCodeRef.current = null;
       }
     } catch (error) {
-      console.warn("Error stopping camera:", error);
-      // Force clear the reference even if stop fails
+      console.warn('⚠️ Error stopping camera:', error);
+      // Force clear everything even if stop fails
+      try {
+        const videoElements = document.querySelectorAll('#qr-scanner-container video');
+        videoElements.forEach(video => {
+          const videoEl = video as HTMLVideoElement;
+          videoEl.pause();
+          videoEl.srcObject = null;
+        });
+      } catch (e) {
+        console.warn('Error cleaning video elements:', e);
+      }
       html5QrCodeRef.current = null;
     } finally {
       if (isComponentMounted.current) {
@@ -181,16 +203,44 @@ export function Html5QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
     startCamera();
 
     return () => {
+      console.log('🧹 Cleaning up Html5QrScanner...');
       isComponentMounted.current = false;
-      // Cleanup: stop camera if running
+      
+      // Stop camera before component unmounts
       if (html5QrCodeRef.current) {
-        const currentState = html5QrCodeRef.current.getState();
-        if (currentState === Html5QrcodeScannerState.SCANNING || currentState === Html5QrcodeScannerState.PAUSED) {
-          html5QrCodeRef.current.stop().catch(err => {
-            console.warn('Cleanup: Error stopping camera:', err);
-          });
+        try {
+          const currentState = html5QrCodeRef.current.getState();
+          if (currentState === Html5QrcodeScannerState.SCANNING || currentState === Html5QrcodeScannerState.PAUSED) {
+            // Synchronously stop the camera
+            html5QrCodeRef.current.stop().then(() => {
+              console.log('✅ Cleanup: Camera stopped');
+            }).catch(err => {
+              console.warn('⚠️ Cleanup: Error stopping camera:', err);
+            });
+          }
+          // Immediately clear video elements
+          setTimeout(() => {
+            try {
+              const videoElements = document.querySelectorAll('#qr-scanner-container video');
+              videoElements.forEach(video => {
+                const videoEl = video as HTMLVideoElement;
+                videoEl.pause();
+                if (videoEl.srcObject) {
+                  const stream = videoEl.srcObject as MediaStream;
+                  stream.getTracks().forEach(track => track.stop());
+                }
+                videoEl.srcObject = null;
+                videoEl.src = '';
+                videoEl.load();
+              });
+            } catch (e) {
+              console.warn('Cleanup: Error cleaning video elements:', e);
+            }
+          }, 0);
+          html5QrCodeRef.current = null;
+        } catch (err) {
+          console.warn('⚠️ Cleanup: Exception during cleanup:', err);
         }
-        html5QrCodeRef.current = null;
       }
     };
   }, [startCamera]);
