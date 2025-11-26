@@ -129,46 +129,110 @@ function parseReceiptText(text: string): {
   
   // Split text into lines
   const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+  console.log('[OCR Parser] Processing', lines.length, 'lines');
   
-  // Try to find merchant name (usually first few lines)
-  if (lines.length > 0) {
-    merchant = lines[0];
+  // Try to find merchant name (usually first 1-3 lines, often in caps or larger text)
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    const line = lines[i];
+    // Skip very short lines or lines that look like addresses/dates
+    if (line.length < 3 || /^\d/.test(line)) continue;
+    // Skip lines with lots of numbers (likely not a business name)
+    if ((line.match(/\d/g) || []).length > line.length / 3) continue;
+    
+    merchant = line;
+    console.log(`[OCR Parser] Detected merchant: "${merchant}"`);
+    break;
   }
   
-  // Common patterns for total amount
+  // Enhanced patterns for total amount - try multiple variations
   const totalPatterns = [
-    /total[:\s]*([₱$])?(\d+[,.]?\d*\.?\d+)/i,
-    /amount[:\s]*([₱$])?(\d+[,.]?\d*\.?\d+)/i,
-    /sum[:\s]*([₱$])?(\d+[,.]?\d*\.?\d+)/i,
-    /([₱$])?\s*(\d+[,.]?\d*\.?\d+)\s*total/i,
+    // Standard patterns
+    /total[\s:]*([₱$])?\s*(\d+[,.]?\d*\.?\d+)/i,
+    /grand\s*total[\s:]*([₱$])?\s*(\d+[,.]?\d*\.?\d+)/i,
+    /amount\s*due[\s:]*([₱$])?\s*(\d+[,.]?\d*\.?\d+)/i,
+    /total\s*amount[\s:]*([₱$])?\s*(\d+[,.]?\d*\.?\d+)/i,
+    /amount[\s:]*([₱$])?\s*(\d+[,.]?\d*\.?\d+)/i,
+    /sum[\s:]*([₱$])?\s*(\d+[,.]?\d*\.?\d+)/i,
+    // Reverse patterns (amount before label)
+    /([₱$])\s*(\d+[,.]?\d*\.?\d+)\s*total/i,
+    /([₱$])\s*(\d+[,.]?\d*\.?\d+)\s*amount/i,
+    // Just currency symbol and number on same line as "total"
+    /total.*([₱$])\s*(\d+[,.]?\d*\.?\d+)/i,
   ];
   
   // Search for total amount
+  console.log('[OCR Parser] Searching for total amount...');
   for (const line of lines) {
     for (const pattern of totalPatterns) {
       const match = line.match(pattern);
       if (match) {
+        // Extract amount - could be in match[2] or match[1] depending on pattern
         const amountStr = match[2] || match[1];
-        totalAmount = parseFloat(amountStr.replace(/,/g, ''));
-        if (match[1] === '$') currency = 'USD';
-        if (match[1] === '₱') currency = 'PHP';
-        break;
+        if (amountStr && /\d/.test(amountStr)) {
+          const parsedAmount = parseFloat(amountStr.replace(/,/g, ''));
+          if (!isNaN(parsedAmount) && parsedAmount > 0) {
+            totalAmount = parsedAmount;
+            console.log(`[OCR Parser] ✅ Found total: ₱${totalAmount} from line: "${line}"`);
+            
+            // Detect currency
+            if (match[1] === '$' || line.toLowerCase().includes('usd')) {
+              currency = 'USD';
+            } else if (match[1] === '₱' || line.toLowerCase().includes('php') || line.toLowerCase().includes('peso')) {
+              currency = 'PHP';
+            }
+            break;
+          }
+        }
       }
     }
     if (totalAmount > 0) break;
   }
   
-  // Try to extract line items (simplified)
-  const itemPattern = /([a-zA-Z][a-zA-Z\s]+?)\s+([₱$])?(\d+\.\d{2})/i;
-  for (const line of lines) {
-    const match = line.match(itemPattern);
-    if (match && !line.toLowerCase().includes('total')) {
-      items.push({
-        name: match[1].trim(),
-        price: parseFloat(match[3])
-      });
+  if (totalAmount === 0) {
+    console.warn('[OCR Parser] ⚠️ Could not detect total amount, trying fallback...');
+    // Fallback: Look for largest number in the receipt
+    const allNumbers: number[] = [];
+    for (const line of lines) {
+      const matches = line.match(/([₱$])?\s*(\d+[,.]?\d*\.?\d{2})/g);
+      if (matches) {
+        matches.forEach(m => {
+          const num = parseFloat(m.replace(/[₱$,]/g, ''));
+          if (!isNaN(num) && num > 0) {
+            allNumbers.push(num);
+          }
+        });
+      }
+    }
+    if (allNumbers.length > 0) {
+      // Use the largest number as likely total
+      totalAmount = Math.max(...allNumbers);
+      console.log(`[OCR Parser] Fallback total: ₱${totalAmount}`);
     }
   }
+  
+  // Try to extract line items (simplified)
+  console.log('[OCR Parser] Extracting line items...');
+  const itemPattern = /([a-zA-Z][a-zA-Z\s]{2,30})\s+([₱$])?\s*(\d+\.\d{2})/i;
+  for (const line of lines) {
+    // Skip lines that look like totals
+    if (/total|amount|subtotal|tax|vat/i.test(line)) continue;
+    
+    const match = line.match(itemPattern);
+    if (match) {
+      const itemName = match[1].trim();
+      const itemPrice = parseFloat(match[3]);
+      
+      if (itemName.length >= 3 && itemPrice > 0 && itemPrice < totalAmount) {
+        items.push({
+          name: itemName,
+          price: itemPrice
+        });
+        console.log(`[OCR Parser] Item: ${itemName} - ₱${itemPrice}`);
+      }
+    }
+  }
+  
+  console.log(`[OCR Parser] Summary: Merchant="${merchant}", Total=₱${totalAmount}, Items=${items.length}`);
   
   return { totalAmount, currency, items, merchant };
 }
