@@ -65,11 +65,14 @@ export function UnifiedScanner({
       let scannedBusinessId: string | null = null
       let scannedTableCode: string | null = null
 
+      console.log('🔍 Scanned QR Data:', data)
+
       // Format 1: business:businessId:table:tableCode (old format)
       const parts = data.split(':')
       if (parts.length >= 2 && parts[0] === 'business') {
         scannedBusinessId = parts[1]
         scannedTableCode = parts.length >= 4 ? parts[3] : null
+        console.log('✓ Format 1 detected: business:id:table:code')
       } 
       // Format 2: {origin}/discover/{businessId} or /discover/{businessId} (new business QR format)
       else if (data.includes('/discover/')) {
@@ -77,31 +80,88 @@ export function UnifiedScanner({
         if (urlParts.length === 2) {
           // Extract business ID or access code from URL
           scannedBusinessId = urlParts[1].split('?')[0].split('#')[0] // Remove query params and hash
+          console.log('✓ Format 2 detected: /discover/ URL')
         }
       }
       // Format 3: Direct business ID or access code
       else if (data.startsWith('BUS-') || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data)) {
         scannedBusinessId = data
+        console.log('✓ Format 3 detected: Direct ID or access code')
       }
 
       if (!scannedBusinessId) {
-        console.log('QR Data:', data)
+        console.error('❌ Invalid QR format. Scanned data:', data)
         toast.error('Invalid QR code format. Please scan a valid business or table QR code.')
         return
       }
 
-      // Try to find business by ID or access code
-      const { data: business, error } = await supabase
-        .from('businesses')
-        .select('id, business_name')
-        .or(`id.eq.${scannedBusinessId},access_link.eq.${scannedBusinessId},access_qr_code.eq.${scannedBusinessId}`)
-        .single()
+      console.log('🔎 Looking up business with identifier:', scannedBusinessId)
 
-      if (error || !business) {
-        console.error('Business lookup error:', error)
-        toast.error('Invalid QR code. Business not found.')
+      // Try to find business by ID first
+      let business = null
+      let error = null
+
+      // Attempt 1: Try as UUID (business ID)
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(scannedBusinessId)) {
+        console.log('→ Attempt 1: Searching by UUID...')
+        const result = await supabase
+          .from('businesses')
+          .select('id, business_name')
+          .eq('id', scannedBusinessId)
+          .maybeSingle()
+        
+        business = result.data
+        error = result.error
+        console.log('  Result:', business ? '✓ Found' : '✗ Not found', error ? `Error: ${error.message}` : '')
+      }
+
+      // Attempt 2: Try as access_link
+      if (!business && !error) {
+        console.log('→ Attempt 2: Searching by access_link...')
+        const result = await supabase
+          .from('businesses')
+          .select('id, business_name')
+          .eq('access_link', scannedBusinessId)
+          .maybeSingle()
+        
+        business = result.data
+        error = result.error
+        console.log('  Result:', business ? '✓ Found' : '✗ Not found', error ? `Error: ${error.message}` : '')
+      }
+
+      // Attempt 3: Try as access_qr_code
+      if (!business && !error) {
+        console.log('→ Attempt 3: Searching by access_qr_code...')
+        const result = await supabase
+          .from('businesses')
+          .select('id, business_name')
+          .eq('access_qr_code', scannedBusinessId)
+          .maybeSingle()
+        
+        business = result.data
+        error = result.error
+        console.log('  Result:', business ? '✓ Found' : '✗ Not found', error ? `Error: ${error.message}` : '')
+      }
+
+      if (error) {
+        console.error('❌ Database error:', error)
+        toast.error('Database error. Please try again.')
         return
       }
+
+      if (!business) {
+        console.error('❌ Business not found for identifier:', scannedBusinessId)
+        toast.error(
+          <div className="flex flex-col gap-1">
+            <span className="font-semibold">Business not found</span>
+            <span className="text-xs">The scanned QR code is not associated with any active business.</span>
+          </div>,
+          { duration: 5000 }
+        )
+        return
+      }
+
+      console.log('✅ Business found:', business.business_name)
 
       setBusinessId(business.id)
       setBusinessName(business.business_name)
@@ -110,7 +170,7 @@ export function UnifiedScanner({
       
       toast.success(`Scanned: ${business.business_name}${scannedTableCode ? ` - Table ${scannedTableCode}` : ''}`)
     } catch (error) {
-      console.error('Error processing QR code:', error)
+      console.error('❌ Error processing QR code:', error)
       toast.error('Failed to process QR code')
     }
   }
