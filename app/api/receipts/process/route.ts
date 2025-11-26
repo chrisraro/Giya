@@ -1,44 +1,117 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
+import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { processReceiptOCRWithGoogleVision } from '@/lib/ocr-service'
 
 // Helper function to validate business name match
 function validateBusinessName(expectedName: string, detectedName: string): boolean {
   if (!detectedName || detectedName.trim() === '') {
-    console.warn('[Validation] No merchant name detected in receipt');
+    console.warn('[Validation] ⚠️ No merchant name detected in receipt');
     return false; // If no merchant name detected, fail validation
   }
+
+  console.log(`[Validation] Comparing: Expected="${expectedName}" vs Detected="${detectedName}"`);
 
   // Normalize both names for comparison
   const normalize = (str: string) => str
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '') // Remove special characters
+    .replace(/[^a-z0-9\s]/g, '') // Remove special chars but keep spaces
+    .replace(/\s+/g, ' ') // Normalize multiple spaces
     .trim();
 
   const normalizedExpected = normalize(expectedName);
   const normalizedDetected = normalize(detectedName);
 
-  // Check for exact match
+  console.log(`[Validation] Normalized: "${normalizedExpected}" vs "${normalizedDetected}"`);
+
+  // === EXACT MATCH ===
   if (normalizedExpected === normalizedDetected) {
+    console.log('[Validation] ✅ Exact match!');
     return true;
   }
 
-  // Check if detected name contains expected name
-  if (normalizedDetected.includes(normalizedExpected)) {
+  // === CONTAINS MATCH ===
+  // Remove spaces for word-boundary-free comparison
+  const compactExpected = normalizedExpected.replace(/\s/g, '');
+  const compactDetected = normalizedDetected.replace(/\s/g, '');
+  
+  if (compactDetected.includes(compactExpected)) {
+    console.log('[Validation] ✅ Detected contains expected (compact)');
     return true;
   }
 
-  // Check if expected name contains detected name (partial match)
-  if (normalizedExpected.includes(normalizedDetected) && normalizedDetected.length >= 4) {
+  if (compactExpected.includes(compactDetected) && compactDetected.length >= 4) {
+    console.log('[Validation] ✅ Expected contains detected (compact, min 4 chars)');
     return true;
   }
 
-  // Calculate similarity score (simple)
-  const similarity = calculateSimilarity(normalizedExpected, normalizedDetected);
+  // === WORD-LEVEL MATCHING (ENHANCED) ===
+  // Extract significant words (3+ chars) from both names
+  const extractWords = (str: string) => 
+    str.split(/\s+/).filter(word => word.length >= 3);
+  
+  const expectedWords = extractWords(normalizedExpected);
+  const detectedWords = extractWords(normalizedDetected);
+  
+  console.log(`[Validation] Expected words: [${expectedWords.join(', ')}]`);
+  console.log(`[Validation] Detected words: [${detectedWords.join(', ')}]`);
+  
+  // Check if any significant words match
+  let matchedWords = 0;
+  const matchDetails: string[] = [];
+  
+  for (const expWord of expectedWords) {
+    for (const detWord of detectedWords) {
+      // Exact word match
+      if (expWord === detWord) {
+        matchedWords++;
+        matchDetails.push(`"${expWord}" = "${detWord}"`);
+        break;
+      }
+      // Partial word match (one contains the other)
+      if (detWord.includes(expWord) || expWord.includes(detWord)) {
+        matchedWords += 0.7; // Partial credit
+        matchDetails.push(`"${expWord}" ≈ "${detWord}"`);
+        break;
+      }
+    }
+  }
+  
+  const wordMatchRatio = matchedWords / Math.max(expectedWords.length, 1);
+  console.log(`[Validation] Word matches: ${matchedWords.toFixed(1)}/${expectedWords.length} (${(wordMatchRatio * 100).toFixed(0)}%)`);
+  if (matchDetails.length > 0) {
+    console.log(`[Validation] Match details: ${matchDetails.join(', ')}`);
+  }
+  
+  // LOWERED THRESHOLD: 40% word match is acceptable (more lenient)
+  if (wordMatchRatio >= 0.40) {
+    console.log('[Validation] ✅ Word-level match!');
+    return true;
+  }
+
+  // === BRAND NAME MATCHING ===
+  // Extract potential brand names (first significant word or common brands)
+  const commonBrands = ['petron', 'shell', 'caltex', 'jollibee', 'mcdonalds', 'kfc', '7eleven', 'alfamart', 'ministop'];
+  
+  for (const brand of commonBrands) {
+    if (normalizedExpected.includes(brand) && normalizedDetected.includes(brand)) {
+      console.log(`[Validation] ✅ Common brand match: "${brand}"`);
+      return true;
+    }
+  }
+
+  // === SIMILARITY SCORE (LEVENSHTEIN) ===
+  // Use compact versions for better matching
+  const similarity = calculateSimilarity(compactExpected, compactDetected);
   console.log(`[Validation] Similarity score: ${(similarity * 100).toFixed(2)}%`);
   
-  // If similarity is above 70%, consider it a match
-  return similarity >= 0.7;
+  // LOWERED THRESHOLD: 50% similarity is acceptable
+  if (similarity >= 0.50) {
+    console.log('[Validation] ✅ Similarity match!');
+    return true;
+  }
+
+  console.warn('[Validation] ❌ No match found');
+  return false;
 }
 
 // Simple Levenshtein distance for similarity
@@ -83,8 +156,11 @@ function levenshteinDistance(str1: string, str2: string): number {
 export async function POST(request: NextRequest) {
   console.log('[OCR API] Receipt processing request received');
   
+  let receiptId: string | undefined;
+  
   try {
-    const { receiptId } = await request.json()
+    const body = await request.json();
+    receiptId = body.receiptId;
 
     if (!receiptId) {
       console.error('[OCR API] No receipt ID provided');
@@ -228,9 +304,11 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', receiptId)
 
-    // Create points transaction
+    // Create points transaction using SERVICE ROLE (bypasses RLS)
     console.log('[OCR API] Creating points transaction...');
-    const { data: transaction, error: transactionError } = await supabase
+    const supabaseAdmin = createServiceRoleClient();
+    
+    const { data: transaction, error: transactionError } = await supabaseAdmin
       .from('points_transactions')
       .insert({
         customer_id: receipt.customer_id,
@@ -249,9 +327,9 @@ export async function POST(request: NextRequest) {
 
     console.log('[OCR API] ✅ Points transaction created:', transaction.id);
 
-    // Update customer's total points DIRECTLY (since RPC function might not exist)
+    // Update customer's total points using SERVICE ROLE (bypasses RLS)
     console.log('[OCR API] Updating customer total points...');
-    const { data: currentCustomer, error: fetchError } = await supabase
+    const { data: currentCustomer, error: fetchError } = await supabaseAdmin
       .from('customers')
       .select('total_points')
       .eq('id', receipt.customer_id)
@@ -265,11 +343,10 @@ export async function POST(request: NextRequest) {
     const newTotalPoints = (currentCustomer?.total_points || 0) + pointsEarned;
     console.log(`[OCR API] Current points: ${currentCustomer?.total_points}, Adding: ${pointsEarned}, New total: ${newTotalPoints}`);
 
-    const { error: updatePointsError } = await supabase
+    const { error: updatePointsError } = await supabaseAdmin
       .from('customers')
       .update({ 
-        total_points: newTotalPoints,
-        updated_at: new Date().toISOString()
+        total_points: newTotalPoints
       })
       .eq('id', receipt.customer_id);
 
@@ -281,7 +358,7 @@ export async function POST(request: NextRequest) {
     console.log('[OCR API] ✅ Customer points updated successfully');
 
     // Verify the update
-    const { data: verifyCustomer } = await supabase
+    const { data: verifyCustomer } = await supabaseAdmin
       .from('customers')
       .select('total_points')
       .eq('id', receipt.customer_id)
@@ -299,25 +376,54 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[OCR API] Processing error:', error)
+    console.error('[OCR API] ❌ Processing error:', error);
+    console.error('[OCR API] Error type:', typeof error);
+    console.error('[OCR API] Error details:', {
+      name: error instanceof Error ? error.name : 'unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
 
     // Update receipt status to failed if we have the receiptId
-    const body = await request.json().catch(() => ({}))
-    if (body.receiptId) {
-      const supabase = await createServerClient()
-      await supabase
-        .from('receipts')
-        .update({ 
-          status: 'failed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', body.receiptId)
+    if (receiptId) {
+      try {
+        const supabase = await createServerClient();
+        await supabase
+          .from('receipts')
+          .update({ 
+            status: 'failed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', receiptId);
+        console.log(`[OCR API] Receipt ${receiptId} marked as failed`);
+      } catch (updateError) {
+        console.error('[OCR API] Failed to update receipt status:', updateError);
+      }
     }
+
+    // Extract meaningful error message
+    let errorMessage = 'Unknown error occurred';
+    let errorDetails = 'Please try again or contact support';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = error.stack || errorMessage;
+    } else if (typeof error === 'object' && error !== null) {
+      const err = error as any;
+      errorMessage = err.message || err.error || JSON.stringify(error);
+      errorDetails = err.details || err.statusText || errorMessage;
+    } else {
+      errorMessage = String(error);
+      errorDetails = errorMessage;
+    }
+
+    console.error('[OCR API] Returning error response:', { errorMessage, errorDetails });
 
     return NextResponse.json(
       { 
-        error: 'Failed to process receipt',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage,
+        details: errorDetails,
+        receiptId: receiptId || null
       },
       { status: 500 }
     )

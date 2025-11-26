@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,49 @@ export function ReceiptUpload({
   const [pointsEarned, setPointsEarned] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  // Check for successful receipt processing after page reload
+  useEffect(() => {
+    const successData = sessionStorage.getItem('receiptProcessSuccess');
+    if (successData) {
+      try {
+        const data = JSON.parse(successData);
+        const timeElapsed = Date.now() - data.timestamp;
+        
+        // Only show if reload happened within last 10 seconds
+        if (timeElapsed < 10000) {
+          console.log('🎉 Showing receipt success notification after reload');
+          
+          toast.success(
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold">✅ Receipt Processed!</span>
+              <span className="text-sm">You earned {data.pointsEarned} points</span>
+              {data.totalAmount && (
+                <span className="text-xs opacity-75">Amount: ₱{data.totalAmount.toFixed(2)}</span>
+              )}
+              <span className="text-xs opacity-75 mt-1">Your points have been updated!</span>
+            </div>,
+            { duration: 6000 }
+          );
+        }
+        
+        // Clear the stored data
+        sessionStorage.removeItem('receiptProcessSuccess');
+      } catch (error) {
+        console.error('Error parsing receipt success data:', error);
+        sessionStorage.removeItem('receiptProcessSuccess');
+      }
+    }
+  }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -126,51 +169,110 @@ export function ReceiptUpload({
       
       // Automatically trigger OCR processing
       try {
+        console.log('[Receipt Upload] 🔍 Triggering OCR for receipt:', receiptData.id);
+        
         const response = await fetch('/api/receipts/process', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ receiptId: receiptData.id })
         });
         
-        const result = await response.json();
+        console.log('[Receipt Upload] API Response status:', response.status, response.statusText);
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const textResponse = await response.text();
+          console.error('❌ Non-JSON response:', textResponse);
+          throw new Error(`Server returned non-JSON response: ${textResponse.substring(0, 200)}`);
+        }
+        
+        let result;
+        try {
+          result = await response.json();
+          console.log('[Receipt Upload] API Response data:', result);
+        } catch (jsonError) {
+          console.error('❌ Failed to parse JSON response:', jsonError);
+          throw new Error('Invalid response from server. Please check server logs.');
+        }
         
         if (response.ok) {
           setProcessingStatus('success');
           setPointsEarned(result.pointsEarned || 0);
-          toast.success(
-            <div className="flex flex-col gap-1">
-              <span className="font-semibold">✅ Receipt Processed!</span>
-              <span className="text-sm">You earned {result.pointsEarned} points</span>
-              {result.ocrData?.totalAmount && (
-                <span className="text-xs opacity-75">Amount: ₱{result.ocrData.totalAmount.toFixed(2)}</span>
-              )}
-            </div>,
-            { duration: 5000 }
-          );
+          console.log('✅ Receipt processed successfully! Points:', result.pointsEarned);
+          
+          // Store success data in sessionStorage for showing after reload
+          sessionStorage.setItem('receiptProcessSuccess', JSON.stringify({
+            pointsEarned: result.pointsEarned,
+            totalAmount: result.ocrData?.totalAmount,
+            timestamp: Date.now()
+          }));
+          
+          // Show brief success message before reload
+          toast.success('✅ Receipt Processed Successfully!', { duration: 1500 });
+          
+          // Reload page after 1.5 seconds to refresh points and cleanup camera
+          setTimeout(() => {
+            console.log('🔄 Reloading page to update points...');
+            window.location.reload();
+          }, 1500);
         } else {
+          // API returned error response
+          const errorMsg = result?.error || 'Processing failed';
+          const errorDetail = result?.details || result?.error || 'Could not read receipt';
+          
           setProcessingStatus('failed');
-          setProcessingError(result.error || 'Processing failed');
-          console.error('OCR processing failed:', result);
+          setProcessingError(errorMsg);
+          
+          console.error('❌ OCR processing failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorMsg,
+            details: errorDetail,
+            fullResponse: result
+          });
+          
           toast.error(
             <div className="flex flex-col gap-1">
               <span className="font-semibold">❌ Processing Failed</span>
-              <span className="text-sm">{result.error || 'Could not read receipt'}</span>
-              <span className="text-xs opacity-75">Please try again with a clearer image</span>
+              <span className="text-sm">{errorMsg}</span>
+              {errorDetail !== errorMsg && (
+                <span className="text-xs opacity-75">{errorDetail}</span>
+              )}
             </div>,
-            { duration: 6000 }
+            { duration: 8000 }
           );
         }
       } catch (ocrError) {
+        // Network error or exception
         setProcessingStatus('failed');
-        setProcessingError('Network error during processing');
-        console.error('Error triggering OCR:', ocrError);
+        
+        let errorMessage = 'Network error during processing';
+        let errorDetails = 'Check your internet connection';
+        
+        if (ocrError instanceof Error) {
+          errorMessage = ocrError.message;
+          errorDetails = ocrError.stack || errorMessage;
+        } else if (typeof ocrError === 'object' && ocrError !== null) {
+          errorMessage = JSON.stringify(ocrError);
+        }
+        
+        setProcessingError(errorMessage);
+        
+        console.error('❌ Error triggering OCR:', {
+          error: ocrError,
+          errorType: typeof ocrError,
+          message: errorMessage,
+          details: errorDetails
+        });
+        
         toast.error(
           <div className="flex flex-col gap-1">
             <span className="font-semibold">⚠️ Connection Error</span>
-            <span className="text-sm">Could not process receipt</span>
-            <span className="text-xs opacity-75">Check your internet connection</span>
+            <span className="text-sm">{errorMessage}</span>
+            <span className="text-xs opacity-75">Check console for details</span>
           </div>,
-          { duration: 6000 }
+          { duration: 8000 }
         );
       } finally {
         setIsProcessing(false);

@@ -35,10 +35,13 @@ export function UnifiedScanner({
       loadCustomer()
     }
     
-    // Reset to scan mode when dialog closes
+    // Reset to scan mode and cleanup when dialog closes
     if (!open) {
-      console.log('📷 Dialog closed, resetting scanner')
-      handleReset()
+      console.log('📷 Unified Scanner Dialog closed - resetting state')
+      // Small delay to ensure camera cleanup happens
+      setTimeout(() => {
+        handleReset()
+      }, 100)
     }
   }, [open, userRole])
 

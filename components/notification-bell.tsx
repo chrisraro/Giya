@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, BellOff, Check, X } from "lucide-react";
+import { Bell, BellOff, Check, X, Gift, Tag, Coins, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   Popover, 
@@ -21,6 +21,53 @@ interface Notification {
   is_read: boolean;
   created_at: string;
   read_at: string | null;
+  metadata?: {
+    business_id?: string;
+    transaction_id?: string;
+    points_earned?: number;
+    amount_spent?: number;
+    reward_id?: string;
+    reward_name?: string;
+    points_required?: number;
+    deal_id?: string;
+    deal_title?: string;
+    discount_percentage?: number;
+    discount_amount?: number;
+  };
+}
+
+// Helper function to get icon for notification type
+function getNotificationIcon(type: string) {
+  switch (type) {
+    case 'points_earned':
+      return <Coins className="h-5 w-5 text-green-600" />;
+    case 'new_reward':
+      return <Gift className="h-5 w-5 text-purple-600" />;
+    case 'new_deal':
+      return <Tag className="h-5 w-5 text-orange-600" />;
+    case 'punch_card_completion':
+      return <CreditCard className="h-5 w-5 text-blue-600" />;
+    default:
+      return <Bell className="h-5 w-5 text-gray-600" />;
+  }
+}
+
+// Helper function to get background color for notification type
+function getNotificationBgColor(type: string, isRead: boolean) {
+  if (isRead) return '';
+  
+  switch (type) {
+    case 'points_earned':
+      return 'bg-green-50 border-l-4 border-l-green-500';
+    case 'new_reward':
+      return 'bg-purple-50 border-l-4 border-l-purple-500';
+    case 'new_deal':
+      return 'bg-orange-50 border-l-4 border-l-orange-500';
+    case 'punch_card_completion':
+      return 'bg-blue-50 border-l-4 border-l-blue-500';
+    default:
+      return 'bg-muted/30';
+  }
 }
 
 export function NotificationBell() {
@@ -183,37 +230,51 @@ export function NotificationBell() {
               {notifications.map((notification) => (
                 <div 
                   key={notification.id} 
-                  className={`p-4 hover:bg-muted/50 ${!notification.is_read ? 'bg-muted/30' : ''}`}
+                  className={`p-4 hover:bg-muted/50 transition-colors ${
+                    !notification.is_read 
+                      ? getNotificationBgColor(notification.type, false)
+                      : ''
+                  }`}
                 >
-                  <div className="flex justify-between">
-                    <h4 className="font-medium text-sm">{notification.title}</h4>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 p-0"
-                      onClick={() => deleteNotification(notification.id)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {notification.message}
-                  </p>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                    </span>
-                    {!notification.is_read && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs"
-                        onClick={() => markAsRead([notification.id])}
-                      >
-                        <Check className="h-3 w-3 mr-1" />
-                        Mark as read
-                      </Button>
-                    )}
+                  <div className="flex gap-3">
+                    {/* Notification Icon */}
+                    <div className="flex-shrink-0 mt-0.5">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    
+                    {/* Notification Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-2">
+                        <h4 className="font-medium text-sm">{notification.title}</h4>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 p-0 flex-shrink-0"
+                          onClick={() => deleteNotification(notification.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {notification.message}
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                        </span>
+                        {!notification.is_read && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => markAsRead([notification.id])}
+                          >
+                            <Check className="h-3 w-3 mr-1" />
+                            Mark as read
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}

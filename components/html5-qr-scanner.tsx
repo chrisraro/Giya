@@ -116,43 +116,55 @@ export function Html5QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
     }
   }, [checkCameraPermission, onScanSuccess]);
 
-  // Function to stop camera
+  // Function to stop camera - SYNCHRONOUS cleanup
   const stopCamera = useCallback(async () => {
+    console.log('📹 stopCamera called - cleaning up...');
+    
     try {
-      if (html5QrCodeRef.current) {
-        const currentState = html5QrCodeRef.current.getState();
-        if (currentState === Html5QrcodeScannerState.SCANNING || currentState === Html5QrcodeScannerState.PAUSED) {
-          console.log('📹 Stopping camera...');
-          await html5QrCodeRef.current.stop();
-          console.log('✅ Camera stopped successfully');
+      // STEP 1: Stop all MediaStream tracks IMMEDIATELY (synchronous)
+      const videoElements = document.querySelectorAll('#qr-scanner-container video');
+      videoElements.forEach(video => {
+        const videoEl = video as HTMLVideoElement;
+        
+        // Stop MediaStream tracks to release camera hardware
+        if (videoEl.srcObject && videoEl.srcObject instanceof MediaStream) {
+          const stream = videoEl.srcObject as MediaStream;
+          const tracks = stream.getTracks();
+          console.log(`📏 Stopping ${tracks.length} active track(s)`);
+          tracks.forEach(track => {
+            if (track.readyState === 'live') {
+              console.log(`  • Stopping ${track.kind} track: ${track.label}`);
+              track.stop();
+            }
+          });
         }
-        // Clear all video elements to prevent play() errors
-        const videoElements = document.querySelectorAll('#qr-scanner-container video');
-        videoElements.forEach(video => {
-          const videoEl = video as HTMLVideoElement;
-          videoEl.pause();
-          videoEl.srcObject = null;
-          videoEl.src = '';
-          videoEl.load();
-        });
-        // Clear the scanner instance
-        html5QrCodeRef.current.clear();
+        
+        // Clear video element
+        videoEl.pause();
+        videoEl.srcObject = null;
+        videoEl.src = '';
+        videoEl.load();
+      });
+      
+      // STEP 2: Stop Html5Qrcode scanner (async but optional)
+      if (html5QrCodeRef.current) {
+        try {
+          const currentState = html5QrCodeRef.current.getState();
+          if (currentState === Html5QrcodeScannerState.SCANNING || currentState === Html5QrcodeScannerState.PAUSED) {
+            console.log('📦 Stopping Html5Qrcode scanner...');
+            await html5QrCodeRef.current.stop();
+            console.log('✅ Html5Qrcode scanner stopped');
+          }
+          html5QrCodeRef.current.clear();
+        } catch (error) {
+          console.warn('⚠️ Html5Qrcode cleanup warning:', error);
+        }
         html5QrCodeRef.current = null;
       }
+      
+      console.log('✅ stopCamera complete - camera released');
     } catch (error) {
-      console.warn('⚠️ Error stopping camera:', error);
-      // Force clear everything even if stop fails
-      try {
-        const videoElements = document.querySelectorAll('#qr-scanner-container video');
-        videoElements.forEach(video => {
-          const videoEl = video as HTMLVideoElement;
-          videoEl.pause();
-          videoEl.srcObject = null;
-        });
-      } catch (e) {
-        console.warn('Error cleaning video elements:', e);
-      }
-      html5QrCodeRef.current = null;
+      console.error('❌ Error in stopCamera:', error);
     } finally {
       if (isComponentMounted.current) {
         setIsScanning(false);
@@ -203,45 +215,49 @@ export function Html5QrScanner({ onScanSuccess, onClose }: QrScannerProps) {
     startCamera();
 
     return () => {
-      console.log('🧹 Cleaning up Html5QrScanner...');
+      console.log('🧹 Cleaning up Html5QrScanner - FORCE STOP CAMERA');
       isComponentMounted.current = false;
       
-      // Stop camera before component unmounts
+      // IMMEDIATE camera cleanup - stop all MediaStream tracks SYNCHRONOUSLY
+      const videoElements = document.querySelectorAll('#qr-scanner-container video');
+      videoElements.forEach(video => {
+        const videoEl = video as HTMLVideoElement;
+        
+        // Stop the MediaStream tracks (releases camera hardware)
+        if (videoEl.srcObject && videoEl.srcObject instanceof MediaStream) {
+          const stream = videoEl.srcObject as MediaStream;
+          const tracks = stream.getTracks();
+          console.log(`📹 Stopping ${tracks.length} media tracks`);
+          tracks.forEach(track => {
+            console.log(`  - Stopping track: ${track.kind} (${track.label})`);
+            track.stop();
+          });
+        }
+        
+        // Clear video element
+        videoEl.pause();
+        videoEl.srcObject = null;
+        videoEl.src = '';
+        videoEl.load();
+      });
+      
+      // Stop Html5Qrcode scanner (async but don't wait)
       if (html5QrCodeRef.current) {
         try {
           const currentState = html5QrCodeRef.current.getState();
           if (currentState === Html5QrcodeScannerState.SCANNING || currentState === Html5QrcodeScannerState.PAUSED) {
-            // Synchronously stop the camera
-            html5QrCodeRef.current.stop().then(() => {
-              console.log('✅ Cleanup: Camera stopped');
-            }).catch(err => {
-              console.warn('⚠️ Cleanup: Error stopping camera:', err);
+            html5QrCodeRef.current.stop().catch(err => {
+              console.warn('⚠️ Html5Qrcode stop error (ignoring):', err);
             });
           }
-          // Immediately clear video elements
-          setTimeout(() => {
-            try {
-              const videoElements = document.querySelectorAll('#qr-scanner-container video');
-              videoElements.forEach(video => {
-                const videoEl = video as HTMLVideoElement;
-                videoEl.pause();
-                if (videoEl.srcObject) {
-                  const stream = videoEl.srcObject as MediaStream;
-                  stream.getTracks().forEach(track => track.stop());
-                }
-                videoEl.srcObject = null;
-                videoEl.src = '';
-                videoEl.load();
-              });
-            } catch (e) {
-              console.warn('Cleanup: Error cleaning video elements:', e);
-            }
-          }, 0);
-          html5QrCodeRef.current = null;
+          html5QrCodeRef.current.clear();
         } catch (err) {
-          console.warn('⚠️ Cleanup: Exception during cleanup:', err);
+          console.warn('⚠️ Cleanup exception (ignoring):', err);
         }
+        html5QrCodeRef.current = null;
       }
+      
+      console.log('✅ Camera cleanup complete - all tracks stopped');
     };
   }, [startCamera]);
 

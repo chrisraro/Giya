@@ -43,13 +43,17 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient(request);
 
-    // Fetch notifications for the current user
+    // Fetch notifications for the current user (last 2 weeks only)
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
       .eq('user_id', session.user.id)
+      .gte('created_at', twoWeeksAgo.toISOString())
       .order('created_at', { ascending: false })
-      .limit(50); // Limit to 50 most recent notifications
+      .limit(100); // Increased limit for 2 weeks of data
 
     if (error) {
       return Response.json({ error: error.message }, { status: 500 });
