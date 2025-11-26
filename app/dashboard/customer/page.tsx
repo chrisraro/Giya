@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,8 +25,10 @@ import { UnifiedScanner } from "@/components/unified-scanner"
 // Import types
 import type { CustomerData, BusinessPoints, Transaction, Redemption } from "@/hooks/use-dashboard-data"
 
-// Force dynamic rendering
+// Force dynamic rendering - disable static generation
 export const dynamic = 'force-dynamic'
+export const dynamicParams = true
+export const revalidate = 0
 
 interface Reward {
   id: string
@@ -40,6 +42,34 @@ interface Reward {
 }
 
 export default function CustomerDashboard() {
+  return (
+    <Suspense fallback={<CustomerDashboardLoading />}>
+      <CustomerDashboardContent />
+    </Suspense>
+  )
+}
+
+function CustomerDashboardLoading() {
+  return (
+    <DashboardLayout userRole="customer" userName="Loading..." breadcrumbs={[]}>
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-32 w-full" />
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-24 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+      <MobileCustomerBottomNav />
+    </DashboardLayout>
+  )
+}
+
+function CustomerDashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = useMemo(() => createClient(), [])
@@ -107,12 +137,12 @@ export default function CustomerDashboard() {
           .eq("is_active", true)
           .limit(10)
 
-        if (rewardsData) {
+        if (rewardsData && data.customer) {
           const rewardsWithPoints = await Promise.all(rewardsData.map(async (reward: any) => {
             const { data: pointsData } = await supabase
               .from("points_transactions")
               .select("points_earned")
-              .eq("customer_id", data.customer.id)
+              .eq("customer_id", data.customer!.id)
               .eq("business_id", reward.business_id)
 
             let totalPoints = pointsData?.reduce((sum: number, t: any) => sum + t.points_earned, 0) || 0
@@ -121,7 +151,7 @@ export default function CustomerDashboard() {
             const { data: redemptionsData } = await supabase
               .from("redemptions")
               .select("points_redeemed")
-              .eq("customer_id", data.customer.id)
+              .eq("customer_id", data.customer!.id)
               .eq("business_id", reward.business_id)
               
             if (redemptionsData) {
@@ -164,7 +194,7 @@ export default function CustomerDashboard() {
           table: 'points_transactions'
         },
         (payload: any) => {
-          if (payload.new.customer_id === data.customer.id) {
+          if (payload.new.customer_id === data?.customer?.id) {
             toast.success(`You've earned ${payload.new.points_earned} points!`)
             refetch()
           }
