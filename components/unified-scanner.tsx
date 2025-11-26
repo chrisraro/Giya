@@ -36,18 +36,44 @@ export function UnifiedScanner({
     }
   }, [open, userRole])
 
+  useEffect(() => {
+    if (mode === 'upload') {
+      console.log('🔍 Upload mode - Customer ID:', customerId, 'Business ID:', businessId)
+    }
+  }, [mode, customerId, businessId])
+
   async function loadCustomer() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.error('❌ No authenticated user found')
+        return
+      }
 
-    const { data: customer } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
+      console.log('🔍 Loading customer for user:', user.id)
 
-    if (customer) {
-      setCustomerId(customer.id)
+      // customers.id references profiles.id, which matches auth.users.id
+      const { data: customer, error } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (error) {
+        console.error('❌ Error loading customer:', error)
+        toast.error('Failed to load customer data')
+        return
+      }
+
+      if (customer) {
+        console.log('✅ Customer loaded:', customer.id)
+        setCustomerId(customer.id)
+      } else {
+        console.error('❌ No customer record found for user:', user.id)
+        toast.error('Customer profile not found. Please contact support.')
+      }
+    } catch (error) {
+      console.error('❌ Exception in loadCustomer:', error)
     }
   }
 
@@ -161,6 +187,14 @@ export function UnifiedScanner({
       }
 
       console.log('✅ Business found:', business.business_name)
+
+      // Ensure customer is loaded before proceeding
+      if (!customerId) {
+        console.log('🔄 Customer not loaded yet, loading now...')
+        await loadCustomer()
+      }
+
+      console.log('👤 Customer ID:', customerId)
 
       setBusinessId(business.id)
       setBusinessName(business.business_name)
@@ -285,13 +319,20 @@ export function UnifiedScanner({
               </Button>
             </div>
 
-            {customerId && businessId && (
+            {customerId && businessId ? (
               <ReceiptUpload
                 businessId={businessId}
                 customerId={customerId}
                 tableQrCode={tableQrCode || undefined}
                 onUploadComplete={handleUploadComplete}
               />
+            ) : (
+              <div className="p-4 border border-yellow-500 bg-yellow-50 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  {!customerId && 'Loading customer data...'}
+                  {customerId && !businessId && 'Business ID missing'}
+                </p>
+              </div>
             )}
           </div>
         )}
