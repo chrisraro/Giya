@@ -10,8 +10,10 @@ const isGoogleVisionEnabled = (): boolean => {
 
 // Dynamic import for Google Vision (only in server environment)
 let visionClient: any = null;
+let visionClientPromise: Promise<any> | null = null;
+
 if (typeof window === 'undefined' && isGoogleVisionEnabled()) {
-  import('@google-cloud/vision').then((vision) => {
+  visionClientPromise = import('@google-cloud/vision').then((vision) => {
     // Try API key first (simpler for serverless), then credentials file
     if (process.env.GOOGLE_CLOUD_VISION_API_KEY) {
       console.log('[OCR] Initializing Google Vision with API Key');
@@ -32,8 +34,10 @@ if (typeof window === 'undefined' && isGoogleVisionEnabled()) {
       });
     }
     console.log('[OCR] ✅ Google Vision client initialized successfully');
+    return visionClient;
   }).catch((error) => {
-    console.warn('[OCR] ❌ Google Vision not available, using mock OCR:', error);
+    console.warn('[OCR] ❌ Google Vision not available:', error);
+    return null;
   });
 }
 
@@ -79,9 +83,20 @@ export async function processReceiptOCRWithGoogleVision(imageUrl: string): Promi
   try {
     console.log(`[OCR] Processing image with Google Vision: ${imageUrl}`);
     
+    // Wait for Vision client to initialize if it's still loading
+    if (visionClientPromise && !visionClient) {
+      console.log('[OCR] Waiting for Vision client initialization...');
+      await visionClientPromise;
+    }
+    
     if (!visionClient) {
       const errorMsg = 'Google Vision API not configured. Please set GOOGLE_CLOUD_VISION_API_KEY or GOOGLE_APPLICATION_CREDENTIALS in environment variables.';
       console.error('[OCR] ❌', errorMsg);
+      console.error('[OCR] Environment check:', {
+        hasProjectId: !!process.env.GOOGLE_CLOUD_PROJECT_ID,
+        hasApiKey: !!process.env.GOOGLE_CLOUD_VISION_API_KEY,
+        hasCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      });
       throw new Error(errorMsg);
     }
     
