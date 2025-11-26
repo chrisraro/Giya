@@ -366,6 +366,37 @@ export async function POST(request: NextRequest) {
 
     console.log(`[OCR API] 🔍 Verified customer total points: ${verifyCustomer?.total_points}`);
 
+    // === DELETE RECEIPT IMAGE FROM STORAGE ===
+    // After successful processing, delete the image to save storage space
+    if (receipt.image_url) {
+      try {
+        console.log('[OCR API] 🗑️ Deleting receipt image from storage...');
+        
+        // Extract file path from image_url
+        // Format: https://{project}.supabase.co/storage/v1/object/public/receipts/{path}
+        const urlParts = receipt.image_url.split('/receipts/');
+        if (urlParts.length === 2) {
+          const filePath = urlParts[1];
+          
+          const { error: deleteError } = await supabaseAdmin.storage
+            .from('receipts')
+            .remove([filePath]);
+          
+          if (deleteError) {
+            console.warn('[OCR API] ⚠️ Failed to delete receipt image:', deleteError);
+            // Don't fail the whole process if image deletion fails
+          } else {
+            console.log('[OCR API] ✅ Receipt image deleted successfully');
+          }
+        } else {
+          console.warn('[OCR API] ⚠️ Could not parse image URL for deletion:', receipt.image_url);
+        }
+      } catch (deleteError) {
+        console.warn('[OCR API] ⚠️ Error during image deletion:', deleteError);
+        // Don't fail the whole process if image deletion fails
+      }
+    }
+
     console.log('[OCR API] ✅ Receipt processing complete!');
     return NextResponse.json({
       success: true,
