@@ -12,13 +12,28 @@ const isGoogleVisionEnabled = (): boolean => {
 let visionClient: any = null;
 if (typeof window === 'undefined' && isGoogleVisionEnabled()) {
   import('@google-cloud/vision').then((vision) => {
-    visionClient = new vision.ImageAnnotatorClient({
-      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-      // OR use API key if that's your setup
-      // apiKey: process.env.GOOGLE_CLOUD_VISION_API_KEY,
-    });
+    // Try API key first (simpler for serverless), then credentials file
+    if (process.env.GOOGLE_CLOUD_VISION_API_KEY) {
+      console.log('[OCR] Initializing Google Vision with API Key');
+      visionClient = new vision.ImageAnnotatorClient({
+        apiKey: process.env.GOOGLE_CLOUD_VISION_API_KEY,
+      });
+    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      console.log('[OCR] Initializing Google Vision with Service Account');
+      // Parse JSON if it's a string (for Vercel environment variables)
+      const credentials = typeof process.env.GOOGLE_APPLICATION_CREDENTIALS === 'string' && 
+                          process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('{') 
+        ? JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)
+        : process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      
+      visionClient = new vision.ImageAnnotatorClient({
+        credentials: typeof credentials === 'string' ? undefined : credentials,
+        keyFilename: typeof credentials === 'string' ? credentials : undefined,
+      });
+    }
+    console.log('[OCR] ✅ Google Vision client initialized successfully');
   }).catch((error) => {
-    console.warn('[OCR] Google Vision not available, using mock OCR:', error);
+    console.warn('[OCR] ❌ Google Vision not available, using mock OCR:', error);
   });
 }
 
@@ -65,8 +80,9 @@ export async function processReceiptOCRWithGoogleVision(imageUrl: string): Promi
     console.log(`[OCR] Processing image with Google Vision: ${imageUrl}`);
     
     if (!visionClient) {
-      console.warn('[OCR] Google Vision client not initialized, falling back to mock');
-      return processReceiptOCR(imageUrl);
+      const errorMsg = 'Google Vision API not configured. Please set GOOGLE_CLOUD_VISION_API_KEY or GOOGLE_APPLICATION_CREDENTIALS in environment variables.';
+      console.error('[OCR] ❌', errorMsg);
+      throw new Error(errorMsg);
     }
     
     // Fetch the image from URL
