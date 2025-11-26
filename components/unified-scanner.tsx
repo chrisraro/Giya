@@ -34,6 +34,12 @@ export function UnifiedScanner({
     if (open && userRole === 'customer') {
       loadCustomer()
     }
+    
+    // Reset to scan mode when dialog closes
+    if (!open) {
+      console.log('📷 Dialog closed, resetting scanner')
+      handleReset()
+    }
   }, [open, userRole])
 
   useEffect(() => {
@@ -268,7 +274,11 @@ export function UnifiedScanner({
           <div className="space-y-4">
             <Card>
               <CardContent className="pt-6">
-                <Html5QrScanner onScanSuccess={handleQrScanComplete} onClose={() => onOpenChange(false)} />
+                <Html5QrScanner 
+                  key={`business-scanner-${open}`}
+                  onScanSuccess={handleQrScanComplete} 
+                  onClose={() => onOpenChange(false)} 
+                />
               </CardContent>
             </Card>
           </div>
@@ -282,7 +292,11 @@ export function UnifiedScanner({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Html5QrScanner onScanSuccess={handleQrScanComplete} onClose={() => onOpenChange(false)} />
+                <Html5QrScanner 
+                  key={`customer-scanner-${open}`}
+                  onScanSuccess={handleQrScanComplete} 
+                  onClose={() => onOpenChange(false)} 
+                />
                 
                 <div className="mt-6 p-4 bg-muted rounded-lg">
                   <h3 className="font-medium mb-2 text-sm">How it works:</h3>
