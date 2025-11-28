@@ -4,12 +4,13 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, RefreshCw, Users, MousePointerClick, ShoppingCart, TrendingUp, ArrowLeft } from "lucide-react"
+import { Loader2, RefreshCw, Users, MousePointerClick, ShoppingCart, TrendingUp, ArrowLeft, Copy, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 
 export default function BusinessAnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
   const supabase = createClient()
   
   // Get business ID from authenticated user
@@ -34,10 +35,16 @@ export default function BusinessAnalyticsPage() {
         .single()
       
       // Count referral signups (CompleteRegistration events)
-      const { count: referralSignups } = await supabase
+      const { count: referralSignups, error: signupError } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('referred_by', businessId)
+      
+      console.log('[Analytics Debug] Referral Signups Query:', { 
+        businessId, 
+        referralSignups, 
+        error: signupError 
+      })
       
       // Get customers referred by this business who made transactions
       const { data: referredCustomers } = await supabase
@@ -74,6 +81,26 @@ export default function BusinessAnalyticsPage() {
       
       const conversionRate = referralSignups ? (firstPurchaseCount / referralSignups * 100) : 0
       
+      // Store debug information
+      setDebugInfo({
+        businessId,
+        referralSignupsQuery: { count: referralSignups, error: signupError?.message },
+        referredCustomers: referredCustomers?.length || 0,
+        firstPurchaseCount,
+        totalConversionRevenue,
+        conversionRate,
+        pixelConfigured: !!business?.meta_pixel_id
+      })
+      
+      console.log('[Analytics Debug] Complete Analytics Data:', {
+        businessId,
+        business,
+        referralSignups,
+        firstPurchaseCount,
+        totalConversionRevenue,
+        conversionRate
+      })
+      
       setAnalyticsData({
         metaPixelId: business?.meta_pixel_id || null,
         businessName: business?.business_name || 'Your Business',
@@ -87,6 +114,22 @@ export default function BusinessAnalyticsPage() {
       toast.error('Failed to load analytics data')
     } finally {
       setIsLoading(false)
+    }
+  }
+  
+  // Copy referral link to clipboard
+  const copyReferralLink = async () => {
+    if (!debugInfo?.businessId) return
+    
+    const referralLink = `${window.location.origin}/?ref=${debugInfo.businessId}`
+    
+    try {
+      await navigator.clipboard.writeText(referralLink)
+      toast.success('Referral link copied to clipboard!', {
+        description: 'Share this link to track conversions'
+      })
+    } catch (error) {
+      toast.error('Failed to copy link')
     }
   }
   
@@ -133,6 +176,52 @@ export default function BusinessAnalyticsPage() {
         <>
           {analyticsData.metaPixelId ? (
             <>
+              {/* Debug Info Card - Only visible in development */}
+              {process.env.NODE_ENV === 'development' && debugInfo && (
+                <Card className="mb-6 border-purple-200 bg-purple-50">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium text-purple-900">🔍 Debug Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-xs font-mono space-y-1 text-purple-900">
+                      <div><strong>Business ID:</strong> {debugInfo.businessId}</div>
+                      <div><strong>Pixel Configured:</strong> {debugInfo.pixelConfigured ? '✅ Yes' : '❌ No'}</div>
+                      <div><strong>Referral Signups Query:</strong> Count = {debugInfo.referralSignupsQuery.count}, Error = {debugInfo.referralSignupsQuery.error || 'None'}</div>
+                      <div><strong>Referred Customers:</strong> {debugInfo.referredCustomers}</div>
+                      <div><strong>First Purchases:</strong> {debugInfo.firstPurchaseCount}</div>
+                      <div className="mt-2 pt-2 border-t border-purple-200">
+                        <strong>Test Referral Link:</strong>
+                        <div className="mt-1 p-2 bg-white rounded text-purple-600 break-all flex items-center justify-between gap-2">
+                          <span className="flex-1 text-xs">{window.location.origin}/?ref={debugInfo.businessId}</span>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={copyReferralLink}
+                            className="h-6 px-2 text-purple-600 hover:text-purple-700 hover:bg-purple-100"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-purple-200">
+                        <strong>Debug Endpoint:</strong>
+                        <div className="mt-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(`/api/debug/meta-pixel?businessId=${debugInfo.businessId}`, '_blank')}
+                            className="h-7 text-xs border-purple-200 text-purple-600 hover:bg-purple-100"
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Open Debug Tool
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Meta Pixel Status Banner */}
               <Card className="mb-6 border-blue-200 bg-blue-50">
                 <CardContent className="pt-6">

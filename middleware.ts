@@ -7,6 +7,9 @@ export async function middleware(request: NextRequest) {
   
   // If there's a referral business ID, store it in a cookie for attribution
   if (refBusinessId) {
+    console.log(`[Middleware] 🎯 Referral link detected! Business ID: ${refBusinessId}`)
+    console.log(`[Middleware] 📍 Full URL: ${request.url}`)
+    
     const response = await updateSession(request)
     response.cookies.set('referral_business_id', refBusinessId, {
       maxAge: 60 * 60 * 24 * 30, // 30 days (First Touch Attribution)
@@ -15,7 +18,8 @@ export async function middleware(request: NextRequest) {
       sameSite: 'lax',
       path: '/',
     })
-    console.log(`[Middleware] Referral cookie set for business: ${refBusinessId}`)
+    console.log(`[Middleware] ✅ Referral cookie set for business: ${refBusinessId}`)
+    console.log(`[Middleware] 🕐 Cookie expires in 30 days`)
     return response
   }
 
