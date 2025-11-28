@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { createClient } from '@/lib/supabase/client';
 import { OptimizedImage } from '@/components/optimized-image';
 import { validateImageFile } from '@/lib/security-utils';
+import { trackPurchaseConversion } from '@/components/tracking/business-pixel';
 
 interface ReceiptUploadProps {
   businessId: string;
@@ -200,6 +201,21 @@ export function ReceiptUpload({
           setProcessingStatus('success');
           setPointsEarned(result.pointsEarned || 0);
           console.log('✅ Receipt processed successfully! Points:', result.pointsEarned);
+          
+          // 🎯 META PIXEL PURCHASE TRACKING
+          // If this was the customer's first transaction from a referred business, fire the Purchase event
+          if (result.metaPixelTracking) {
+            const { pixelId, eventData, referringBusiness } = result.metaPixelTracking;
+            console.log(`[📊 Meta Pixel] Tracking first Purchase for ${referringBusiness}:`, { pixelId, eventData });
+            
+            try {
+              trackPurchaseConversion(pixelId, eventData);
+              console.log('✅ Meta Pixel Purchase event tracked successfully');
+            } catch (pixelError) {
+              console.error('⚠️ Error tracking Meta Pixel Purchase:', pixelError);
+              // Don't fail the whole process if pixel tracking fails
+            }
+          }
           
           // Store success data in sessionStorage for showing after reload
           sessionStorage.setItem('receiptProcessSuccess', JSON.stringify({

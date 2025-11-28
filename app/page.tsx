@@ -4,6 +4,8 @@ import { Footer1 } from "@/components/pro-blocks/landing-page/footers/footer-1"
 import { BusinessDiscovery } from "@/components/business-discovery"
 import { createServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { getReferralPixelId } from "@/lib/tracking/referral-tracking"
+import { BusinessPixel } from "@/components/tracking/business-pixel"
 
 export default async function Page() {
   // Check if user is authenticated
@@ -38,8 +40,14 @@ export default async function Page() {
     }
   }
 
+  // Get referral business pixel ID from cookie (if user came via ?ref=BUSINESS_ID)
+  const referralPixelId = await getReferralPixelId()
+
   return (
     <main>
+      {/* Dynamic Meta Pixel - Only loads if referred by a business */}
+      <BusinessPixel pixelId={referralPixelId} />
+      
       <LpNavbar1 />
       <HeroSection2 />
       <BusinessDiscovery />

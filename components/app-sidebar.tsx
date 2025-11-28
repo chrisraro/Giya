@@ -17,7 +17,8 @@ import {
   Percent,
   Shield,
   Building2,
-  List
+  List,
+  LineChart
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -143,6 +144,11 @@ export function AppSidebar({
     //   url: "/dashboard/business/punch-cards",
     //   icon: QrCode,
     // },
+    {
+      title: "Analytics",
+      url: "/dashboard/business/analytics",
+      icon: LineChart,
+    },
     {
       title: "Menu",
       url: "/dashboard/business/menu",

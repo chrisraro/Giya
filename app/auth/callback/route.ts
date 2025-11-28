@@ -22,14 +22,41 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        // Check if there's a referral code in cookies
-        const referralCode = cookieStore.get('affiliate_referral_code')?.value
+        // ============================================================
+        // NEW META PIXEL ATTRIBUTION LOGIC (First Touch)
+        // ============================================================
+        // Check if there's a referral business ID from the cookie
+        const referralBusinessId = cookieStore.get('referral_business_id')?.value
         
-        // If there's a referral code, update user metadata
-        if (referralCode) {
+        if (referralBusinessId) {
+          // Check if user already has a profile with referred_by set
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('referred_by')
+            .eq('id', user.id)
+            .single()
+          
+          // Only set referred_by if it's currently NULL (First Touch Attribution)
+          if (existingProfile && !existingProfile.referred_by) {
+            await supabase
+              .from('profiles')
+              .update({ referred_by: referralBusinessId })
+              .eq('id', user.id)
+            
+            console.log(`[Auth Callback] Attributed user ${user.id} to business ${referralBusinessId}`)
+          }
+        }
+        
+        // ============================================================
+        // LEGACY AFFILIATE CODE (for influencer system - if still needed)
+        // ============================================================
+        const affiliateReferralCode = cookieStore.get('affiliate_referral_code')?.value
+        
+        // If there's an affiliate referral code, update user metadata
+        if (affiliateReferralCode) {
           await supabase.auth.updateUser({
             data: {
-              referral_code: referralCode
+              referral_code: affiliateReferralCode
             }
           })
         }

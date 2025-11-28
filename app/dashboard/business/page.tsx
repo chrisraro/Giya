@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Loader2, Settings, Check, QrCode, Gift, Tag, Star, Package, Percent } from "lucide-react"
+import { Loader2, Settings, Check, QrCode, Gift, Tag, Star, Package, Percent, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import { handleApiError, handleDatabaseError } from "@/lib/error-handler"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -457,10 +457,10 @@ export default function BusinessDashboard() {
             <Button 
               variant="outline" 
               className="h-auto flex-col gap-2 p-4"
-              onClick={() => router.push("/dashboard/business/menu")}
+              onClick={() => router.push("/dashboard/business/analytics")}
             >
-              <Package className="h-6 w-6" />
-              <span>Manage Menu</span>
+              <TrendingUp className="h-6 w-6" />
+              <span>Analytics</span>
             </Button>
             <Button 
               variant="outline" 

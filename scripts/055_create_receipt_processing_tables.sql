@@ -109,9 +109,17 @@ create policy "Admins can view all receipts" on public.receipts
 -- RLS Policies for business analytics
 alter table public.business_analytics enable row level security;
 
--- Businesses can only view their own analytics
+-- Businesses can view their own analytics
 create policy "Businesses can view their analytics" on public.business_analytics
   for select using (business_id = auth.uid());
+
+-- Businesses can insert their own analytics (for ad spend tracking)
+create policy "Businesses can insert their analytics" on public.business_analytics
+  for insert with check (business_id = auth.uid());
+
+-- Businesses can update their own analytics (for ad spend updates)
+create policy "Businesses can update their analytics" on public.business_analytics
+  for update using (business_id = auth.uid());
 
 -- Admins can view all analytics
 create policy "Admins can view all analytics" on public.business_analytics

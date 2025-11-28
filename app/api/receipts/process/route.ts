@@ -366,6 +366,77 @@ export async function POST(request: NextRequest) {
 
     console.log(`[OCR API] 🔍 Verified customer total points: ${verifyCustomer?.total_points}`);
 
+    // ================================================================
+    // META PIXEL PURCHASE TRACKING (First Transaction Attribution)
+    // ================================================================
+    // Check if this is the customer's first transaction AND if they were referred by a business
+    try {
+      console.log('[OCR API] 🎯 Checking for Meta Pixel Purchase tracking...');
+      
+      // Count total transactions for this customer
+      const { count: transactionCount } = await supabaseAdmin
+        .from('points_transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('customer_id', receipt.customer_id);
+      
+      const isFirstTransaction = transactionCount === 1; // We just created one
+      console.log(`[OCR API] Transaction count: ${transactionCount}, Is first: ${isFirstTransaction}`);
+      
+      if (isFirstTransaction) {
+        // Check if customer was referred by a business
+        const { data: customerProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('referred_by')
+          .eq('id', receipt.customer_id)
+          .single();
+        
+        if (customerProfile?.referred_by) {
+          console.log(`[OCR API] Customer was referred by business: ${customerProfile.referred_by}`);
+          
+          // Get the referring business's Meta Pixel ID
+          const { data: referringBusiness } = await supabaseAdmin
+            .from('businesses')
+            .select('meta_pixel_id, business_name')
+            .eq('id', customerProfile.referred_by)
+            .single();
+          
+          if (referringBusiness?.meta_pixel_id) {
+            console.log(`[OCR API] ✅ Referring business has Meta Pixel ID: ${referringBusiness.meta_pixel_id}`);
+            
+            // Return pixel tracking data to client for browser-side tracking
+            return NextResponse.json({
+              success: true,
+              receiptId,
+              ocrData,
+              pointsEarned,
+              message: `Receipt processed successfully! You earned ${pointsEarned} points.`,
+              // Meta Pixel tracking data
+              metaPixelTracking: {
+                pixelId: referringBusiness.meta_pixel_id,
+                eventType: 'Purchase',
+                eventData: {
+                  value: ocrData.totalAmount,
+                  currency: ocrData.currency || 'PHP',
+                  content_type: 'receipt_transaction',
+                  content_name: `First Transaction - ${business.business_name}`,
+                },
+                isFirstTransaction: true,
+                referringBusiness: referringBusiness.business_name
+              }
+            });
+          } else {
+            console.log('[OCR API] Referring business does not have Meta Pixel ID configured');
+          }
+        } else {
+          console.log('[OCR API] Customer was not referred by a business');
+        }
+      }
+    } catch (pixelTrackingError) {
+      console.error('[OCR API] ⚠️ Error checking Meta Pixel tracking:', pixelTrackingError);
+      // Don't fail the whole process if pixel tracking check fails
+    }
+    // ================================================================
+
     // === DELETE RECEIPT IMAGE FROM STORAGE ===
     // After successful processing, delete the image to save storage space
     if (receipt.image_url) {
@@ -403,7 +474,8 @@ export async function POST(request: NextRequest) {
       receiptId,
       ocrData,
       pointsEarned,
-      message: `Receipt processed successfully! You earned ${pointsEarned} points.`
+      message: `Receipt processed successfully! You earned ${pointsEarned} points.`,
+      metaPixelTracking: null // No pixel tracking for non-first transactions
     })
 
   } catch (error) {

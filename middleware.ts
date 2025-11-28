@@ -2,19 +2,20 @@ import { updateSession } from "@/lib/supabase/middleware"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function middleware(request: NextRequest) {
-  // Capture referral code from URL parameters
-  const refCode = request.nextUrl.searchParams.get('ref')
+  // Capture business referral ID from URL parameters (?ref=BUSINESS_ID)
+  const refBusinessId = request.nextUrl.searchParams.get('ref')
   
-  // If there's a referral code, store it in a cookie
-  if (refCode) {
-    const response = NextResponse.next()
-    response.cookies.set('affiliate_referral_code', refCode, {
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+  // If there's a referral business ID, store it in a cookie for attribution
+  if (refBusinessId) {
+    const response = await updateSession(request)
+    response.cookies.set('referral_business_id', refBusinessId, {
+      maxAge: 60 * 60 * 24 * 30, // 30 days (First Touch Attribution)
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Only secure in production
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
     })
+    console.log(`[Middleware] Referral cookie set for business: ${refBusinessId}`)
     return response
   }
 

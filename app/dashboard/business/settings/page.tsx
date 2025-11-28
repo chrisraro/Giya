@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Save, MapPin, ArrowLeft } from "lucide-react"
+import { Loader2, Save, MapPin, ArrowLeft, Copy, Check, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 import { GoogleMap } from "@/components/google-map"
 import { BusinessQRCode } from "@/components/business-qr-code"
@@ -36,6 +36,7 @@ interface BusinessData {
   access_qr_code: string | null
   latitude: number | null
   longitude: number | null
+  meta_pixel_id: string | null
 }
 
 export default function BusinessProfileSettings() {
@@ -46,10 +47,12 @@ export default function BusinessProfileSettings() {
     address: "",
     gmaps_link: "",
     points_per_currency: 100,
-    description: ""
+    description: "",
+    meta_pixel_id: ""
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [copiedReferralLink, setCopiedReferralLink] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const isComponentMounted = useRef(true)
@@ -97,7 +100,8 @@ export default function BusinessProfileSettings() {
           address: business.address || "",
           gmaps_link: business.gmaps_link || "",
           points_per_currency: business.points_per_currency || 100,
-          description: business.description || ""
+          description: business.description || "",
+          meta_pixel_id: business.meta_pixel_id || ""
         })
       }
     } catch (error) {
@@ -133,7 +137,8 @@ export default function BusinessProfileSettings() {
         address: formData.address,
         gmaps_link: formData.gmaps_link || null,
         points_per_currency: formData.points_per_currency,
-        description: formData.description || null
+        description: formData.description || null,
+        meta_pixel_id: formData.meta_pixel_id || null
       }
 
       const { error } = await supabase
@@ -171,6 +176,14 @@ export default function BusinessProfileSettings() {
         profile_pic_url: newImageUrl
       })
     }
+  }
+
+  const copyReferralLink = () => {
+    const referralLink = `${window.location.origin}/?ref=${businessData?.id}`
+    navigator.clipboard.writeText(referralLink)
+    setCopiedReferralLink(true)
+    toast.success("Referral link copied to clipboard!")
+    setTimeout(() => setCopiedReferralLink(false), 2000)
   }
 
   if (isLoading) {
@@ -342,6 +355,80 @@ export default function BusinessProfileSettings() {
                       How many points customers earn per peso spent (e.g., 1 point per ₱{formData.points_per_currency})
                     </p>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Meta Pixel Integration Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Meta Pixel Integration</CardTitle>
+                  <CardDescription>
+                    Connect your Meta (Facebook) Pixel to track conversions from your referral link
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="meta_pixel_id">Meta Pixel ID</Label>
+                    <Input
+                      id="meta_pixel_id"
+                      name="meta_pixel_id"
+                      value={formData.meta_pixel_id}
+                      onChange={handleInputChange}
+                      placeholder="123456789012345"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Find your Pixel ID in Meta Events Manager. This tracks when customers sign up via your referral link.
+                    </p>
+                    <a 
+                      href="https://www.facebook.com/business/help/952192354843755?id=1205376682832142" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                    >
+                      How to find your Pixel ID
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Your Referral Link</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/?ref=${businessData?.id}`}
+                        readOnly
+                        className="font-mono text-xs"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={copyReferralLink}
+                      >
+                        {copiedReferralLink ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Share this link in your Meta ads. When customers sign up through this link, 
+                      their first transaction will fire a Purchase event to your Pixel.
+                    </p>
+                  </div>
+
+                  {formData.meta_pixel_id && (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                      <h4 className="font-medium text-blue-900 mb-2">✓ Pixel Connected</h4>
+                      <p className="text-sm text-blue-700">
+                        Your Meta Pixel (<code className="font-mono">{formData.meta_pixel_id}</code>) will track:
+                      </p>
+                      <ul className="text-sm text-blue-700 list-disc list-inside mt-2 space-y-1">
+                        <li>CompleteRegistration when customers sign up via your link</li>
+                        <li>Purchase events for first-time transactions from referred customers</li>
+                      </ul>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
