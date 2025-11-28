@@ -101,16 +101,46 @@ export function trackSignupConversion(pixelId: string, data?: {
   if (typeof window === 'undefined') return
 
   try {
-    // @ts-ignore
-    if (window.fbq) {
+    // Ensure fbq is loaded - if not, load it dynamically
+    if (!window.fbq) {
+      console.log('[Business Pixel] fbq not loaded, initializing...')
+      
+      // Initialize fbq
+      window.fbq = function() {
+        // @ts-ignore
+        (window.fbq.q = window.fbq.q || []).push(arguments)
+      }
+      // @ts-ignore
+      window._fbq = window.fbq
+      // @ts-ignore
+      window.fbq.loaded = true
+      // @ts-ignore
+      window.fbq.version = '2.0'
+      // @ts-ignore
+      window.fbq.queue = []
+      
+      // Load the pixel script
+      const script = document.createElement('script')
+      script.async = true
+      script.src = 'https://connect.facebook.net/en_US/fbevents.js'
+      document.head.appendChild(script)
+      
+      // Wait for script to load before tracking
+      script.onload = () => {
+        console.log('[Business Pixel] Script loaded, tracking CompleteRegistration')
+        // @ts-ignore
+        window.fbq('init', pixelId)
+        // @ts-ignore
+        window.fbq('track', 'CompleteRegistration', data || {})
+        console.log(`[Business Pixel] CompleteRegistration tracked:`, { pixelId, data })
+      }
+    } else {
+      // fbq already loaded
       // @ts-ignore
       window.fbq('init', pixelId)
       // @ts-ignore
       window.fbq('track', 'CompleteRegistration', data || {})
-      
       console.log(`[Business Pixel] CompleteRegistration tracked:`, { pixelId, data })
-    } else {
-      console.warn('[Business Pixel] fbq not initialized yet')
     }
   } catch (error) {
     console.error('[Business Pixel] Error tracking signup:', error)

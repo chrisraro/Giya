@@ -27,12 +27,14 @@ export async function GET(request: Request) {
         // ============================================================
         // Check if there's a referral business ID from the cookie
         const referralBusinessId = cookieStore.get('referral_business_id')?.value
+        let isNewSignup = false
+        let referringBusinessPixelId: string | null = null
         
         if (referralBusinessId) {
           // Check if user already has a profile with referred_by set
           const { data: existingProfile } = await supabase
             .from('profiles')
-            .select('referred_by')
+            .select('referred_by, created_at')
             .eq('id', user.id)
             .single()
           
@@ -44,6 +46,53 @@ export async function GET(request: Request) {
               .eq('id', user.id)
             
             console.log(`[Auth Callback] Attributed user ${user.id} to business ${referralBusinessId}`)
+            
+            // Check if this is a new signup (created within last 5 minutes)
+            const createdAt = new Date(existingProfile.created_at)
+            const now = new Date()
+            const minutesSinceCreation = (now.getTime() - createdAt.getTime()) / 1000 / 60
+            isNewSignup = minutesSinceCreation < 5
+            
+            // Get the referring business's pixel ID
+            const { data: referringBusiness } = await supabase
+              .from('businesses')
+              .select('meta_pixel_id')
+              .eq('id', referralBusinessId)
+              .single()
+            
+            if (referringBusiness?.meta_pixel_id) {
+              referringBusinessPixelId = referringBusiness.meta_pixel_id
+              console.log(`[Auth Callback] Will fire CompleteRegistration for pixel: ${referringBusinessPixelId}`)
+            }
+          } else if (!existingProfile) {
+            // Profile doesn't exist yet - will be created in setup, mark as new signup
+            isNewSignup = true
+            
+            // Get the referring business's pixel ID
+            const { data: referringBusiness } = await supabase
+              .from('businesses')
+              .select('meta_pixel_id')
+              .eq('id', referralBusinessId)
+              .single()
+            
+            if (referringBusiness?.meta_pixel_id) {
+              referringBusinessPixelId = referringBusiness.meta_pixel_id
+              
+              // Store pixel ID in cookie for setup page to fire event
+              cookieStore.set('meta_pixel_tracking', JSON.stringify({
+                pixelId: referringBusinessPixelId,
+                eventType: 'CompleteRegistration',
+                businessId: referralBusinessId
+              }), {
+                maxAge: 60 * 10, // 10 minutes
+                httpOnly: false, // Need to be accessible from client
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/'
+              })
+              
+              console.log(`[Auth Callback] Stored pixel tracking cookie for setup page: ${referringBusinessPixelId}`)
+            }
           }
         }
         
@@ -84,6 +133,22 @@ export async function GET(request: Request) {
           response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
           response.headers.set('Pragma', 'no-cache')
           response.headers.set('Expires', '0')
+          
+          // Add Meta Pixel tracking cookie to response if available
+          if (referringBusinessPixelId) {
+            response.cookies.set('meta_pixel_tracking', JSON.stringify({
+              pixelId: referringBusinessPixelId,
+              eventType: 'CompleteRegistration',
+              businessId: referralBusinessId
+            }), {
+              maxAge: 60 * 10, // 10 minutes
+              httpOnly: false,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              path: '/'
+            })
+          }
+          
           return response
         } else {
           // Check if this is a Google or Facebook signup with form data
@@ -152,6 +217,22 @@ export async function GET(request: Request) {
               const response = NextResponse.redirect(new URL(redirectPath, request.url))
               // Set the expired cookie to clean up
               response.cookies.set(cookieName, '', { expires: new Date(0), path: '/' })
+              
+              // Add Meta Pixel tracking cookie to response if available
+              if (referringBusinessPixelId) {
+                response.cookies.set('meta_pixel_tracking', JSON.stringify({
+                  pixelId: referringBusinessPixelId,
+                  eventType: 'CompleteRegistration',
+                  businessId: referralBusinessId
+                }), {
+                  maxAge: 60 * 10, // 10 minutes
+                  httpOnly: false,
+                  secure: process.env.NODE_ENV === 'production',
+                  sameSite: 'lax',
+                  path: '/'
+                })
+              }
+              
               // Add cache control headers
               response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
               response.headers.set('Pragma', 'no-cache')

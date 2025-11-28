@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import Image from "next/image"
+import { trackSignupConversion } from "@/components/tracking/business-pixel"
 
 export default function BusinessSetupPage() {
   const [formData, setFormData] = useState({
@@ -142,6 +143,39 @@ export default function BusinessSetupPage() {
       })
 
       if (businessError) throw businessError
+
+      // ============================================================
+      // META PIXEL COMPLETEREGISTRATION TRACKING
+      // ============================================================
+      // Check if there's a Meta Pixel tracking cookie from auth callback
+      if (typeof window !== 'undefined') {
+        const trackingCookie = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('meta_pixel_tracking='))
+          ?.split('=')[1]
+        
+        if (trackingCookie) {
+          try {
+            const trackingData = JSON.parse(decodeURIComponent(trackingCookie))
+            
+            if (trackingData.pixelId && trackingData.eventType === 'CompleteRegistration') {
+              // Fire the CompleteRegistration event
+              trackSignupConversion(trackingData.pixelId, {
+                content_name: 'Business Signup',
+                value: 0,
+                currency: 'PHP'
+              })
+              
+              console.log(`[Business Setup] CompleteRegistration event fired for pixel: ${trackingData.pixelId}`)
+              
+              // Clean up the tracking cookie
+              document.cookie = 'meta_pixel_tracking=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+            }
+          } catch (error) {
+            console.error('[Business Setup] Error parsing tracking cookie:', error)
+          }
+        }
+      }
 
       router.push("/dashboard/business")
     } catch (error: unknown) {
