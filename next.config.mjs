@@ -51,7 +51,24 @@ const nextConfig = {
         },
         {
           key: 'Content-Security-Policy',
-          value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https:; connect-src 'self' https: wss:; media-src 'self' blob: data:;",
+          value: [
+            // Allow both giya.ph and www.giya.ph for all resources
+            "default-src 'self' https://giya.ph https://www.giya.ph",
+            // Scripts: Next.js, Meta Pixel, PostHog
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://giya.ph https://www.giya.ph https://connect.facebook.net https://us.i.posthog.com https://us-assets.i.posthog.com",
+            // Styles: Next.js CSS and inline styles
+            "style-src 'self' 'unsafe-inline' https://giya.ph https://www.giya.ph",
+            // Fonts: Next.js optimized fonts
+            "font-src 'self' data: https://giya.ph https://www.giya.ph",
+            // Images: Supabase storage, external CDNs
+            "img-src 'self' blob: data: https: https://giya.ph https://www.giya.ph https://www.facebook.com https://*.supabase.co",
+            // Connect: API calls, WebSocket, Supabase, PostHog
+            "connect-src 'self' https: wss: https://giya.ph https://www.giya.ph https://*.supabase.co https://us.i.posthog.com",
+            // Media: Self and blob for uploads
+            "media-src 'self' blob: data: https://giya.ph https://www.giya.ph",
+            // Frames: Meta Pixel noscript fallback
+            "frame-src https://www.facebook.com",
+          ].join('; '),
         },
         {
           key: 'Permissions-Policy',

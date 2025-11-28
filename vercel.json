@@ -1,0 +1,26 @@
+{
+  "redirects": [
+    {
+      "source": "/:path((?!www).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "giya.ph"
+        }
+      ],
+      "destination": "https://www.giya.ph/:path*",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "index, follow"
+        }
+      ]
+    }
+  ]
+}
