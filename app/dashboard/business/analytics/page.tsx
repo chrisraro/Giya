@@ -121,12 +121,13 @@ export default function BusinessAnalyticsPage() {
   const copyReferralLink = async () => {
     if (!debugInfo?.businessId) return
     
+    // Updated referral link format - auto-redirects to customer signup
     const referralLink = `${window.location.origin}/?ref=${debugInfo.businessId}`
     
     try {
       await navigator.clipboard.writeText(referralLink)
       toast.success('Referral link copied to clipboard!', {
-        description: 'Share this link to track conversions'
+        description: 'Share this link - it auto-redirects to customer signup for better tracking'
       })
     } catch (error) {
       toast.error('Failed to copy link')
@@ -190,7 +191,7 @@ export default function BusinessAnalyticsPage() {
                       <div><strong>Referred Customers:</strong> {debugInfo.referredCustomers}</div>
                       <div><strong>First Purchases:</strong> {debugInfo.firstPurchaseCount}</div>
                       <div className="mt-2 pt-2 border-t border-purple-200">
-                        <strong>Test Referral Link:</strong>
+                        <strong>Referral Link (Auto-redirects to Signup):</strong>
                         <div className="mt-1 p-2 bg-white rounded text-purple-600 break-all flex items-center justify-between gap-2">
                           <span className="flex-1 text-xs">{window.location.origin}/?ref={debugInfo.businessId}</span>
                           <Button 
@@ -202,6 +203,9 @@ export default function BusinessAnalyticsPage() {
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
+                        <p className="text-xs text-purple-600 mt-1">
+                          ✨ New users are automatically redirected to customer signup for better tracking!
+                        </p>
                       </div>
                       <div className="mt-2 pt-2 border-t border-purple-200">
                         <strong>Debug Endpoint:</strong>

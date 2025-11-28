@@ -6,6 +6,7 @@ import { createServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { getReferralPixelId } from "@/lib/tracking/referral-tracking"
 import { BusinessPixel } from "@/components/tracking/business-pixel"
+import { cookies } from "next/headers"
 
 export default async function Page() {
   // Check if user is authenticated
@@ -14,6 +15,22 @@ export default async function Page() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  // ============================================================
+  // META PIXEL REFERRAL TRACKING - AUTO REDIRECT TO SIGNUP
+  // ============================================================
+  // If user came via referral link (?ref=BUSINESS_ID) and is NOT authenticated,
+  // automatically redirect to customer signup for better conversion tracking
+  if (!user) {
+    const cookieStore = await cookies()
+    const referralBusinessId = cookieStore.get('referral_business_id')?.value
+    
+    if (referralBusinessId) {
+      console.log(`[Landing Page] 🎯 Referral detected for business: ${referralBusinessId}`)
+      console.log(`[Landing Page] ↗️  Auto-redirecting to customer signup...`)
+      redirect('/auth/signup?role=customer')
+    }
+  }
 
   // If user is authenticated, redirect them to their dashboard
   if (user) {

@@ -95,15 +95,27 @@ export default function SignupPage() {
 
     checkUser()
     
-    // Check for error parameter in URL
+    // ============================================================
+    // META PIXEL REFERRAL - AUTO-SELECT CUSTOMER ROLE
+    // ============================================================
+    // Check for role parameter in URL (from referral link)
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search)
+      const roleParam = urlParams.get('role')
       const errorParam = urlParams.get('error')
+      
+      // Auto-select customer role if specified in URL (from referral redirect)
+      if (roleParam === 'customer' && !selectedRole) {
+        console.log('[Signup] 🎯 Auto-selecting customer role from referral link')
+        setSelectedRole('customer')
+        form.setValue('role', 'customer')
+      }
+      
       if (errorParam === 'influencer_disabled') {
         setError('Influencer Hub is coming soon! Please sign up as a Customer or Business for now.')
       }
     }
-  }, [router, supabase])
+  }, [router, supabase, selectedRole, form])
 
   const handleRoleSelect = (role: "customer" | "business" | "influencer") => {
     setSelectedRole(role)

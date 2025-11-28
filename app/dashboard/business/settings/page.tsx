@@ -412,8 +412,8 @@ export default function BusinessProfileSettings() {
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Share this link in your Meta ads. When customers sign up through this link, 
-                      their first transaction will fire a Purchase event to your Pixel.
+                      Share this link in your Meta ads. When customers click it, they're automatically 
+                      redirected to customer signup for better conversion tracking.
                     </p>
                   </div>
 
@@ -427,6 +427,11 @@ export default function BusinessProfileSettings() {
                         <li>CompleteRegistration when customers sign up via your link</li>
                         <li>Purchase events for first-time transactions from referred customers</li>
                       </ul>
+                      <div className="mt-3 pt-3 border-t border-blue-200">
+                        <p className="text-xs text-blue-600 font-medium">
+                          ✨ New Feature: Referral links now auto-redirect to signup for better tracking!
+                        </p>
+                      </div>
                     </div>
                   )}
                 </CardContent>
