@@ -52,30 +52,55 @@ export default function BusinessAnalyticsPage() {
         .select('id')
         .eq('referred_by', businessId)
       
+      console.log('[Analytics Debug] Referred Customers:', referredCustomers)
+      
       let firstPurchaseCount = 0
       let totalConversionRevenue = 0
       
       if (referredCustomers && referredCustomers.length > 0) {
         const customerIds = referredCustomers.map(c => c.id)
         
-        // Get first transaction for each referred customer
-        const { data: transactions } = await supabase
+        // IMPORTANT: Get ALL transactions from referred customers (regardless of which business)
+        // The referral attribution is based on who referred the customer, not where they shop
+        const { data: transactions, error: transactionError } = await supabase
           .from('points_transactions')
-          .select('customer_id, amount_spent')
+          .select('customer_id, amount_spent, transaction_date, business_id')
           .in('customer_id', customerIds)
           .order('transaction_date', { ascending: true })
         
+        console.log('[Analytics Debug] All Transactions from Referred Customers:', {
+          count: transactions?.length || 0,
+          transactions,
+          error: transactionError
+        })
+        
         if (transactions) {
-          // Group by customer and get their first transaction
+          // Group by customer and get their FIRST transaction (from any business)
           const firstTransactions = new Map()
           transactions.forEach(txn => {
             if (!firstTransactions.has(txn.customer_id)) {
-              firstTransactions.set(txn.customer_id, txn.amount_spent)
+              firstTransactions.set(txn.customer_id, {
+                amount: txn.amount_spent,
+                businessId: txn.business_id,
+                date: txn.transaction_date
+              })
             }
           })
           
           firstPurchaseCount = firstTransactions.size
-          totalConversionRevenue = Array.from(firstTransactions.values()).reduce((sum, amount) => sum + amount, 0)
+          totalConversionRevenue = Array.from(firstTransactions.values())
+            .reduce((sum, txn) => sum + (txn.amount || 0), 0)
+          
+          console.log('[Analytics Debug] First Purchases Summary:', {
+            count: firstPurchaseCount,
+            revenue: totalConversionRevenue,
+            details: Array.from(firstTransactions.entries()).map(([customerId, txn]) => ({
+              customerId,
+              amount: txn.amount,
+              businessId: txn.businessId,
+              date: txn.date
+            }))
+          })
         }
       }
       
@@ -190,6 +215,10 @@ export default function BusinessAnalyticsPage() {
                       <div><strong>Referral Signups Query:</strong> Count = {debugInfo.referralSignupsQuery.count}, Error = {debugInfo.referralSignupsQuery.error || 'None'}</div>
                       <div><strong>Referred Customers:</strong> {debugInfo.referredCustomers}</div>
                       <div><strong>First Purchases:</strong> {debugInfo.firstPurchaseCount}</div>
+                      <div><strong>Total Revenue:</strong> ₱{debugInfo.totalConversionRevenue?.toFixed(2) || '0.00'}</div>
+                      <div className="text-xs text-purple-700 mt-1">
+                        💡 <em>Note: Tracks first purchase from referred customers at ANY business</em>
+                      </div>
                       <div className="mt-2 pt-2 border-t border-purple-200">
                         <strong>Referral Link (Auto-redirects to Signup):</strong>
                         <div className="mt-1 p-2 bg-white rounded text-purple-600 break-all flex items-center justify-between gap-2">

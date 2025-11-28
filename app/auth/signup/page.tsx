@@ -272,7 +272,24 @@ export default function SignupPage() {
       // After authentication, Facebook will redirect back to our callback URL
     } catch (error) {
       console.log("[v0] Facebook signup error:", error)
-      setError(error instanceof Error ? error.message : "An error occurred during Facebook sign-up")
+      
+      // Enhanced error handling for Facebook OAuth
+      let errorMessage = "An error occurred during Facebook sign-up"
+      
+      if (error instanceof Error) {
+        // Check for common Facebook OAuth errors
+        if (error.message.includes('app_not_setup') || error.message.includes('App Not Setup')) {
+          errorMessage = "Facebook Login is not properly configured. Please contact support or try another signup method."
+        } else if (error.message.includes('access_denied')) {
+          errorMessage = "Access denied. Please try again or use email signup."
+        } else if (error.message.includes('app is not active') || error.message.includes('app_inactive')) {
+          errorMessage = "Facebook app is in development mode. Only test users can sign in. Please use email/password signup or Google signup instead."
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      setError(errorMessage)
     } finally {
       setIsFacebookLoading(false)
     }
