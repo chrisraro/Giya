@@ -306,7 +306,7 @@ export default function TermsPage() {
 
             <h3 className="text-xl font-semibold mb-3 mt-6">13.2 Dispute Resolution</h3>
             <p>
-              In the event of any dispute, controversy, or claim arising out of or relating to these Terms or the Service, you agree to first contact us at <a href="mailto:support@nagaperks.app" className="text-primary hover:underline">support@nagaperks.app</a> to attempt to resolve the matter informally.
+              In the event of any dispute, controversy, or claim arising out of or relating to these Terms or the Service, you agree to first contact us at <a href="tel:+639198633539" className="text-primary hover:underline">0919 863 3539</a> or <a href="mailto:teamocsph@gmail.com" className="text-primary hover:underline">teamocsph@gmail.com</a> to attempt to resolve the matter informally.
             </p>
             <p>
               If the dispute cannot be resolved informally within 30 days, either party may initiate formal dispute resolution proceedings. You agree to submit to the exclusive jurisdiction of the courts located in Naga City, Camarines Sur, Philippines.
@@ -331,7 +331,7 @@ export default function TermsPage() {
               <li>At our sole discretion to protect the Service or other users</li>
             </ul>
             <p>
-              You may terminate your account at any time by contacting us at <a href="mailto:support@nagaperks.app" className="text-primary hover:underline">support@nagaperks.app</a>. Upon termination:
+              You may terminate your account at any time by contacting us at <a href="tel:+639198633539" className="text-primary hover:underline">0919 863 3539</a> or <a href="mailto:teamocsph@gmail.com" className="text-primary hover:underline">teamocsph@gmail.com</a>. Upon termination:
             </p>
             <ul>
               <li>Your access to the Service will be revoked</li>
@@ -376,11 +376,11 @@ export default function TermsPage() {
               If you have questions, concerns, or feedback regarding these Terms of Service, please contact us:
             </p>
             <div className="bg-muted p-4 rounded-lg mt-4">
-              <p className="font-semibold">Naga Perks by Giya</p>
-              <p>Email: <a href="mailto:support@nagaperks.app" className="text-primary hover:underline">support@nagaperks.app</a></p>
-              <p>Legal: <a href="mailto:legal@nagaperks.app" className="text-primary hover:underline">legal@nagaperks.app</a></p>
-              <p>Business Inquiries: <a href="mailto:business@nagaperks.app" className="text-primary hover:underline">business@nagaperks.app</a></p>
-              <p>Address: Naga City, Camarines Sur, Philippines</p>
+              <p className="font-semibold">Online Creative Solutions</p>
+              <p>Address: Unit 1, J666+8J6 Lendes Inn, Almeda Hwy, Naga City, 4400 Camarines Sur</p>
+              <p>Phone: <a href="tel:+639198633539" className="text-primary hover:underline">0919 863 3539</a></p>
+              <p>Email: <a href="mailto:teamocsph@gmail.com" className="text-primary hover:underline">teamocsph@gmail.com</a></p>
+              <p>Website: <a href="https://onlinecreativesolutions.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://onlinecreativesolutions.com</a></p>
             </div>
           </section>
 

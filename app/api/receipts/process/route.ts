@@ -367,23 +367,25 @@ export async function POST(request: NextRequest) {
     console.log(`[OCR API] 🔍 Verified customer total points: ${verifyCustomer?.total_points}`);
 
     // ================================================================
-    // META PIXEL PURCHASE TRACKING (First Transaction Attribution)
+    // META PIXEL PURCHASE TRACKING (First Transaction at THIS Business)
     // ================================================================
-    // Check if this is the customer's first transaction AND if they were referred by a business
+    // Check if this is the customer's FIRST transaction at THIS BUSINESS
+    // AND if they were referred by a business (tracks existing users too)
     try {
       console.log('[OCR API] 🎯 Checking for Meta Pixel Purchase tracking...');
       
-      // Count total transactions for this customer
-      const { count: transactionCount } = await supabaseAdmin
+      // Count transactions for this customer at THIS SPECIFIC BUSINESS
+      const { count: businessTransactionCount } = await supabaseAdmin
         .from('points_transactions')
         .select('*', { count: 'exact', head: true })
-        .eq('customer_id', receipt.customer_id);
+        .eq('customer_id', receipt.customer_id)
+        .eq('business_id', receipt.business_id);
       
-      const isFirstTransaction = transactionCount === 1; // We just created one
-      console.log(`[OCR API] Transaction count: ${transactionCount}, Is first: ${isFirstTransaction}`);
+      const isFirstBusinessTransaction = businessTransactionCount === 1; // We just created one
+      console.log(`[OCR API] Transactions at this business: ${businessTransactionCount}, Is first: ${isFirstBusinessTransaction}`);
       
-      if (isFirstTransaction) {
-        // Check if customer was referred by a business
+      if (isFirstBusinessTransaction) {
+        // Check if customer was referred by a business (could be THIS business or another)
         const { data: customerProfile } = await supabaseAdmin
           .from('profiles')
           .select('referred_by')
@@ -430,6 +432,8 @@ export async function POST(request: NextRequest) {
         } else {
           console.log('[OCR API] Customer was not referred by a business');
         }
+      } else {
+        console.log('[OCR API] Not a first transaction at this business, skipping pixel tracking');
       }
     } catch (pixelTrackingError) {
       console.error('[OCR API] ⚠️ Error checking Meta Pixel tracking:', pixelTrackingError);

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { ProfileImageUpload } from "@/components/profile-image-upload"
 import { DomErrorBoundary } from "@/components/shared/dom-error-boundary"
+import { MetaBusinessConnection } from "@/components/meta-business-connection"
 
 interface BusinessData {
   id: string
@@ -436,6 +437,9 @@ export default function BusinessProfileSettings() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Meta Business Suite Integration Card */}
+              <MetaBusinessConnection />
 
               <div className="flex justify-end">
                 <Button type="submit" disabled={isSaving}>

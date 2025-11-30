@@ -153,7 +153,7 @@ export default function PrivacyPage() {
               <li><strong>Opt-Out:</strong> Unsubscribe from marketing communications.</li>
             </ul>
             <p>
-              To exercise these rights, please contact us at <a href="mailto:privacy@nagaperks.app" className="text-primary hover:underline">privacy@nagaperks.app</a>. We will respond within 30 days of receiving your request.
+              To exercise these rights, please contact us at <a href="tel:+639198633539" className="text-primary hover:underline">0919 863 3539</a> or <a href="mailto:teamocsph@gmail.com" className="text-primary hover:underline">teamocsph@gmail.com</a>. We will respond within 30 days of receiving your request.
             </p>
           </section>
 
@@ -176,7 +176,7 @@ export default function PrivacyPage() {
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">9. Children's Privacy</h2>
             <p>
-              Naga Perks is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately at <a href="mailto:privacy@nagaperks.app" className="text-primary hover:underline">privacy@nagaperks.app</a>, and we will take steps to delete such information.
+              Naga Perks is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately at <a href="tel:+639198633539" className="text-primary hover:underline">0919 863 3539</a> or <a href="mailto:teamocsph@gmail.com" className="text-primary hover:underline">teamocsph@gmail.com</a>, and we will take steps to delete such information.
             </p>
           </section>
 
@@ -215,10 +215,11 @@ export default function PrivacyPage() {
               If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:
             </p>
             <div className="bg-muted p-4 rounded-lg mt-4">
-              <p className="font-semibold">Naga Perks by Giya</p>
-              <p>Email: <a href="mailto:privacy@nagaperks.app" className="text-primary hover:underline">privacy@nagaperks.app</a></p>
-              <p>Support: <a href="mailto:support@nagaperks.app" className="text-primary hover:underline">support@nagaperks.app</a></p>
-              <p>Address: Naga City, Camarines Sur, Philippines</p>
+              <p className="font-semibold">Online Creative Solutions</p>
+              <p>Address: Unit 1, J666+8J6 Lendes Inn, Almeda Hwy, Naga City, 4400 Camarines Sur</p>
+              <p>Phone: <a href="tel:+639198633539" className="text-primary hover:underline">0919 863 3539</a></p>
+              <p>Email: <a href="mailto:teamocsph@gmail.com" className="text-primary hover:underline">teamocsph@gmail.com</a></p>
+              <p>Website: <a href="https://onlinecreativesolutions.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://onlinecreativesolutions.com</a></p>
             </div>
           </section>
         </div>
