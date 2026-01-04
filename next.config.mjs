@@ -52,20 +52,20 @@ const nextConfig = {
         {
           key: 'Content-Security-Policy',
           value: [
-            // Allow both giya.ph and www.giya.ph for all resources
-            "default-src 'self' https://giya.ph https://www.giya.ph",
-            // Scripts: Next.js, Meta Pixel, PostHog
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://giya.ph https://www.giya.ph https://connect.facebook.net https://us.i.posthog.com https://us-assets.i.posthog.com",
-            // Styles: Next.js CSS and inline styles
-            "style-src 'self' 'unsafe-inline' https://giya.ph https://www.giya.ph",
-            // Fonts: Next.js optimized fonts
-            "font-src 'self' data: https://giya.ph https://www.giya.ph",
-            // Images: Supabase storage, external CDNs
-            "img-src 'self' blob: data: https: https://giya.ph https://www.giya.ph https://www.facebook.com https://*.supabase.co",
+            // Default: self and both domain variants
+            "default-src 'self'",
+            // Scripts: Next.js static, inline scripts, Meta Pixel, PostHog
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://us.i.posthog.com https://us-assets.i.posthog.com",
+            // Styles: Next.js CSS, inline styles, and both domains
+            "style-src 'self' 'unsafe-inline'",
+            // Fonts: Next.js optimized fonts from both domains
+            "font-src 'self' data:",
+            // Images: Supabase storage, external CDNs, both domains
+            "img-src 'self' blob: data: https: https://www.facebook.com https://*.supabase.co",
             // Connect: API calls, WebSocket, Supabase, PostHog
-            "connect-src 'self' https: wss: https://giya.ph https://www.giya.ph https://*.supabase.co https://us.i.posthog.com",
+            "connect-src 'self' https: wss: https://*.supabase.co https://us.i.posthog.com wss://hkgcalssjxulsdgqsgvt.supabase.co",
             // Media: Self and blob for uploads
-            "media-src 'self' blob: data: https://giya.ph https://www.giya.ph",
+            "media-src 'self' blob: data:",
             // Frames: Meta Pixel noscript fallback
             "frame-src https://www.facebook.com",
           ].join('; '),
