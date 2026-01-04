@@ -17,13 +17,21 @@ const onest = Onest({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.giya.ph'),
   title: "Naga Perks by Giya - Hyperlocal Discovery & Rewards",
   description: "Naga Perks powered by Giya is a hyperlocal discovery and privilege app that unlocks new experiences and perks for locals in Naga City.",
   generator: 'v0.app',
   manifest: '/manifest.json',
   icons: {
-    icon: '/Naga Perks Logo.png',
-    apple: '/Naga Perks Logo.png',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/giya-logo.png', sizes: '192x192', type: 'image/png' },
+      { url: '/giya-logo.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/giya-logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
   },
   appleWebApp: {
     capable: true,
@@ -38,11 +46,20 @@ export const metadata: Metadata = {
     siteName: 'Naga Perks by Giya',
     title: 'Naga Perks by Giya - Hyperlocal Discovery & Rewards',
     description: 'Discover local businesses, earn rewards, and enjoy exclusive privileges in Naga City',
+    images: [
+      {
+        url: '/giya-logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Naga Perks by Giya',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Naga Perks by Giya',
     description: 'Discover local businesses, earn rewards, and enjoy exclusive privileges in Naga City',
+    images: ['/giya-logo.png'],
   },
 }
 
@@ -69,7 +86,9 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#0ea5e9" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <link rel="apple-touch-icon" href="/Naga Perks Logo.png" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/giya-logo.png" type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/giya-logo.png" sizes="180x180" />
       </head>
       <body className={`${onest.variable} relative antialiased`}>
         <DomErrorBoundary>

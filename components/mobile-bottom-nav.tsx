@@ -16,6 +16,7 @@ import { UnifiedScanner } from "@/components/unified-scanner"
 
 interface MobileBottomNavProps {
   onQrScan?: (data: string) => void // Optional callback for QR scan results
+  onPunchCardScan?: () => void // Optional callback for punch card navigation
 }
 
 export function MobileBottomNav({ onQrScan }: MobileBottomNavProps) {

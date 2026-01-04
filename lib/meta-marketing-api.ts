@@ -15,10 +15,10 @@ export interface MetaAdAccountData {
 }
 
 export interface MetaAdInsights {
-  spend: number
-  impressions: number
-  clicks: number
-  reach: number
+  spend: string
+  impressions: string
+  clicks: string
+  reach: string
   actions?: Array<{
     action_type: string
     value: string

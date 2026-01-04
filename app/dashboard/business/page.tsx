@@ -59,7 +59,10 @@ interface RedemptionData {
   customers: {
     full_name: string
     profile_pic_url: string | null
-  }
+  } | {
+    full_name: string
+    profile_pic_url: string | null
+  }[]
   rewards: {
     reward_name: string
     description: string
@@ -571,15 +574,21 @@ export default function BusinessDashboard() {
             </DialogTitle>
             <DialogDescription>Validate this customer's reward redemption</DialogDescription>
           </DialogHeader>
-          {redemptionData && (
+          {redemptionData && (() => {
+            // Handle customers being either an object or array from Supabase
+            const customer = Array.isArray(redemptionData.customers) 
+              ? redemptionData.customers[0] 
+              : redemptionData.customers;
+            
+            return (
             <div className="space-y-6">
               <div className="flex items-center gap-4 rounded-lg border bg-secondary p-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={redemptionData.customers.profile_pic_url || undefined} alt={redemptionData.customers.full_name} />
-                  <AvatarFallback>{redemptionData.customers.full_name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={customer?.profile_pic_url || undefined} alt={customer?.full_name || 'Customer'} />
+                  <AvatarFallback>{customer?.full_name?.charAt(0) || 'C'}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold">{redemptionData.customers.full_name}</h3>
+                  <h3 className="font-semibold">{customer?.full_name || 'Customer'}</h3>
                   <p className="text-sm text-muted-foreground">Customer</p>
                 </div>
               </div>
@@ -614,7 +623,8 @@ export default function BusinessDashboard() {
                 </Button>
               </div>
             </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
       

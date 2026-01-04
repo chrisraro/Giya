@@ -64,9 +64,14 @@ export default function CustomerSetupPage() {
           .eq("unique_code", referralCode)
           .single()
 
-        if (affiliateLink && !linkError) {
-          setReferralInfluencer(affiliateLink.influencers)
-          toast.success(`You were referred by ${affiliateLink.influencers.full_name}!`, {
+        if (affiliateLink && !linkError && affiliateLink.influencers) {
+          // Supabase returns related tables as arrays, so access the first element
+          const influencer = Array.isArray(affiliateLink.influencers) 
+            ? affiliateLink.influencers[0] 
+            : affiliateLink.influencers
+          
+          setReferralInfluencer(influencer)
+          toast.success(`You were referred by ${influencer.full_name}!`, {
             description: "You'll earn points and they'll get credit for referring you.",
             duration: 5000
           })
