@@ -1,5 +1,5 @@
 // Service Worker for Naga Perks PWA
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2.0.0'; // Updated cache version
 const STATIC_CACHE = `naga-perks-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `naga-perks-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `naga-perks-images-${CACHE_VERSION}`;
@@ -8,32 +8,39 @@ const IMAGE_CACHE = `naga-perks-images-${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/Naga Perks Logo.png',
   '/giya-logo.png',
+  '/favicon.ico',
   '/offline.html'
 ];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Installing...');
+  console.log('[ServiceWorker] Installing version:', CACHE_VERSION);
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         console.log('[ServiceWorker] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        return cache.addAll(STATIC_ASSETS.map(url => new Request(url, { cache: 'reload' })));
       })
-      .then(() => self.skipWaiting())
+      .then(() => {
+        console.log('[ServiceWorker] Skip waiting');
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        console.error('[ServiceWorker] Install failed:', error);
+      })
   );
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activating...');
+  console.log('[ServiceWorker] Activating version:', CACHE_VERSION);
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
           .filter((cacheName) => {
+            // Delete all old caches
             return cacheName.startsWith('naga-perks-') && 
                    cacheName !== STATIC_CACHE && 
                    cacheName !== DYNAMIC_CACHE &&
@@ -44,7 +51,22 @@ self.addEventListener('activate', (event) => {
             return caches.delete(cacheName);
           })
       );
-    }).then(() => self.clients.claim())
+    })
+    .then(() => {
+      console.log('[ServiceWorker] Claiming clients');
+      return self.clients.claim();
+    })
+    .then(() => {
+      // Notify all clients about the update
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_UPDATED',
+            version: CACHE_VERSION
+          });
+        });
+      });
+    })
   );
 });
 
@@ -63,8 +85,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip Vercel analytics
-  if (url.origin.includes('vercel')) {
+  // Skip PostHog analytics
+  if (url.origin.includes('posthog.com')) {
     return;
   }
 
@@ -167,12 +189,15 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Naga Perks';
   const options = {
     body: data.body || 'New update available',
-    icon: '/Naga Perks Logo.png',
+    icon: '/giya-logo.png',
     badge: '/giya-logo.png',
     vibrate: [200, 100, 200],
     data: {
-      url: data.url || '/'
+      url: data.url || '/',
+      timestamp: Date.now()
     },
+    tag: data.tag || 'default',
+    requireInteraction: false,
     actions: [
       {
         action: 'open',

@@ -58,6 +58,14 @@ export function ServiceWorkerRegistration() {
         if (event.data && event.data.type === 'CACHE_UPDATED') {
           console.log('[PWA] Cache updated:', event.data.url)
         }
+        
+        if (event.data && event.data.type === 'SW_UPDATED') {
+          console.log('[PWA] Service Worker updated to version:', event.data.version)
+          // Force a hard reload to clear old cached headers
+          if (typeof window !== 'undefined') {
+            window.location.reload()
+          }
+        }
       })
     }
   }, [])

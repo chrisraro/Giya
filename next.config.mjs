@@ -52,15 +52,19 @@ const nextConfig = {
         {
           key: 'Content-Security-Policy',
           value: [
-            // Default: self and both domain variants
+            // Default: self
             "default-src 'self'",
             // Scripts: Next.js static, inline scripts, Meta Pixel, PostHog
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://us.i.posthog.com https://us-assets.i.posthog.com",
-            // Styles: Next.js CSS, inline styles, and both domains
+            // Script elements (explicit directive to prevent fallback issues)
+            "script-src-elem 'self' 'unsafe-inline' https://connect.facebook.net https://us.i.posthog.com https://us-assets.i.posthog.com",
+            // Styles: Next.js CSS, inline styles
             "style-src 'self' 'unsafe-inline'",
-            // Fonts: Next.js optimized fonts from both domains
+            // Style elements (explicit directive to prevent fallback issues)
+            "style-src-elem 'self' 'unsafe-inline'",
+            // Fonts: Next.js optimized fonts
             "font-src 'self' data:",
-            // Images: Supabase storage, external CDNs, both domains
+            // Images: Supabase storage, external CDNs
             "img-src 'self' blob: data: https: https://www.facebook.com https://*.supabase.co",
             // Connect: API calls, WebSocket, Supabase, PostHog
             "connect-src 'self' https: wss: https://*.supabase.co https://us.i.posthog.com wss://hkgcalssjxulsdgqsgvt.supabase.co",
@@ -69,6 +73,18 @@ const nextConfig = {
             // Frames: Meta Pixel noscript fallback
             "frame-src https://www.facebook.com",
           ].join('; '),
+        },
+        {
+          key: 'Cache-Control',
+          value: 'no-cache, no-store, must-revalidate, max-age=0',
+        },
+        {
+          key: 'Pragma',
+          value: 'no-cache',
+        },
+        {
+          key: 'Expires',
+          value: '0',
         },
         {
           key: 'Permissions-Policy',
